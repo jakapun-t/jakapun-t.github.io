@@ -1,7 +1,7 @@
 # Course pages: build brief
 
 This folder (`course/`) turns lecture Markdown into password-protected lecture pages for
-**jakapunt.github.io**. Read this whole file before writing code. The design was settled in a
+**jakapun-t.github.io**. Read this whole file before writing code. The design was settled in a
 long session; follow it rather than re-deciding. Ask before changing anything marked **Decided**.
 
 **Writing or changing a lesson? Read `LESSON-STYLE.md` first** (teaching style the teacher asked for;
@@ -26,7 +26,7 @@ digital humanities and NLP. Students are humanities majors, many new to programm
 ## 2. Where things live (Decided)
 
 ```
-jakapunt.github.io/                 existing Vite + React site, deployed by .github/workflows/deploy.yml
+jakapun-t.github.io/                 existing Vite + React site, deployed by .github/workflows/deploy.yml
 ├── src/ ...                        do not touch the existing site except to add a link to courses
 ├── public/courses/<course>/        ENCRYPTED output only, committed, shipped by the existing deploy
 │   ├── index.html                  course home (encrypted): this year's schedule
@@ -154,7 +154,7 @@ title: Tokenization and text normalization
 title_th: การตัดคำและการปรับรูปข้อความ
 lead_th: โปรแกรมแบ่งข้อความดิบออกเป็นหน่วยที่นับได้อย่างไร ...
 lead_en: How a program cuts raw text into units it can count ...
-lab: { name: Tokenizer, url: https://jakapunt.github.io/dashboard/Lab-Tokenizer.dc.html }
+lab: { name: Tokenizer, url: https://jakapun-t.github.io/dashboard/Lab-Tokenizer.dc.html }
 reading: Jurafsky & Martin, SLP ch. 2
 ---
 ```

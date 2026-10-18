@@ -25,7 +25,7 @@ const langInit = (course) =>
 const jsonForScript = (obj) =>
   JSON.stringify(obj).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
-// Course pages live at /courses/<course>/ on jakapunt.github.io, so the main site is two levels up.
+// Course pages live at /courses/<course>/ on jakapun-t.github.io, so the main site is two levels up.
 const SITE = '../../';
 
 export function pageHtml({ course, meta, lessonPad, sectionsHtml, toc, sectionCount, lessonNav, files, dev, focusDeck = '', srcFile = null, frontMatter = null, scheduled = null, release = null }) {

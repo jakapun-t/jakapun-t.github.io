@@ -1,4 +1,4 @@
-# Add these lines to the ROOT .gitignore of jakapunt.github.io
+# Add these lines to the ROOT .gitignore of jakapun-t.github.io
 # (lecture sources and the password must never reach the public repo)
 course/courses/
 course/.env

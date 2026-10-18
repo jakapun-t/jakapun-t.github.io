@@ -2,7 +2,7 @@
   "name": "course-pages",
   "private": true,
   "type": "module",
-  "description": "Builds password-protected lecture pages from Markdown for jakapunt.github.io",
+  "description": "Builds password-protected lecture pages from Markdown for jakapun-t.github.io",
   "scripts": {
     "dev": "node src/dev.mjs",
     "build": "node src/build.mjs",

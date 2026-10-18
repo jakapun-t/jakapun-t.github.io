@@ -4,7 +4,7 @@ This kit holds everything needed to build the lecture-page template in Claude Co
 
 ## 1. Put the files in place
 
-1. Unzip this kit into your repo so the folder is `jakapunt.github.io/course/`.
+1. Unzip this kit into your repo so the folder is `jakapun-t.github.io/course/`.
 2. Append the lines from `gitignore-additions.txt` to the **root** `.gitignore`. Do this before
    anything else, so `course/courses/` (your lecture sources) and `course/.env` can never be
    committed.
