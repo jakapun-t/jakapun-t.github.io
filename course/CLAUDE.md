@@ -293,6 +293,12 @@ focus mode is a `::: focus {page=false}` with one `$\displaystyle ...$` line. Th
   ```` ```sorter ```` lists columns with Keep / Drop buttons and a Check button (YAML `target`, `items:` with `name`,
   `def_th/en`, `answer: keep|drop|either`, `why_th/en`). Both get their own focus frame. Numbers in them must be real
   (computed in `course/.venv`, then pasted in).
+- **pipeline (added 2026-10-18, nlp lesson 12, same files):** ```` ```pipeline ```` is a clickable flow diagram: YAML
+  `rows:` (bands with `title_th/en`, `note_th/en`) and `nodes:` in reading order (`id`, `row`, `icon`, `name_th/en`,
+  `to: [ids]`, `what_th/en`, `example`). Clicking a box or Back / Next opens its panel and outlines the boxes it gets
+  from (solid) and sends to (dashed). Icons: doc, scissors, vector, database, question, search, chunks, prompt, llm,
+  answer. On the projector the map runs one line per row (row notes hidden) with the panel below; keep `example`
+  to about 7 lines so the frame fits.
 - **plot:** show the image first and hide the code. Remind authors in the docs that matplotlib
   needs a Thai font, or Thai labels render as boxes. Colab has no Thai font installed.
 

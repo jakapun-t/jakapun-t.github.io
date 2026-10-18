@@ -24,6 +24,20 @@ obvious, and use one of these:
 | An idea students should try with their hands | an interactive block (the ```` ```index-explorer ```` is the model) |
 | A sequence | `::: steps`, or `{steps="…"}` on code for line-by-line focus |
 | Code next to its explanation | `::: columns` (first block left) |
+| Why something is needed, or what goes wrong without it | a ✗ vs ✓ picture in the style of nlp `images/l12-why-chunk.svg` (below) |
+| A system with several steps that feed each other | a flow diagram with icons and numbered steps, or a clickable ```` ```pipeline ```` |
+
+**The model concept picture (teacher: "way clearer, I like this style", 2026-10-18)** is nlp
+`images/l12-why-chunk.svg` (`scripts/diagrams/nlp_l12_figures.py`, figure 17):
+1. The running example's question in a bubble at the top.
+2. Two panels side by side answering that same question: **✗ the problem** (`sw-warn-box`) and **✓ the fix** (`nt-band-a`).
+3. In each panel a **drawn object**, not numbers: a page with text lines, a grid of small cards, a stack of pages.
+4. **Arrows pointing at the exact spot**, each with 1–2 short labels; the one thing that matters is highlighted (a filled band, a lit card).
+5. A one-line result at the bottom of each panel (red ✗, green ✓), and an optional takeaway row in everyday units ("≈ 330 pages" vs "≈ 1 page").
+6. **Keep the real numbers and equations** ("the numbers and equation is still important"), attached to what they describe: the cosine beside its dot, the score under its bar, the formula on its panel, Recall@k on the result line. A bare list of scores, ranks and token counts with no picture was "not clear at all"; the numbers themselves stay.
+7. **Show every realistic case, not a straw man.** "Without chunking" shows both a small model that reads only the first ~1,000 characters and a big model (up to 1M tokens) that reads it all but blurs 55 scenes into one vector; measure both.
+8. **Decide per card how much text it needs.** A picture that tells one complete ✗/✓ story can stand with 1–3 short points. A key card, or a picture packed with several items or new terms (many tiles, strategies, two models compared), needs real context: number the items in the picture and explain each one under it with the running example, because students reread the page at home without the teacher. Test: could a student explain the card back from the page alone?
+9. **Important cards end with "Learn more:" links to outside sources**: 3–6 stable, primary or well-known sources (official docs, the original paper, a good visual guide, a benchmark), each with its publisher and one line on what it gives, in both languages. Check every URL loads before adding it. (Pointing to another section or lesson is still not allowed; outside reading is.)
 
 - Mini examples have 3–8 rows, are real rows of the course dataset (or clearly labelled practice
   tables), and every number in them is checked by running pandas.
@@ -101,6 +115,28 @@ What made the teacher say "I don't understand" and what fixed it:
 - **The projector gets a compact copy** (`::: focus {page=false}`: fewer words per cell, no per-cell Thai
   subtitles) when the page table is too tall; the page keeps the full table.
 
+## Every card has its own context (nlp lesson 12, 2026-10-18)
+
+"I don't understand this" / "some cards have no context" (Part 5, reranking and hybrid search) and "we haven't
+taught this before, make it so clear" (faithfulness, correctness) were fixed like this:
+
+- **Open every card with a bold question on the running example**, then the picture, then **numbered points
+  (1–3) that explain the picture** with the real numbers (L12 "Beyond naive RAG": *What is taught on 19 October?*
+  → fact 4 ranked 4th → why → the reranker moves it to 1st). A picture plus one paragraph, or a bare list of
+  cards, reads as "no context".
+- **Define each term in the card where it first appears** (naive RAG, bi-encoder, BM25, reranker, candidate
+  recall). A picture label such as "bi-encoder (cosine)" does not teach the term.
+- **Say why it fails, with a measurement**, and prefer real timings to "too slow" (reranker ≈ 1 ms per pair →
+  100,000 chunks ≈ 100 s per question).
+- **A set of technique cards gives each technique an example on the course data with its real result**, not a
+  one-line definition (multi-query: fact 4 from 4th to 2nd; routing: "What was my midterm score?" → the grades table).
+- **A new metric gets four things**: what it compares (a map picture), the formula with every symbol named, a
+  hand-worked example on the running question (several answers, each showing a different failure), and how people
+  compute it in practice (by hand → similarity scores → LLM as a judge), with real numbers showing why the simpler
+  way fails. Then an exercise that scores one example by hand.
+- A formula inside a numbered item: inline `$\dfrac{…}{…}$` on its own line (end the lines before it with `\`);
+  a `$$…$$` block breaks the list item.
+
 ## Explaining
 
 - Define a word before using it (lesson 10 had to add "key" before groupby and merge).
@@ -123,6 +159,9 @@ What made the teacher say "I don't understand" and what fixed it:
 - Lines short enough to fit their box without sideways scrolling (about 60 characters when the code
   shares space). Break long calls over lines; prefer a named step (`keys = [...]`, `extra = ...`)
   over a long one-liner.
+- But never split one data item over lines to save width: one string, one row, one fact per line, even if
+  that line scrolls. Two string pieces joined silently by Python ("…Mondays, " / "13:00-16:00…") were "too hard
+  to recognize" (teacher, 2026-10-18).
 - Outputs are real: run `npm run outputs -- <course> <lesson>` after editing code.
 
 ### Show or fold a code cell

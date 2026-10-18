@@ -83,7 +83,7 @@ out.append(f'<path d="M{x - 20} {y} H{x + 6}" class="pl-line"/><path d="M{x - 1}
 x += 16
 for w in ["ไลฟ์", "สด", "วันนี้"]:
     x = chip(x, y, w) + 6
-both(560, y + 40, "ตัดคำใหม่ที่ไม่อยู่ในพจนานุกรมได้", "can cut words missing from any dictionary", "ml-ok-small")
+both(560, y + 40, "ตัดคำใหม่ที่ไม่อยู่ในพจนานุกรมได้", "cuts words no dictionary has", "ml-ok-small")
 
 H = y + 60
 svg = [

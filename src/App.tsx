@@ -77,7 +77,7 @@ const MaterialsPage = () => {
     <main>
       <section className="course-hero"><p className="eyebrow">Class materials · For enrolled students</p><h1>Class materials</h1><p className="lead">Lecture pages for each class I teach. Every class has its own password, given out in class.</p><p className="lead-th" lang="th">เอกสารประกอบการเรียนสำหรับนิสิตที่ลงทะเบียน ใช้รหัสผ่านที่อาจารย์แจ้งในชั้นเรียน</p></section>
       <section className="course-layout"><aside><span>Classes</span></aside><div className="materials-list">{courses.map((course)=>{const m=course.materials; return <article key={course.slug} className={m?'':'unavailable'}>
-        <p className="materials-meta">{m?`${m.term} · Taught in ${m.language}`:'Coming later'}</p>
+        <p className="materials-meta">{m?[m.program, m.term, `Taught in ${m.language}`].filter(Boolean).join(' · '):'Coming later'}</p>
         <div className="materials-row"><div><h2>{course.title}</h2><p>{course.shortDescription}</p><a className="materials-about" href={`?course=${course.slug}`}>About this course →</a></div>
         {m?<div className="materials-action"><a className="button primary" href={m.href}><Lock/>Enter</a><span>Password required</span></div>:<div className="materials-action"><span>Not yet available</span></div>}</div>
       </article>})}</div></section>

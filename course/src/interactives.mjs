@@ -104,8 +104,86 @@ function renderSorter(n, ctx) {
 </figure>`;
 }
 
-export const INTERACTIVE_LANGS = new Set(['stepper', 'sorter']);
+// ```pipeline                           a clickable flow diagram (nlp lesson 12, the RAG pipeline)
+// title_th: ...                          the card header
+// title_en: ...
+// rows:                                  the bands, top to bottom
+//   - { title_th: ..., title_en: 1 Indexing, note_th: ..., note_en: once, before any question }
+// nodes:                                 in reading order (Back / Next follow it)
+//   - id: docs
+//     row: 1                             which band (1-based)
+//     name_th: เอกสาร
+//     name_en: Documents
+//     icon: doc                          doc | scissors | vector | database | question | search | chunks | prompt | llm | answer
+//     to: [split]                        where its output goes; inputs are worked out from these
+//     what_th: ...                       one or two sentences: what this step does
+//     what_en: ...
+//     example: |                         real data from the lesson, shown in mono
+//       fact 7: The final exam is ...
+// Clicking a box (or Back / Next) shows its panel and marks the boxes it reads from ("in") and feeds ("out").
+// Line icons for ```pipeline boxes (24×24, stroke = currentColor); a node picks one with `icon: <name>`.
+const PFL_ICONS = {
+  doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15h6M9 18h4"/>',
+  scissors: '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.3L20 18M8.2 15.7L20 6"/>',
+  vector: '<path d="M7 4H4v16h3M17 4h3v16h-3"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/>',
+  database: '<ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6"/><path d="M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/>',
+  question: '<path d="M4 5h16v11H10l-4 4v-4H4z"/><path d="M10.2 8.6a1.9 1.9 0 1 1 2.6 1.8c-.6.3-.8.7-.8 1.3"/><circle cx="12" cy="13.6" r=".6" fill="currentColor"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/>',
+  chunks: '<path d="M8 3h10v13H8z"/><path d="M5 6v14h10"/><path d="M11 7h4M11 10h4M11 13h3"/>',
+  prompt: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M12 15h5"/>',
+  llm: '<circle cx="6" cy="7" r="2"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><path d="M8 7.8l2.3 3M8 16.2l2.3-3M14 12h2"/>',
+  answer: '<path d="M4 5h16v11H10l-4 4v-4H4z"/><path d="M8.5 10.5l2.5 2.5 4.5-4.5"/>',
+};
+const pflIcon = (name) => (PFL_ICONS[name] ? `<svg class="pfl-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PFL_ICONS[name]}</svg>` : '');
+
+function renderPipeline(n, ctx) {
+  const d = yamlOf(n, ctx, 'pipeline');
+  if (!d || !Array.isArray(d.rows) || !Array.isArray(d.nodes) || !d.nodes.length) throw new LectureError(ctx.file, n.line, '```pipeline needs rows: and nodes: (lists)');
+  const ids = new Set(d.nodes.map((x) => x.id));
+  const name = new Map(d.nodes.map((x) => [x.id, TH(x.name_th, x.name_en)]));
+  const from = new Map(d.nodes.map((x) => [x.id, []]));
+  for (const x of d.nodes) {
+    for (const t of x.to ?? []) {
+      if (!ids.has(t)) throw new LectureError(ctx.file, n.line, `\`\`\`pipeline node "${x.id}" goes to unknown node "${t}"`);
+      from.get(t).push(x.id);
+    }
+  }
+  const num = new Map(d.nodes.map((x, k) => [x.id, k + 1]));
+  const start = ids.has(d.start) ? d.start : d.nodes[0].id;
+
+  const rows = d.rows
+    .map((r, k) => {
+      const nodes = d.nodes
+        .filter((x) => Number(x.row) === k + 1)
+        .map((x) => `<li><button type="button" class="pfl-node" data-id="${esc(x.id)}" aria-pressed="${x.id === start}"><span class="pfl-n">${num.get(x.id)}</span>${pflIcon(x.icon)}<span class="pfl-name">${name.get(x.id)}</span></button></li>`)
+        .join('');
+      return `<div class="pfl-row pfl-row-${(k % 3) + 1}"><p class="pfl-row-title"><strong>${TH(r.title_th, r.title_en)}</strong>${r.note_th || r.note_en ? `<span>${TH(r.note_th, r.note_en)}</span>` : ''}</p><ol class="pfl-nodes">${nodes}</ol></div>`;
+    })
+    .join('');
+
+  const chips = (list) => list.map((id) => `<span class="pfl-chip">${num.get(id)} ${name.get(id)}</span>`).join(' ');
+  const panels = d.nodes
+    .map((x) => {
+      const ins = from.get(x.id);
+      const outs = x.to ?? [];
+      const io = `<p class="pfl-io"><span class="pfl-io-in"><b>${T(['รับจาก', 'Gets'])}</b> ${ins.length ? chips(ins) : T(['(จุดเริ่มต้น)', '(the start)'])}</span><span class="pfl-io-out"><b>${T(['ส่งต่อให้', 'Sends to'])}</b> ${outs.length ? chips(outs) : T(['(ผลลัพธ์สุดท้าย)', '(the end result)'])}</span></p>`;
+      const ex = x.example ? `<pre class="pfl-ex">${esc(String(x.example).replace(/\s+$/, ''))}</pre>` : '';
+      return `<div class="pfl-panel" data-id="${esc(x.id)}" data-in="${esc(ins.join(' '))}" data-out="${esc(outs.join(' '))}"${x.id === start ? '' : ' hidden'}>
+<p class="pfl-title"><span class="pfl-n">${num.get(x.id)}</span>${pflIcon(x.icon)}${name.get(x.id)}</p><p class="pfl-what">${TH(x.what_th, x.what_en)}</p>${io}${ex}</div>`;
+    })
+    .join('');
+
+  return `<figure class="ixp pfl" data-pfl>
+<figcaption class="ixp-head">${icon('pointer', 16)}${TH(d.title_th ?? 'ลองกดแต่ละขั้น', d.title_en ?? 'Click each step')}</figcaption>
+<div class="ixp-body"><div class="pfl-map">${rows}</div>
+<div class="pfl-side"><div class="pfl-nav"><button type="button" data-pfl="prev">← ${T(['ก่อนหน้า', 'Back'])}</button><span class="pfl-pos" aria-live="polite">${num.get(start)} / ${d.nodes.length}</span><button type="button" data-pfl="next">${T(['ถัดไป', 'Next'])} →</button></div>${panels}
+<p class="pfl-key"><span class="pfl-key-in"></span>${T(['รับจาก', 'gets from'])}<span class="pfl-key-out"></span>${T(['ส่งต่อให้', 'sends to'])}</p></div></div>
+</figure>`;
+}
+
+export const INTERACTIVE_LANGS = new Set(['stepper', 'sorter', 'pipeline']);
 
 export function renderInteractive(n, ctx) {
+  if (n.lang === 'pipeline') return renderPipeline(n, ctx);
   return n.lang === 'stepper' ? renderStepper(n, ctx) : renderSorter(n, ctx);
 }

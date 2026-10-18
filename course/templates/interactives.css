@@ -73,3 +73,61 @@
 
 /* long class names in card text (e.g. `SequentialFeatureSelector`) wrap instead of spilling out */
 .pc-do code { overflow-wrap: anywhere; }
+
+/* ---------- ```pipeline (src/interactives.mjs): clickable flow diagram, nlp lesson 12 ---------- */
+.pfl-map { display: grid; gap: calc(8 * var(--ix)); }
+.pfl-row { padding: calc(8 * var(--ix)) calc(12 * var(--ix)) calc(10 * var(--ix)); border-radius: calc(12 * var(--ix)); background: var(--tag-concept-bg); }
+.pfl-row-2 { background: var(--tag-example-bg); }
+.pfl-row-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: calc(4 * var(--ix)) calc(10 * var(--ix)); margin: 0 0 calc(6 * var(--ix)); font-size: max(16px, calc(16 * var(--ix))); color: var(--ink); }
+.pfl-row-title > span { color: var(--muted); }
+.pfl-nodes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: calc(8 * var(--ix)) calc(26 * var(--ix)); }
+.pfl-nodes li { position: relative; }
+.pfl-nodes li + li::before { content: '→'; position: absolute; left: calc(-19 * var(--ix)); top: 50%; transform: translateY(-50%); color: var(--accent); font-weight: 700; }
+.pfl-node { display: inline-flex; align-items: center; gap: calc(6 * var(--ix)); min-height: calc(44 * var(--ix)); padding: calc(6 * var(--ix)) calc(12 * var(--ix)); border: 1.5px solid var(--card-border); border-radius: calc(10 * var(--ix)); background: var(--card); color: var(--ink); font: 500 max(16px, calc(16 * var(--ix))) var(--font-text); cursor: pointer; }
+.pfl-node:hover { border-color: var(--accent); }
+.pfl-node:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.pfl-node.is-in { outline: 3px solid var(--tag-concept-dot); outline-offset: 2px; }
+.pfl-node.is-out { outline: 3px dashed var(--tag-exercise-dot); outline-offset: 2px; }
+.pfl-node[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--card); }
+.pfl-ico { flex: none; width: calc(22 * var(--ix)); height: calc(22 * var(--ix)); color: var(--accent); }
+.pfl-node[aria-pressed='true'] .pfl-ico { color: var(--card); }
+.pfl-title .pfl-ico { width: calc(24 * var(--ix)); height: calc(24 * var(--ix)); }
+.pfl-n { display: inline-grid; place-items: center; flex: none; min-width: calc(22 * var(--ix)); height: calc(22 * var(--ix)); padding: 0 calc(4 * var(--ix)); border-radius: 999px; background: var(--cream); color: var(--ink); font: 700 calc(13 * var(--ix)) var(--font-code); }
+.pfl-node[aria-pressed='true'] .pfl-n { background: var(--card); color: var(--accent); }
+.pfl-side { margin-top: calc(12 * var(--ix)); }
+.pfl-nav { display: flex; align-items: center; gap: calc(12 * var(--ix)); margin-bottom: calc(10 * var(--ix)); }
+.pfl-nav button { min-height: calc(44 * var(--ix)); padding: calc(6 * var(--ix)) calc(16 * var(--ix)); border: 1px solid var(--card-border); border-radius: 999px; background: var(--card); color: var(--ink); font: 500 max(16px, calc(16 * var(--ix))) var(--font-text); cursor: pointer; }
+.pfl-nav button:hover:not(:disabled) { border-color: var(--accent); }
+.pfl-nav button:disabled { opacity: .45; cursor: default; }
+.pfl-pos { font: 600 calc(15 * var(--ix)) var(--font-code); color: var(--muted); }
+.pfl-panel { padding: calc(10 * var(--ix)) calc(14 * var(--ix)); border: 1px solid var(--rule); border-radius: calc(12 * var(--ix)); }
+.pfl-title { display: flex; align-items: center; gap: calc(8 * var(--ix)); margin: 0 0 calc(4 * var(--ix)); font-weight: 600; font-size: max(16px, calc(19 * var(--ix))); color: var(--ink); }
+.pfl-title .pfl-n { background: var(--accent); color: var(--card); }
+.pfl-what { margin: 0 0 calc(8 * var(--ix)); font-size: max(16px, calc(17 * var(--ix))); color: var(--ink); }
+.pfl-io { display: flex; flex-wrap: wrap; gap: calc(6 * var(--ix)) calc(20 * var(--ix)); margin: 0 0 calc(8 * var(--ix)); font-size: max(16px, calc(15 * var(--ix))); }
+.pfl-io-in b { color: var(--tag-concept-fg); }
+.pfl-io-out b { color: var(--tag-exercise-fg); }
+.pfl-chip { display: inline-block; padding: 0 calc(8 * var(--ix)); border-radius: 999px; background: var(--cream); color: var(--ink); white-space: nowrap; }
+.pfl-ex { margin: 0; padding: calc(8 * var(--ix)) calc(10 * var(--ix)); border-radius: calc(8 * var(--ix)); background: var(--cream); color: var(--ink); font: calc(14 * var(--ix))/1.5 var(--font-code); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pfl-key { display: flex; flex-wrap: wrap; align-items: center; gap: calc(6 * var(--ix)); margin: calc(8 * var(--ix)) 0 0; font-size: max(16px, calc(14 * var(--ix))); color: var(--muted); }
+.pfl-key-in, .pfl-key-out { display: inline-block; width: calc(16 * var(--ix)); height: calc(16 * var(--ix)); border-radius: calc(4 * var(--ix)); border: 3px solid var(--tag-concept-dot); }
+.pfl-key-out { margin-left: calc(10 * var(--ix)); border-style: dashed; border-color: var(--tag-exercise-dot); }
+/* projector: the map full width (one line per row), then the open panel with its example on the right */
+.fx .ixp.pfl { --ix: max(1px, var(--u)); align-self: stretch; }
+.fx .pfl .ixp-head, .fx .pfl-key, .fx .pfl-io { display: none; } /* the map's outlines show in / out */
+.fx .pfl .ixp-body { padding-top: calc(6 * var(--ix)); padding-bottom: calc(6 * var(--ix)); text-align: left; }
+.fx .pfl-map { gap: calc(6 * var(--ix)); }
+.fx .pfl-row { display: flex; align-items: center; gap: calc(16 * var(--ix)); padding: calc(5 * var(--ix)) calc(12 * var(--ix)); }
+.fx .pfl-row-title { flex: none; width: calc(130 * var(--ix)); margin: 0; }
+.fx .pfl-row-title > span { display: none; } /* "once, before any question": the teacher says it */
+.fx .pfl-node { min-height: calc(38 * var(--ix)); padding: calc(4 * var(--ix)) calc(8 * var(--ix)); gap: calc(5 * var(--ix)); }
+.fx .pfl-nodes { flex-wrap: nowrap; column-gap: calc(22 * var(--ix)); }
+.fx .pfl-nodes li + li::before { left: calc(-16 * var(--ix)); }
+.fx .pfl-row { gap: calc(10 * var(--ix)); }
+.fx .pfl-side { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: calc(16 * var(--ix)); align-items: start; margin-top: calc(6 * var(--ix)); }
+.fx .pfl-nav { flex-direction: column; margin: 0; gap: calc(6 * var(--ix)); }
+.fx .pfl-nav button { min-height: calc(38 * var(--ix)); }
+.fx .pfl-panel:not([hidden]) { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: calc(16 * var(--ix)); align-items: start; padding: calc(8 * var(--ix)) calc(12 * var(--ix)); }
+.fx .pfl-what { font-size: max(16px, calc(16 * var(--ix))); margin: 0; }
+.fx .pfl-title, .fx .pfl-what, .fx .pfl-io { grid-column: 1; }
+.fx .pfl-ex { grid-column: 2; grid-row: 1 / span 3; font-size: calc(13 * var(--ix)); line-height: 1.3; padding: calc(6 * var(--ix)) calc(10 * var(--ix)); }

@@ -89,4 +89,43 @@
       }
     });
   });
+
+  // pipeline: click a box (or Back / Next) to show its panel; mark the boxes it reads from and feeds
+  [].forEach.call(document.querySelectorAll('figure[data-pfl]'), function (el) {
+    var panels = [].slice.call(el.querySelectorAll('.pfl-panel'));
+    var nodes = [].slice.call(el.querySelectorAll('.pfl-node'));
+    var pos = el.querySelector('.pfl-pos');
+    var i = 0;
+    panels.forEach(function (p, k) { if (!p.hidden) i = k; });
+
+    function show(k) {
+      i = Math.max(0, Math.min(panels.length - 1, k));
+      var p = panels[i];
+      var id = p.getAttribute('data-id');
+      var ins = (p.getAttribute('data-in') || '').split(' ');
+      var outs = (p.getAttribute('data-out') || '').split(' ');
+      panels.forEach(function (x, j) { x.hidden = j !== i; });
+      nodes.forEach(function (b) {
+        var bid = b.getAttribute('data-id');
+        b.setAttribute('aria-pressed', String(bid === id));
+        b.classList.toggle('is-in', ins.indexOf(bid) >= 0);
+        b.classList.toggle('is-out', outs.indexOf(bid) >= 0);
+      });
+      pos.textContent = (i + 1) + ' / ' + panels.length;
+      el.querySelector('[data-pfl="prev"]').disabled = i === 0;
+      el.querySelector('[data-pfl="next"]').disabled = i === panels.length - 1;
+    }
+
+    el.addEventListener('click', function (e) {
+      var node = e.target.closest('.pfl-node');
+      if (node && el.contains(node)) {
+        var id = node.getAttribute('data-id');
+        panels.forEach(function (p, j) { if (p.getAttribute('data-id') === id) show(j); });
+        return;
+      }
+      var b = e.target.closest('button[data-pfl]');
+      if (b && el.contains(b)) show(i + (b.getAttribute('data-pfl') === 'next' ? 1 : -1));
+    });
+    show(i);
+  });
 })();

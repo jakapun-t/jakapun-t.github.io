@@ -6,7 +6,7 @@ export type Course = {
   progression: string;
   topics: { title: string; items: string[] }[];
   /** Password-protected lecture pages built by course/ and published under public/courses/. */
-  materials?: { href: string; term: string; language: string };
+  materials?: { href: string; term: string; language: string; program?: string };
 };
 
 export const courses: Course[] = [
@@ -21,7 +21,7 @@ export const courses: Course[] = [
       'Laboratory activities and assignments emphasize breaking problems into computational steps, translating those steps into code, testing solutions, and using programming to investigate language data. The course also introduces how processed text later supports embeddings, recurrent neural networks, and Transformers.',
     ],
     progression: 'From “I have never programmed before” to “I can use Python to solve problems involving language and text.”',
-    materials: { href: 'courses/nlp-basic/index.html', term: 'Fall 2026', language: 'Thai' },
+    materials: { href: 'courses/nlp-basic/index.html', program: 'LangTech', term: 'Fall 2026', language: 'Thai' },
     topics: [
       { title: 'Introduction to Programming', items: ['How computers execute instructions', 'Programming languages versus natural languages', 'Python interpreters and development environments', '.py programs and Jupyter notebooks'] },
       { title: 'Python Fundamentals', items: ['Program structure and sequential execution', 'Variables and expressions', 'Functions and modules', 'Reusable code and basic program organisation'] },
@@ -42,6 +42,7 @@ export const courses: Course[] = [
       'The goal is to understand how language is represented computationally, how models learn from data, how different approaches solve different language problems, and how linguistic knowledge guides development and evaluation.',
     ],
     progression: 'Language → Representation → Model → Prediction / Retrieval / Generation → Linguistic Analysis',
+    materials: { href: 'courses/nlp/index.html', program: 'ISE NLP', term: 'Fall 2026', language: 'English' },
     topics: [
       { title: 'Foundations of NLP', items: ['What NLP is', 'NLP versus computational linguistics', 'AI, NLP, and Large Language Models', 'Linguistic challenges in computational systems'] },
       { title: 'Machine Learning & Text Classification', items: ['Features and representations', 'Classification and logistic regression', 'Sentiment analysis', 'Training and evaluating NLP models'] },
@@ -84,6 +85,7 @@ export const courses: Course[] = [
       'Advanced topics include Maximum Likelihood Estimation, information theory, Monte Carlo methods, bootstrapping, permutation tests, and Cohen’s Kappa. Throughout, students connect research questions, data, assumptions, methods, results, and interpretation while avoiding p-hacking and confusing correlation with causation.',
     ],
     progression: 'Describe Data → Understand Uncertainty → Test Claims → Model Relationships → Evaluate Evidence',
+    materials: { href: 'courses/stats-dh/index.html', program: 'LangTech', term: 'Fall 2026', language: 'Thai' },
     topics: [
       { title: 'Humanities Data & Python', items: ['Digital Humanities and Computational Linguistics', 'Quantitative text research', 'NumPy, Pandas, and visualization tools', 'Working with real humanities datasets'] },
       { title: 'Descriptive Statistics & Visualization', items: ['Variables, mean, median, and mode', 'Percentiles, variance, and standard deviation', 'Histograms, density plots, scatter plots, box plots, and CDFs'] },

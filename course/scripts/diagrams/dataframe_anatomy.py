@@ -139,7 +139,8 @@ for right, top, body, bottom, cols, first_row in [
     (xl_right, XL_TOP, xl_body, xl_bottom, xs, 1),
     (df_right, DF_TOP, df_body, df_bottom, pxs, 0),
 ]:
-    badge(right + 20, top + 12, "1")  # the whole table
+    # the whole table: top right in Excel; bottom right in pandas, where the header row takes marker 6
+    badge(right + 20, top + 12 if first_row else bottom - 14, "1")
     badge(cols[SERIES] + WIDTHS[SERIES] / 2, top - 14, "2")  # one column
     badge(X0 + 18, bottom + 18, "3")  # row labels
     r, c = NAN_CELL
