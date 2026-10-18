@@ -57,7 +57,7 @@ f = lambda x: np.exp(-((x - 0.62) ** 2) / 0.012)  # accuracy depends on the impo
 xs = np.linspace(0, 1, 300)
 grid = [(x, y) for x in (0.2, 0.5, 0.8) for y in (0.2, 0.5, 0.8)]
 rand = list(zip(rng.uniform(0.05, 0.95, 9), rng.uniform(0.05, 0.95, 9)))
-fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.4))
+fig, axes = plt.subplots(1, 2, figsize=(10.8, 3.5))
 for ax, pts, title in [(axes[0], grid, "Grid search: 9 tries, 3 values"), (axes[1], rand, "Random search: 9 tries, 9 values")]:
     ax.set_xlim(0, 1)
     ax.set_ylim(-0.02, 1.32)

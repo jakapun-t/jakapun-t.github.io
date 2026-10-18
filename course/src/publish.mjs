@@ -77,13 +77,36 @@ async function main() {
     fs.mkdirSync(plainDir);
     for (const p of pages) fs.writeFileSync(path.join(plainDir, p.name), p.html);
 
+    // the password screen is in the course's default language (course.yml `lang:`)
+    const en = course.lang === 'en';
+    const days = course.remember_days ?? 30;
+    const screen = en
+      ? {
+          LANG: 'en', LOADING: 'Loading', SHOW: 'Show', HIDE: 'Hide',
+          PW_LABEL: 'Password',
+          HELP: 'No password? Ask your teacher.',
+          BACK: 'All class materials',
+          instructions: 'This page is for students in this course. Enter the password given in class.',
+          button: 'Open the lesson', remember: `Remember the password on this device for ${days} days`,
+          error: 'Wrong password. Try again.', placeholder: 'Password', toggleShow: 'Show password', toggleHide: 'Hide password',
+        }
+      : {
+          LANG: 'th', LOADING: 'กำลังเปิด / Loading', SHOW: 'แสดง', HIDE: 'ซ่อน',
+          PW_LABEL: 'รหัสผ่าน <span lang="en">(Password)</span>',
+          HELP: 'ถ้าไม่มีรหัสผ่าน ให้ติดต่ออาจารย์ผู้สอน <span lang="en">Ask your teacher for the password.</span>',
+          BACK: 'เอกสารประกอบการเรียนทั้งหมด <span lang="en">All class materials</span>',
+          instructions: 'หน้านี้สำหรับนิสิตในรายวิชา ใส่รหัสผ่านที่อาจารย์แจ้งในชั้นเรียน',
+          button: 'เข้าสู่บทเรียน', remember: `จดจำรหัสผ่านในเครื่องนี้ ${days} วัน`,
+          error: 'รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง', placeholder: 'รหัสผ่าน', toggleShow: 'แสดงรหัสผ่าน', toggleHide: 'ซ่อนรหัสผ่าน',
+        };
     const template = fs
       .readFileSync(path.join(COURSE_DIR, 'templates', 'password.html'), 'utf8')
       .replace('{{FONT_CSS}}', () => fontFaceCss('../_fonts/'))
       .replace('{{TOKENS_CSS}}', () => fs.readFileSync(path.join(COURSE_DIR, 'tokens.css'), 'utf8').replace(/@import\s+url\([^)]*\)[^;]*;\s*/g, ''))
       .replaceAll('{{COURSE_TITLE}}', () => escHtml(course.title ?? slug))
       .replaceAll('{{COURSE_TITLE_TH}}', () => escHtml(course.title_th ?? ''))
-      .replaceAll('{{SLUG}}', () => slug.replace(/[^a-z0-9-]/gi, ''));
+      .replaceAll('{{SLUG}}', () => slug.replace(/[^a-z0-9-]/gi, ''))
+      .replaceAll(/\{\{([A-Z_]+)\}\}/g, (m, k) => (k in screen ? screen[k] : m));
     const templatePath = path.join(tmp, 'password.html');
     fs.writeFileSync(templatePath, template);
 
@@ -101,13 +124,13 @@ async function main() {
         '--remember', String(course.remember_days ?? 30),
         '--template', templatePath,
         '--template-title', course.title ?? slug,
-        '--template-instructions', 'หน้านี้สำหรับนิสิตในรายวิชา ใส่รหัสผ่านที่อาจารย์แจ้งในชั้นเรียน',
-        '--template-button', 'เข้าสู่บทเรียน',
-        '--template-remember', `จดจำรหัสผ่านในเครื่องนี้ ${course.remember_days ?? 30} วัน`,
-        '--template-error', 'รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง',
-        '--template-placeholder', 'รหัสผ่าน',
-        '--template-toggle-show', 'แสดงรหัสผ่าน',
-        '--template-toggle-hide', 'ซ่อนรหัสผ่าน',
+        '--template-instructions', screen.instructions,
+        '--template-button', screen.button,
+        '--template-remember', screen.remember,
+        '--template-error', screen.error,
+        '--template-placeholder', screen.placeholder,
+        '--template-toggle-show', screen.toggleShow,
+        '--template-toggle-hide', screen.toggleHide,
       ],
       { env: { ...process.env, STATICRYPT_PASSWORD: password }, encoding: 'utf8' },
     );

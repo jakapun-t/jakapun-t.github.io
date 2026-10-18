@@ -84,6 +84,8 @@ export async function buildCourse(slug, { dev = false, released = false } = {}) 
     const ctx = {
       env: meta.env ?? course.env ?? 'colab',
       install: meta.install ?? course.install ?? null,
+      // `code: collapsed` in course.yml or front matter folds the code cells; a lesson's `code: open` unfolds them
+      codeCollapsed: (meta.code ?? course.code) === 'collapsed',
       chartData: meta.chart_data ?? null, // default table for plot cells' cols= snippets
       chartDataName: meta.chart_data_name ?? null,
       installShown: false,
@@ -171,7 +173,7 @@ function courseHomeHtml(course, lectures, dev, released) {
   const sectionsHtml = `<section class="card section"><div class="section-body"><div class="section-head"><h2 id="sched-title">${T(['ตารางเรียน', 'Schedule'])}</h2></div><ul class="sched" aria-labelledby="sched-title">${items}</ul></div></section>`;
   return pageHtml({
     course,
-    meta: { lesson: '', title: course.title, title_th: course.title_th },
+    meta: { lesson: '', title: course.title, title_th: course.title_th, lead_th: course.lead_th, lead_en: course.lead_en },
     lessonPad: '',
     sectionsHtml,
     toc: '',

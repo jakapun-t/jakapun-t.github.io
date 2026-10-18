@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   var root = document.documentElement;
-  var KEY = 'course-lang';
+  var KEY = root.getAttribute('data-lang-key') || 'course-lang';
 
   // ---------- ไทย / EN ----------
   function setLang(lang, save) {
@@ -110,6 +110,15 @@
       var open = ans.getAttribute('aria-expanded') !== 'true';
       ans.setAttribute('aria-expanded', String(open));
       if (panel) panel.hidden = !open;
+      return;
+    }
+    // a folded code cell's Show code / Hide code button
+    var ct = e.target.closest('.btn-code-toggle');
+    if (ct) {
+      var fold = document.getElementById(ct.getAttribute('aria-controls'));
+      var showCode = ct.getAttribute('aria-expanded') !== 'true';
+      ct.setAttribute('aria-expanded', String(showCode));
+      if (fold) fold.hidden = !showCode;
       return;
     }
     // the prompt behind a code cell's Prompt button

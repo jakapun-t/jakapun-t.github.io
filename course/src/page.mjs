@@ -14,8 +14,13 @@ const read = (p) => fs.readFileSync(path.join(COURSE_DIR, p), 'utf8');
 // tokens.css pulls fonts from Google with @import; the build self-hosts them instead (fonts.mjs)
 const tokensCss = () => read('tokens.css').replace(/@import\s+url\([^)]*\)[^;]*;\s*/g, '');
 
-// Applied before first paint so the page never flashes the wrong language.
-const LANG_INIT = `(function(){var l='th';try{var s=localStorage.getItem('course-lang');if(s==='en'||s==='th')l=s}catch(e){}var r=document.documentElement;r.setAttribute('data-lang',l);r.lang=l})();`;
+// Applied before first paint so the page never flashes the wrong language. `lang: en` in
+// course.yml makes English the default (international courses); such a course remembers the
+// choice under its own key, so picking ไทย in a Thai course doesn't carry over to it.
+export const defaultLang = (course) => (course.lang === 'en' ? 'en' : 'th');
+const langKey = (course) => (defaultLang(course) === 'en' ? `course-lang-${course.slug}` : 'course-lang');
+const langInit = (course) =>
+  `(function(){var l='${defaultLang(course)}';try{var s=localStorage.getItem(${JSON.stringify(langKey(course))});if(s==='en'||s==='th')l=s}catch(e){}var r=document.documentElement;r.setAttribute('data-lang',l);r.lang=l})();`;
 
 const jsonForScript = (obj) =>
   JSON.stringify(obj).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
@@ -50,14 +55,21 @@ export function pageHtml({ course, meta, lessonPad, sectionsHtml, toc, sectionCo
   const leadTh = meta.lead_th ?? meta.lead_en;
   const leadEn = meta.lead_en ?? meta.lead_th;
 
+  const lang = defaultLang(course);
+  const langButtons = [
+    `<button type="button" data-set-lang="th" aria-pressed="${lang === 'th'}">ไทย</button>`,
+    `<button type="button" data-set-lang="en" lang="en" aria-pressed="${lang === 'en'}">EN</button>`,
+  ];
+  if (lang === 'en') langButtons.reverse();
+
   return `<!doctype html>
-<html lang="th" data-lang="th">
+<html lang="${lang}" data-lang="${lang}" data-lang-key="${esc(langKey(course))}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>${esc(title)}</title>
-<script>${LANG_INIT}</script>
+<script>${langInit(course)}</script>
 ${preloadLinks(fontsUrl)}
 <style>
 ${fontFaceCss(fontsUrl)}
@@ -80,7 +92,7 @@ ${hasMath(sectionsHtml + focusDeck) ? katexCss(fontsUrl) : ''}
 </nav>
 <div class="top-actions">
 <div class="lang-switch" role="group" aria-label="ภาษา / Language">
-<button type="button" data-set-lang="th" aria-pressed="true">ไทย</button><button type="button" data-set-lang="en" lang="en" aria-pressed="false">EN</button>
+${langButtons.join('')}
 </div>
 ${focusDeck ? `<button type="button" class="btn btn-dark btn-focus" data-fx="open" aria-keyshortcuts="F" title="Focus (F)">${icon('focus', 15)}<span lang="en">Focus</span></button>` : ''}
 </div>

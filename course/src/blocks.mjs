@@ -25,7 +25,7 @@ export function inferDtype(values) {
 }
 
 // pandas prints a float column with the same number of decimals on every row.
-export function formatColumn(values, dtype) {
+export function formatColumn(values, dtype, full = false) {
   if (dtype === 'float64') {
     const decimals = Math.max(1, ...values.filter((v) => v !== '').map((v) => (v.includes('.') ? v.split('.')[1].length : 0)));
     return values.map((v) => (v === '' ? 'NaN' : Number(v).toFixed(Math.min(decimals, 6))));
@@ -34,12 +34,14 @@ export function formatColumn(values, dtype) {
   return values.map((v) => {
     if (v === '') return 'NaN';
     if (dtype === 'object' && isBool(v)) return v.toLowerCase() === 'true' ? 'True' : 'False';
-    return v.length > 50 ? `${v.slice(0, 47)}...` : v; // pandas display.max_colwidth
+    return !full && v.length > 50 ? `${v.slice(0, 47)}...` : v; // pandas display.max_colwidth
   });
 }
 
 export function renderDataframe(n, ctx) {
   const { src, name = 'df', show = 5 } = n.attrs;
+  // {wrap=true}: show long text in full, wrapped inside its cell, instead of pandas' 50-character cut
+  const wrap = n.attrs.wrap === true || n.attrs.wrap === 'true';
   const text = src ? ctx.readData(src, n.line) : n.text;
   if (!text.trim()) throw new LectureError(ctx.file, n.line, '```dataframe needs src="data/file.csv" or CSV lines inside the block');
   const csv = parseCsv(text);
@@ -50,7 +52,8 @@ export function renderDataframe(n, ctx) {
   const cols = csv.header.map((h, j) => {
     const all = csv.rows.map((r) => (r[j] ?? '').trim());
     const dtype = inferDtype(all);
-    return { name: h, dtype, cells: formatColumn(shown.map((r) => (r[j] ?? '').trim()), dtype) };
+    const long = wrap && all.some((v) => v.length > 30); // only long-text columns wrap
+    return { name: h, dtype, long, cells: formatColumn(shown.map((r) => (r[j] ?? '').trim()), dtype, wrap) };
   });
   const num = (c) => c.dtype === 'int64' || c.dtype === 'float64';
 
@@ -58,14 +61,14 @@ export function renderDataframe(n, ctx) {
     .map((c) => `<th scope="col" class="${num(c) ? 'df-num' : ''}"><span class="df-col">${esc(c.name)}</span><span class="df-dtype">${c.dtype}</span></th>`)
     .join('')}</tr>`;
   const body = shown
-    .map((_, i) => `<tr><th scope="row" class="df-index">${i}</th>${cols.map((c) => `<td class="${num(c) ? 'df-num' : ''}${c.cells[i] === 'NaN' ? ' df-nan' : ''}">${esc(c.cells[i])}</td>`).join('')}</tr>`)
+    .map((_, i) => `<tr><th scope="row" class="df-index">${i}</th>${cols.map((c) => `<td class="${num(c) ? 'df-num' : ''}${c.long ? ' df-long' : ''}${c.cells[i] === 'NaN' ? ' df-nan' : ''}">${esc(c.cells[i])}</td>`).join('')}</tr>`)
     .join('');
   const more = nrows > limit ? `<tr class="df-more"><th scope="row" class="df-index">…</th>${cols.map(() => '<td>…</td>').join('')}</tr>` : '';
 
   const fileName = src ? path.basename(src) : `${name}.csv`;
   const copyId = ctx.addFile({ text: `${name} = pd.read_csv("${fileName}")` });
   const csvId = ctx.addFile({ name: fileName, type: 'text/csv;charset=utf-8', text: text.endsWith('\n') ? text : `${text}\n` });
-  return `<figure class="df">
+  return `<figure class="df${wrap ? ' df-wrap' : ''}">
 <figcaption class="df-head"><span class="df-tag">${icon('table', 14)}<span lang="en">DataFrame</span> <code>${esc(name)}</code></span><span class="code-actions"><button type="button" class="btn btn-light" data-copy="${copyId}">${icon('copy')}${T(['คัดลอกโค้ด', 'Copy code'])}</button><button type="button" class="btn btn-dark" data-download="${csvId}">${icon('download')}<span lang="en">Download CSV</span></button></span></figcaption>
 <div class="table-scroll df-scroll" tabindex="0" role="region" aria-label="${esc(name)}"><table class="df-table"><thead>${head}</thead><tbody>${body}${more}</tbody></table></div>
 <p class="df-shape"><span lang="en">${nrows} rows × ${ncols} columns</span>${nrows > limit ? ` ${T([`(แสดง ${limit} แถวแรก)`, `(first ${limit} shown)`])}` : ''}</p>

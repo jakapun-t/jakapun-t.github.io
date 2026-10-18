@@ -3,14 +3,15 @@
 //
 // What a section becomes:
 //   ::: focus      → one frame per block, showing exactly its content (overrides the default)
-//   ::: steps      → one frame, one step per list item
+//   ::: steps      → one frame, one step per list item ({focus=false}: none, for a ::: focus copy)
 //   code {steps=}  → one frame that highlights one line per step, with ::: step-outputs
 //   ::: transform  → one frame with the before → after tables ({focus=false}: none, for a ::: focus copy)
 //   otherwise      → heading + the first example, tokens, figure, plot, dataframe, code,
 //                    table or key-term list (heading alone if there is none)
-// Paragraphs never show; the teacher says them.
+// Paragraphs never show; the teacher says them. Each frame does carry the card's one-line ::: summary
+// under its heading (the takeaway students keep in the slide PDF).
 
-import { esc, inline, T, UI, icon, renderTokens, renderTable, renderBlocks, wrapLastExpression, ctxFile, splitColumns, outputTable, plotDataSnippet } from './render.mjs';
+import { esc, inline, T, UI, icon, renderSummary, renderTokens, renderTable, renderBlocks, wrapLastExpression, ctxFile, splitColumns, outputTable, plotDataSnippet } from './render.mjs';
 import { renderTransform } from './transform.mjs';
 import { renderDataframe, renderPrompt, renderFigure, renderIndexExplorer, renderCards, imageTag, renderBpeExplorer } from './blocks.mjs';
 import { highlightLines } from './highlight.mjs';
@@ -29,7 +30,9 @@ export function renderFocusDeck(lecture, ctx) {
 function sectionFrames(s, ctx) {
   ctx.section = s;
   const out = [];
-  const head = (size = '') => `<header class="fx-head${size}"><h2 lang="en">${inline(s.title)}</h2>${s.attrs.th ? `<p class="fx-sub" data-only="th">${inline(s.attrs.th)}</p>` : ''}</header>`;
+  const summary = s.blocks.find((b) => b.type === 'container' && b.name === 'summary');
+  const take = summary ? `<p class="fx-take">${renderSummary(summary)}</p>` : '';
+  const head = (size = '') => `<header class="fx-head${size}"><h2 lang="en">${inline(s.title)}</h2>${s.attrs.th ? `<p class="fx-sub" data-only="th">${inline(s.attrs.th)}</p>` : ''}${take}</header>`;
   const frame = (kind, body, { steps = 1, extra = '' } = {}) =>
     `<section class="fx-frame fx-k-${kind}" data-section="${s.id}" data-title="${esc(plain(inline(s.title)))}" data-steps="${steps}"${extra} hidden>${body}</section>`;
 
@@ -50,6 +53,9 @@ function sectionFrames(s, ctx) {
   const walk = (nodes, fn, parentExercise = null) => {
     for (let i = 0; i < nodes.length; i++) {
       const n = nodes[i];
+      // {focus=false} on ::: columns, ::: exercise or ::: steps: no projector frame from it or anything inside it
+      // (put a compact ::: focus {page=false} copy next to it instead)
+      if (n.type === 'container' && ['columns', 'exercise', 'steps'].includes(n.name) && n.attrs?.focus === 'false') continue;
       fn(n, i, nodes, parentExercise);
       if (n.type === 'container' && !['th', 'en', 'answer', 'focus', 'summary', 'columns'].includes(n.name)) {
         walk(n.children, fn, n.name === 'exercise' ? n : parentExercise);
@@ -72,17 +78,17 @@ function sectionFrames(s, ctx) {
       const next = siblings[i + 1]?.type === 'fence' && siblings[i + 1].lang === 'output' ? siblings[i + 2] : siblings[i + 1];
       const stepOutputs = next?.type === 'container' && next.name === 'step-outputs' ? next : null;
       out.push(codeFrame(n, stepOutputs, s, frame, ctx));
-    } else if (n.type === 'fence' && siblings[i + 1]?.type === 'fence' && siblings[i + 1].lang === 'output' && siblings[i + 1].attrs.plot) {
+    } else if (n.type === 'fence' && n.attrs.focus !== 'false' && siblings[i + 1]?.type === 'fence' && siblings[i + 1].lang === 'output' && siblings[i + 1].attrs.plot) {
       // a plotting cell: the code beside the chart it draws
       const plot = `<div class="fx-plot">${imageTag(siblings[i + 1].attrs.plot, { ...ctx, file: ctxFile() }, siblings[i + 1].attrs.alt ?? '', siblings[i + 1].line)}</div>`;
       out.push(frame('cols', `${head(' fx-head-sm')}<div class="fx-body"><div class="fx-cols fx-cols-plot"><div class="fx-col">${visualHtml(n, ctx)}${plotDataSnippet(n, ctx)}</div><div class="fx-col">${plot}</div></div></div>`));
     } else if (n.type === 'fence' && n.lang === 'cards' && n.attrs.focus !== 'false') {
       out.push(frame('widget', `${head(' fx-head-sm')}<div class="fx-body">${renderCards(n, { ...ctx, file: ctxFile() })}</div>`));
-    } else if (n.type === 'fence' && n.lang === 'bpe-explorer') {
+    } else if (n.type === 'fence' && n.lang === 'bpe-explorer' && n.attrs.focus !== 'false') {
       out.push(frame('widget', `${head(' fx-head-sm')}<div class="fx-body">${renderBpeExplorer(n, { ...ctx, file: ctxFile() })}</div>`));
-    } else if (n.type === 'fence' && INTERACTIVE_LANGS.has(n.lang)) {
+    } else if (n.type === 'fence' && INTERACTIVE_LANGS.has(n.lang) && n.attrs.focus !== 'false') {
       out.push(frame('widget', `${head(' fx-head-sm')}<div class="fx-body">${renderInteractive(n, { ...ctx, file: ctxFile() })}</div>`));
-    } else if (n.type === 'fence' && n.lang === 'index-explorer') {
+    } else if (n.type === 'fence' && n.lang === 'index-explorer' && n.attrs.focus !== 'false') {
       out.push(frame('widget', `${head(' fx-head-sm')}<div class="fx-body">${renderIndexExplorer(n, { ...ctx, file: ctxFile() })}</div>`));
     } else if (n.type === 'container' && n.name === 'transform' && n.attrs.focus !== 'false') {
       out.push(frame('transform', `${head(' fx-head-sm')}<div class="fx-body">${renderTransform(n, { ...ctx, file: ctxFile(), renderBlocks: (nodes) => renderBlocks(nodes, ctx) })}</div>`));
@@ -179,6 +185,8 @@ function codeLines(n, ctx) {
 }
 
 // ---------------------------------------------------------------- ::: focus (and exercises)
+// An exercise frame shows its question and, one step later, the answers; the page's
+// "Exercise · 3 min · On your own" label stays off the projector (teacher's request, 2026-10-18).
 
 function focusFrame(n, exercise, answer, head, frame, ctx) {
   const onlyText = n.children.length === 1 && n.children[0].type === 'md' && !n.children[0].text.includes('\n\n');
@@ -187,21 +195,13 @@ function focusFrame(n, exercise, answer, head, frame, ctx) {
   const visualOnly = n.children.every((c) => (c.type === 'fence' && ['figure', 'cards'].includes(c.lang)) || c.type === 'table' || (c.type === 'container' && c.name === 'transform'));
   if (!exercise) return frame('focus', `${head(visualOnly ? ' fx-head-sm' : '')}<div class="fx-body">${content}</div>`);
 
-  const label = exerciseLabelText(exercise);
   const steps = [`<div class="fx-step" data-step="0">${content}</div>`];
   if (answer) steps.push(`<div class="fx-step" data-step="1">${answerCards(answer)}</div>`);
   return frame(
     'exercise',
-    `${head(' fx-head-sm')}<p class="fx-ex-label">${icon('exercise', 22)}${label}</p><div class="fx-body fx-reveal">${steps.join('')}</div>`,
+    `${head(' fx-head-sm')}<div class="fx-body fx-reveal">${steps.join('')}</div>`,
     { steps: steps.length, extra: answer ? ' data-answer="1"' : '' },
   );
-}
-
-function exerciseLabelText(n) {
-  const parts = [T(UI.exercise)];
-  if (n.attrs.time) parts.push(T([n.attrs.time, n.attrs.time_en ?? n.attrs.time.replace(/\s*นาที/, ' min')]));
-  if (n.attrs.mode && UI.mode[n.attrs.mode]) parts.push(T(UI.mode[n.attrs.mode]));
-  return parts.join('<span aria-hidden="true"> · </span>');
 }
 
 function answerCards(answer) {
@@ -284,7 +284,7 @@ function stepsFrame(n, head, frame) {
     }
     return `<div class="fx-step" data-step="${k}"><div class="fx-object">${objectHtml(object)}</div>${caption}</div>`;
   });
-  return frame('steps fx-morph', `${head()}<div class="fx-body"><div class="fx-stage">${stages.join('')}</div></div>`, { steps: items.length });
+  return frame('steps fx-morph', `${head(' fx-head-sm')}<div class="fx-body"><div class="fx-stage">${stages.join('')}</div></div>`, { steps: items.length });
 }
 
 function note(it) {

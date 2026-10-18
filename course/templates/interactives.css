@@ -51,5 +51,25 @@
 .srt-score { font-weight: 600; color: var(--ink); }
 .fx .srt .ixp-body, .fx .stp .ixp-body { padding-top: calc(10 * var(--ix)); padding-bottom: calc(10 * var(--ix)); }
 
+/* On the projector (1280×720) a 10-row sorter or a 10-bar stepper is too tall when stacked:
+   the sorter's rows go into two columns, and the stepper puts its controls and note on the
+   left and the bars on the right. Focus mode only; the page keeps one column. */
+.fx .ixp.srt { --ix: max(1px, var(--u)); align-self: stretch; }
+.fx .srt-list { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: repeat(5, auto); grid-auto-flow: column; column-gap: calc(14 * var(--ix)); }
+.fx .srt-row { padding: calc(3 * var(--ix)) calc(10 * var(--ix)); }
+.fx .srt-btns button { min-height: calc(32 * var(--ix)); padding: calc(2 * var(--ix)) calc(10 * var(--ix)); }
+.fx .srt-def, .fx .srt-btns button, .fx .srt-actions button { font-size: max(16px, calc(15 * var(--ix))); } /* Thai never below 16px */
+.fx .srt-why { display: none; } /* the row's colour shows right or wrong; the teacher says why */
+.fx .srt-actions { margin-top: calc(4 * var(--ix)); }
+.fx .srt-actions button { min-height: calc(36 * var(--ix)); }
+.fx .stp { align-self: center; width: min(100%, calc(1040 * var(--u))); }
+.fx .stp .ixp-body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto auto 1fr; column-gap: calc(28 * var(--ix)); align-items: start; }
+.fx .stp .stp-control { grid-column: 1; grid-row: 1; }
+.fx .stp .stp-panel:not([hidden]) { display: contents; }
+.fx .stp .stp-label { grid-column: 1; grid-row: 2; }
+.fx .stp .stp-note { grid-column: 1; grid-row: 3; margin-top: 0; }
+.fx .stp .stp-bars { grid-column: 2; grid-row: 1 / -1; }
+.fx .stp-row { line-height: 1.35; }
+
 /* long class names in card text (e.g. `SequentialFeatureSelector`) wrap instead of spilling out */
 .pc-do code { overflow-wrap: anywhere; }

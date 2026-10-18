@@ -61,6 +61,46 @@ obvious, and use one of these:
 - Important operations get hands-on practice per case (lesson 10: one set per join type), on
   small tables students can see, plus a "pick the right one for the job" set.
 
+## Big picture first, then the details (2026-10-18)
+
+The teacher explains top-down: the whole route first, then each stop. A lesson made of separate cards
+"cuts from one thing to the next with no coherence". So every lesson:
+
+- **Opens with the hook, then a map card**: one picture of the whole lesson (the problem, the 3–5 ways the
+  lesson deals with it, what each changes, its tools, and its result on the lesson's running example).
+  nlp L11-S21 (`images/l11-map-lesson.svg`) is the model.
+- **Groups its cards into parts** with front matter `parts:` (`- { from: l11-s05, title: Fix the query,
+  title_th: แก้ query }`). Each card shows "Part 2 of 6 · Fix the query" above its heading and the menu
+  groups cards under part titles. Part titles are the map's labels, word for word.
+- **Starts each part with a one-sentence bridge**: what the last approach could not do, in a few words, and
+  what this part changes ("Part 3: even with the right words, several places match, so rank them better").
+  State it; don't point back ("as we saw in S05").
+- **Keeps one running example** through every part (nlp L11: *romantic dinner for two*), so each part
+  shows its effect on the same search.
+
+## Writing a card and an exercise (nlp lesson 11, 2026-10-18)
+
+What made the teacher say "I don't understand" and what fixed it:
+
+- **Open with a concrete question, then the picture.** "A school posts *Recruiting secondary school
+  instructor*; a teacher types *hiring a teacher*. Will they see it?", then the search-bar picture, then one
+  short paragraph that answers it. Not a definition first.
+- **Use the lesson's own data, with real results.** An abstract mini-table ("bank → river bank? money
+  bank?") with no lead-in confused the teacher; "typed *light* → meant a light meal → BM25 returned Rooftop
+  52, because its description says *city lights*" did not. Columns that read as a sentence work: *Typed |
+  Meant | Returned*.
+- **Both sides of a comparison answer the same question.** Lexical vs semantic cards both take *who plays
+  Iron Man in Avengers*; never a different example per card.
+- **One picture per idea, made from real data** (WordNet around *car*, BM25 scoring *romantic dinner for
+  two* word by word). Put the code under it, folded; say the idea in one or two sentences.
+- **Exercises: give the material as a small labelled table, never a long comma list.** The 22 synonyms of
+  *cheap* became 4 boxes A–D (WordNet's real senses, one row each, the key word in bold). Then two short
+  numbered questions that point at the table ("Which box…?", "Which word pulled it in, and from which
+  box?").
+- **Answers name the item first, then one line of why**: "Box A: *inexpensive*: the only box about price".
+- **The projector gets a compact copy** (`::: focus {page=false}`: fewer words per cell, no per-cell Thai
+  subtitles) when the page table is too tall; the page keeps the full table.
+
 ## Explaining
 
 - Define a word before using it (lesson 10 had to add "key" before groupby and merge).
@@ -84,6 +124,22 @@ obvious, and use one of these:
   shares space). Break long calls over lines; prefer a named step (`keys = [...]`, `extra = ...`)
   over a long one-liner.
 - Outputs are real: run `npm run outputs -- <course> <lesson>` after editing code.
+
+### Show or fold a code cell
+
+A folded cell shows only its header (Show code, Prompt, Copy, Download); Show code opens the code and its
+output together. Show what the section teaches; fold what only makes it run.
+
+- **Course default** (`code:` in `course.yml`): `open` where writing the code is the skill (nlp-basic,
+  stats-dh); `collapsed` where the idea is the point and the code is support (nlp).
+- **Show** (`{open}` in a folded course): the code the section is about, cells the teacher steps through
+  (`{steps}`), "predict the output" cells, one-line result cells the next paragraph talks about, and code
+  inside `::: answer` (it is hidden behind Show answer already).
+- **Fold** (`{collapsed}` in an open course): setup (imports only, loading or reloading data, downloads),
+  "run to check" copies of a predict cell, plotting code whose chart is the point (a plot cell folds only
+  its code; the chart stays on the page), and long helpers whose result a picture or table already shows.
+- When a folded cell's result matters to the text, show it on the page anyway: a `::: focus` table or
+  figure with the numbers (L11-S09, S12 in nlp).
 
 ## Focus mode and PDFs
 

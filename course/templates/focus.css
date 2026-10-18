@@ -29,6 +29,10 @@ html.fx-on, html.fx-on body { overflow: hidden; }
 }
 .fx-sub { margin: calc(4 * var(--u)) 0 0; font-size: max(16px, calc(30 * var(--u))); line-height: 1.5; color: var(--muted); }
 .fx-head-sm h2 { font-size: calc(48 * var(--u)); }
+/* the card's one-line summary: the takeaway that stays in the slide PDF */
+.fx-take { margin: calc(10 * var(--u)) 0 0; padding-left: calc(14 * var(--u)); border-left: calc(5 * var(--u)) solid var(--accent); font-size: max(16px, calc(26 * var(--u))); line-height: 1.45; color: var(--ink-2); max-width: 62em; }
+.fx-head-sm .fx-take { font-size: max(16px, calc(22 * var(--u))); margin-top: calc(8 * var(--u)); }
+.fx-head-lg .fx-take { font-size: max(16px, calc(34 * var(--u))); margin-top: calc(18 * var(--u)); }
 .fx-head-sm .fx-sub { font-size: max(16px, calc(24 * var(--u))); }
 .fx-head-lg h2 { font-size: calc(84 * var(--u)); }
 .fx-head-lg .fx-sub { font-size: max(16px, calc(38 * var(--u))); }
@@ -64,6 +68,9 @@ html.fx-on, html.fx-on body { overflow: hidden; }
 .fx-list .fx-step.is-past { opacity: .42; }
 .fx-list .fx-step.is-future { visibility: hidden; }
 .fx-steplist .fx-note { display: block; }
+/* stats-dh L11-S10 and L11-S20: four steps with Thai subtitles run past 720px in one column, so two
+   columns (1 2 / 3 4). Scoped by these frames' titles so no other lesson changes. */
+.fx-frame:is([data-title="Train the obesity model"], [data-title="Steps, key terms and exit ticket"]) .fx-steplist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: calc(64 * var(--u)); }
 
 /* ---------- exercise ---------- */
 .fx-k-exercise { gap: calc(28 * var(--u)); }
@@ -112,6 +119,8 @@ html.fx-on, html.fx-on body { overflow: hidden; }
 .fx-reveal:has(.data-table):not(:has(.df)) .fx-answer-card { min-width: 0; padding: calc(8 * var(--u)) calc(16 * var(--u)); text-align: left; }
 .fx-reveal:has(.data-table):not(:has(.df)) .fx-answer-term { font-size: max(16px, calc(24 * var(--u))); }
 .fx-reveal:has(.data-table):not(:has(.df)) .fx-answer-meaning { font-size: max(16px, calc(17 * var(--u))); line-height: 1.45; }
+/* four or more answers would run into the footer as one column: two columns instead (nlp L11-S19) */
+.fx-reveal:has(.data-table):not(:has(.df)) .fx-answers:has(> :nth-child(4)) { display: grid; grid-template-columns: 1fr 1fr; }
 
 /* ---------- code step-through ---------- */
 .fx-code {
@@ -148,9 +157,9 @@ html.fx-on, html.fx-on body { overflow: hidden; }
 .fx .cell-sub { font-size: max(16px, calc(19 * var(--u))); }
 .fx-terms { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: calc(18 * var(--u)) calc(28 * var(--u)); }
 .fx-terms li { padding: calc(8 * var(--u)) calc(26 * var(--u)); border-radius: calc(12 * var(--u)); background: var(--cream); font-size: calc(44 * var(--u)); font-weight: 500; }
-/* a long key-term list (10+) gets smaller pills so the frame still fits */
-.fx-terms:has(> li:nth-child(10)) { gap: calc(14 * var(--u)) calc(20 * var(--u)); }
-.fx-terms:has(> li:nth-child(10)) li { font-size: calc(36 * var(--u)); padding: calc(6 * var(--u)) calc(20 * var(--u)); }
+/* a long key-term list (9+) gets smaller pills so the frame still fits */
+.fx-terms:has(> li:nth-child(9)) { gap: calc(14 * var(--u)) calc(20 * var(--u)); }
+.fx-terms:has(> li:nth-child(9)) li { font-size: calc(36 * var(--u)); padding: calc(6 * var(--u)) calc(20 * var(--u)); }
 .fx-blocks { font-size: calc(36 * var(--u)); text-align: center; }
 .fx-blocks .code-cell, .fx-blocks .df { text-align: left; }
 
@@ -215,11 +224,23 @@ html.fx-on, html.fx-on body { overflow: hidden; }
 .fx-codegrid.fx-code-xlong .fx-code { font-size: max(16px, calc(16 * var(--u))); }
 
 /* figures: fit the frame height, keep the caption short */
-.fx .fig { align-self: center; gap: calc(8 * var(--u)); }
+.fx .fig { align-self: center; width: 100%; gap: calc(8 * var(--u)); } /* full width: without its caption a figure would shrink to nothing */
 .fx .fig-media { padding: calc(10 * var(--u)); border: 0; }
-.fx .diagram { width: auto; height: calc(400 * var(--u)); max-width: 100%; min-width: 0; }
+.fx .diagram { width: 100%; height: auto; max-height: calc(400 * var(--u)); min-width: 0; }
 .fx .fig-media img { max-height: calc(400 * var(--u)); width: auto; }
-.fx .fig-caption { font-size: max(16px, calc(18 * var(--u))); text-align: center; }
+/* the card's summary line is the frame's one sentence; figure captions stay on the page (2026-10-18) */
+.fx .fig-caption { display: none; }
+/* a frame with a figure: every box from the frame body down to the picture may shrink, so the figure
+   takes the height the heading, Thai subtitle and summary leave, and never runs past the frame */
+.fx-frame:has(.fig) > .fx-body,
+.fx-frame:has(.fig) > .fx-body > .fx-blocks,
+.fx-frame:has(.fig) > .fx-body > .fx-blocks > .src-node:has(.fig),
+.fx-frame:has(.fig) > .fx-body > .fx-blocks > .src-node > .fig,
+.fx-frame:has(.fig) > .fx-body > .fx-blocks > .fig,
+.fx-frame:has(.fig) > .fx-body > .fig,
+.fx-frame:has(.fig) .fig > .fig-media { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.fx-frame:has(.fig) .fig > .fig-media { align-items: center; }
+.fx .fig-media > :is(img, svg) { flex: 0 1 auto; min-height: 0; object-fit: contain; }
 
 /* ::: columns frames */
 .fx-cols { align-self: stretch; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: calc(40 * var(--u)); align-items: center; }
@@ -240,6 +261,10 @@ ul.fx-points > li::before { content: ''; position: absolute; left: calc(14 * var
    two-line Thai caption stays in the frame */
 .fx-col .diagram { height: calc(340 * var(--u)); }
 .fx-k-cols:has(.fx-col .diagram) { gap: calc(28 * var(--u)); }
+/* a bad and a good prompt side by side (::: columns {split=even}, nlp L12-S08): closer to the heading
+   and tighter parts, so a five-line prompt and its output fit under a Thai subtitle and summary */
+.fx-k-cols:has(> .fx-body > .fx-cols-even > .fx-col + .fx-col > .prompt-card) { gap: calc(28 * var(--u)); }
+.fx-cols-even:has(> .fx-col + .fx-col > .prompt-card) .prompt-part { padding-top: calc(8 * var(--u)); padding-bottom: calc(8 * var(--u)); }
 /* two outputs side by side, one a table (L10-S10): compact rows, like other tables beside something */
 .fx-cols-even .fx-mini-out .table-scroll .df-table th, .fx-cols-even .fx-mini-out .table-scroll .df-table td { padding-top: calc(5 * var(--u)); padding-bottom: calc(5 * var(--u)); }
 .fx-cols-even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
@@ -333,7 +358,12 @@ html.print-slides .fx-step { visibility: visible !important; opacity: 1 !importa
 html.print-slides .fx-morph .fx-step:not(:last-child), html.print-slides .fx-side .fx-step:not(:last-child) { visibility: hidden !important; }
 html.print-slides .fx-frame[data-answer] .fx-step:not([data-step="0"]) { display: none !important; }
 html.print-slides .fx-code .ln { opacity: 1 !important; background: none !important; }
-/* wide SVG infographics (L12-S08): as big as the frame allows */
+/* wide SVG infographics (L12-S08): the frame's full width, and as tall as the space under the heading
+   allows (the figure rules above let it shrink to fit) */
+.fx-frame:has(.fig .diagram-wide) > .fx-body,
+.fx-frame:has(.fig .diagram-wide) > .fx-body > .fx-blocks,
+.fx-frame:has(.fig .diagram-wide) > .fx-body > .fx-blocks > .src-node:has(.diagram-wide),
+.fx .fig:has(> .fig-media > .diagram-wide),
+.fx .fig-media:has(> .diagram-wide) { align-self: stretch; }
+.fx .fig-media:has(> .diagram-wide) { align-items: stretch; }
 .fx .fig .diagram.diagram-wide { width: 100%; max-width: 100%; height: auto; max-height: calc(480 * var(--u)); min-width: 0; }
-/* a frame that is only a figure: leave room for the small heading and the caption */
-.fx .fx-k-focus .fig .diagram.diagram-wide { max-height: calc(345 * var(--u)); }

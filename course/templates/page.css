@@ -126,7 +126,7 @@ a.pill:hover { background: var(--card); text-decoration: underline; }
 /* ---------- layout ---------- */
 .layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, var(--reading-max));
+  grid-template-columns: clamp(260px, 17vw, 340px) minmax(0, 1fr);
   justify-content: center;
   gap: 32px;
   align-items: start;
@@ -142,7 +142,7 @@ main { display: flex; flex-direction: column; gap: var(--gap-cards); min-width: 
 .toc-toggle { flex: 0 0 auto; display: grid; place-items: center; width: var(--tap); height: var(--tap); margin: -8px -10px -8px 0; border: 0; border-radius: 10px; background: none; color: var(--muted); cursor: pointer; }
 .toc-toggle:hover { background: var(--cream); color: var(--ink); }
 /* collapsed: a narrow rail of section numbers, and the lesson takes the freed width */
-.toc-collapsed .layout { grid-template-columns: 64px minmax(0, calc(var(--reading-max) + 196px)); }
+.toc-collapsed .layout { grid-template-columns: 64px minmax(0, 1fr); }
 .toc-collapsed .toc { padding: 12px 6px; }
 .toc-collapsed .toc-head { justify-content: center; }
 .toc-collapsed .toc-head .toc-toggle { margin: 0; }
@@ -158,6 +158,11 @@ main { display: flex; flex-direction: column; gap: var(--gap-cards); min-width: 
 .toc-list a:hover { background: var(--cream); }
 .toc-list a[aria-current='true'] { background: var(--accent-tint); color: var(--ink); font-weight: 600; }
 .toc-n { color: var(--muted); font-size: var(--text-label); }
+/* parts (front matter `parts:`): a heading in the menu, and a line above each card's heading */
+.toc-part { margin: 12px 0 2px; padding: 0 10px; font-size: var(--text-small); font-weight: 600; color: var(--accent); }
+.toc-part:first-child { margin-top: 0; }
+.toc-collapsed .toc-part { display: none; }
+.part-tag { margin: 0 0 6px; font-size: var(--text-small); font-weight: 600; color: var(--accent); }
 .toc-list a[aria-current='true'] .toc-n { color: var(--accent); }
 .legend {
   list-style: none; margin: 18px 0 0; padding: 16px 0 0; border-top: 1px solid var(--rule);
@@ -289,6 +294,9 @@ main { display: flex; flex-direction: column; gap: var(--gap-cards); min-width: 
 .btn-prompt[aria-expanded='true'] { background: var(--tag-concept-bg); color: var(--tag-concept-fg); border-color: var(--tag-concept-bg); }
 .btn-prompt[aria-expanded='true']:hover { background: var(--tag-concept-bg); }
 .code-prompt { padding: 14px 16px 2px; }
+.btn-code-toggle[aria-expanded='true'] .when-closed,
+.btn-code-toggle[aria-expanded='false'] .when-open { display: none; }
+.code-cell .code-fold[hidden] { display: none; }
 .code-prompt .prompt-card { margin: 0; border-color: var(--code-button-border); }
 .code-actions .btn-dark { background: var(--code-fg); color: var(--code-bg); }
 .code-actions .btn-dark:hover { background: var(--card); }
@@ -308,6 +316,7 @@ pre.code .ln-install { color: var(--code-comment); }
 .code-out pre { margin: 0; font-size: 15px; line-height: 1.7; white-space: pre; overflow-x: auto; color: var(--ink); }
 .out-body { min-width: 0; }
 .code-out.out-wrap .table-scroll .df-table td { white-space: normal; min-width: 7em; }
+.df-wrap .table-scroll .df-table td.df-long { white-space: normal; min-width: 22em; }
 .out-plot { margin-top: 4px; background: #fff; border-radius: 8px; padding: 8px; }
 .out-plot-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
 .out-plot-row .out-plot { flex: 1 1 360px; min-width: 0; }
@@ -616,7 +625,8 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
 .dg-key { font: 16px var(--font-text); fill: var(--ink-2); }
 .dg-key-x { font: 16px var(--font-text); fill: var(--muted); }
 /* L12-S08 NLP tasks infographic (scripts/diagrams/nlp_tasks.py) */
-.diagram.diagram-wide { max-width: 100%; min-width: 640px; }
+/* wide cards on big screens: stop the picture (and its text) growing past 1100px */
+.diagram.diagram-wide { max-width: min(100%, 1100px); min-width: 640px; }
 .nt-head { font: 600 17px var(--font-head); fill: var(--muted); }
 .nt-band-a { fill: var(--tag-concept-bg); }
 .nt-band-b { fill: var(--tag-example-bg); }
@@ -646,6 +656,10 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
 .sw-warn-box { fill: var(--tag-warning-bg); }
 .sw-warn-text { font: 600 18px var(--font-text); fill: var(--tag-warning-fg); }
 .ml-ok { font: 600 18px var(--font-text); fill: var(--tag-exercise-fg); }
+.hk-ad { font: 21px var(--font-head); fill: var(--ink); }
+.hk-hit { font-weight: 700; fill: var(--tag-concept-fg); text-decoration: underline; }
+.hk-mono { font: 600 19px var(--font-mono); fill: var(--tag-concept-fg); }
+.hk-desc { font: 17px var(--font-head); fill: var(--ink-2); }
 .ml-ok-small { font: 600 18px var(--font-text); fill: var(--tag-exercise-fg); }
 .ml-cell { fill: var(--card); stroke: var(--card-border); stroke-width: 1.2; }
 .ml-cell-b { fill: var(--tag-concept-bg); stroke: var(--tag-concept-dot); stroke-width: 1.4; }
@@ -924,6 +938,8 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
   .diagram { min-width: 0; max-width: 115mm; }
   a { color: inherit; text-decoration: none; }
   .code-prompt[hidden] { display: block; } /* the PDF always shows a code cell's prompt */
+  .code-cell .code-fold[hidden] { display: block; } /* and its code and output, folded or not */
+  .btn-code-toggle { display: none; }
   .code-prompt { padding: 6pt 10pt 0; }
   /* answers print only if they were opened on screen */
 }

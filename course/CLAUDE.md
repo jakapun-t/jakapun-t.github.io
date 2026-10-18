@@ -100,6 +100,10 @@ style, so restyle them to the card/tag look of `lecture-page-th.html`.
 
 - Each page has a **ไทย / EN switch**. Thai is the default, and the choice is remembered in
   localStorage, wrapped in try/catch.
+- `lang: en` in `course.yml` (added 2026-10, for the international `nlp` course) makes English the
+  default: pages and the password screen open in English, EN comes first in the switch, and the
+  choice is remembered under `course-lang-<slug>` so a ไทย choice in a Thai course doesn't carry over.
+  `lead_en` / `lead_th` in `course.yml` give the course home its lead line (code, time, room).
 - **Thai mode:** Thai explanations, English technical terms, English headings with a Thai subtitle.
 - **English mode:** English only, with no Thai subtitles. Thai *language data* stays (example
   sentences, tokens), because it is the object of study.
@@ -156,13 +160,20 @@ reading: Jurafsky & Martin, SLP ch. 2
 ```
 `env` (`colab` | `vscode`) and `install` come from `course.yml` and can be overridden per week.
 
+### Parts (added 2026-10-18)
+Front matter `parts:` groups sections top-down: `- { from: l11-s05, title: Fix the query, title_th: แก้ query }`.
+A part runs from its `from` section to the next part. Each card shows "Part N of M · title" above its heading
+and the menu shows part headings (`src/render.mjs` `partsOf`). See LESSON-STYLE.md "Big picture first".
+
 ### Sections and IDs
 ```markdown
 ## Spaces are not enough {#l12-s02 th="เว้นวรรคอย่างเดียวไม่พอ"}
 ```
 - The ID format is `l<LL>-s<NN>` (lesson, section) and is **required**. Fail the build if an ID
   is missing or duplicated. IDs are shown as `L12-S02` and are how the teacher asks for fixes,
-  so never renumber existing IDs automatically.
+  so never renumber existing IDs automatically. Exception (teacher, 2026-10-18): after cards are
+  reordered, renumber the lesson's IDs so they run S01, S02 … in card order (and update `parts: from:`);
+  out-of-order IDs next to the menu's 1, 2, 3 confused the teacher.
 - The summary strip:
   ```markdown
   ::: summary
@@ -251,7 +262,7 @@ Inline `$` follows pandoc's rule so prices stay text: no space after the opening
 no digit right after the closing `$` (`$\sigma(z) = $` does not render; write `$\sigma(z)$ = 0.5`). A formula frame in
 focus mode is a `::: focus {page=false}` with one `$\displaystyle ...$` line. The ```formula block is still not built.
 
-- **dataframe:** pandas-like table with dtypes under the headers, an index column, `N rows × M
+- **dataframe:** `{wrap=true}` shows long text in full, wrapped in its cell (default: pandas' 50-character cut with `...`). A pandas-like table with dtypes under the headers, an index column, `N rows × M
   columns`, and *Download CSV* (the full file) plus *Copy code* (`pd.read_csv(...)`). Infer dtypes
   as int64, float64, or object.
 - **figure:** if `src` is missing, render the dashed placeholder showing the expected filename.
@@ -264,9 +275,14 @@ focus mode is a `::: focus {page=false}` with one `$\displaystyle ...$` line. Th
   `title` alone shows in both. Two prompts in `::: columns {split=even}` (a bad and a good one) line up at the top.
 - **Plot cells (added 2026-10, lesson 11):** `{plot="images/l11-x.png"}` on a python cell makes
   `npm run outputs` save the figure it draws and write ```output {plot=...}; the page shows the chart
-  under the code, and focus mode shows code beside chart. `cols="Seat Type, Rating"` adds a snippet of
+  under the code, and focus mode shows code beside chart (`{focus=false}` on the cell drops that frame, for code too long to sit beside it). `cols="Seat Type, Rating"` adds a snippet of
   just those columns (first `rows=5`, or the row positions in `pick="0,5,26"`) from `data="…csv"` or
   the front matter's `chart_data:` / `chart_data_name:`, so students see the data behind the chart.
+- **Folded code (added 2026-10, nlp lesson 11; course-wide since):** `{collapsed}` on a code cell hides its code and
+  output behind a ดูโค้ด / Show code button; Prompt, Copy and Download stay in the header. `code: collapsed` in
+  `course.yml` (all three courses have it) or in front matter folds every cell; a lesson's `code: open` unfolds
+  its cells, and `{open}` keeps one cell unfolded. A plot cell folds only its code, so the chart stays on the page.
+  The slide PDF and focus mode are unaffected.
 - **cards {cols=3}:** 3 cards per row (galleries); a card's `img:` shows a small chart.
   Each ```cards block is one focus frame; a set too tall for 1280×720 is split into two blocks, and
   `{start=5}` makes the second block number its cards from 5.
@@ -286,6 +302,14 @@ The same page, toggled with the **Focus** button or the **F** key. See `referenc
 
 - One idea per frame, full screen, 16:9-friendly, large type: heading ~60px, Thai example text
   ~90px. **Paragraphs never show.** The teacher says them.
+- **The card's `::: summary` line shows under every frame's heading** (added 2026-10-18 at the teacher's
+  request): the one-sentence takeaway, in the current language, so the slide PDF keeps the point of each
+  frame. It is the only text from the card that shows (figure captions stay on the page); morphing-step frames use
+  the smaller heading to make room.
+- `{focus=false}` on `::: columns`, `::: exercise`, `::: steps` or an interactive fence (index-explorer, bpe-explorer, stepper,
+  sorter) drops the frames they would make (as on transforms and plot cells); put a compact `::: focus {page=false}` copy beside them for the projector.
+- Exercise frames show the question and, one step later, the answers, without the page's "Exercise · 3 min ·
+  On your own" label (teacher's request, 2026-10-18). A table-question exercise with 4+ answers lays them out 2×2.
 - Frame chrome: top bar `W05-S02 · <English heading>` and `ขั้นที่ 2 / 3` (step 2 of 3). Bottom:
   step dots and the key hints `→ ขั้นถัดไป · ← ย้อนกลับ · F ออก` (next, back, exit).
 - What makes a frame:

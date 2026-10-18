@@ -115,19 +115,46 @@ const tag = (kind) => `<span class="tag tag-${kind}">${icon(kind, 13)}${T(UI[kin
 
 export function renderLecture(lecture, ctx) {
   const { meta, sections } = lecture;
-  const sectionsHtml = sections.map((s, i) => renderSection(s, i, ctx)).join('\n');
-  return { sectionsHtml, toc: renderToc(sections) };
+  const parts = partsOf(meta, sections);
+  const sectionsHtml = sections.map((s, i) => renderSection(s, i, ctx, parts[i])).join('\n');
+  return { sectionsHtml, toc: renderToc(sections, parts) };
 }
+
+// Front matter `parts:` groups the cards top-down, big picture first:
+//   parts:
+//     - { from: l11-s05, title: Fix the query, title_th: แก้ query }
+// A part starts at its `from` section and runs until the next part starts. Each card then shows
+// "Part 2 of 6 · Fix the query" above its heading, and the menu groups the cards under part titles.
+export function partsOf(meta, sections) {
+  const list = Array.isArray(meta.parts) ? meta.parts : [];
+  const starts = new Map();
+  list.forEach((p, k) => {
+    const id = String(p.from ?? '').toLowerCase();
+    if (!sections.some((s) => s.id === id)) throw new LectureError(ctxFile(), 1, `parts: no section "${p.from}" (use a section ID such as l11-s05)`);
+    if (!p.title) throw new LectureError(ctxFile(), 1, `parts: the part starting at ${p.from} needs a title`);
+    starts.set(id, k);
+  });
+  let cur = null;
+  return sections.map((s) => {
+    const first = starts.has(s.id);
+    if (first) cur = starts.get(s.id);
+    if (cur == null) return null;
+    const p = list[cur];
+    return { n: cur + 1, total: list.length, title: String(p.title), title_th: String(p.title_th ?? p.title), first };
+  });
+}
+
+const partLabel = (p) => T([`ส่วนที่ ${p.n} จาก ${p.total} · ${p.title_th}`, `Part ${p.n} of ${p.total} · ${p.title}`]);
 
 function navLabel(s) {
   return s.attrs.nav ?? s.title.split(':')[0];
 }
 
-function renderToc(sections) {
+function renderToc(sections, parts = []) {
   const items = sections
     .map(
       (s, i) =>
-        `<li><a href="#${s.id}" data-toc="${s.id}" title="${esc(navLabel(s).replace(/[*`]/g, ''))}"><span class="toc-n">${i + 1}</span><span lang="en">${inline(navLabel(s))}</span></a></li>`,
+        `${parts[i]?.first ? `<li class="toc-part">${T([`${parts[i].n} · ${parts[i].title_th}`, `${parts[i].n} · ${parts[i].title}`])}</li>` : ''}<li><a href="#${s.id}" data-toc="${s.id}" title="${esc(navLabel(s).replace(/[*`]/g, ''))}"><span class="toc-n">${i + 1}</span><span lang="en">${inline(navLabel(s))}</span></a></li>`,
     )
     .join('');
   const legend = ['concept', 'example', 'code', 'exercise', 'warning']
@@ -146,13 +173,13 @@ const sid = (id) => id.toUpperCase();
 const sidBox = (id) =>
   `<span class="sid-box"><span class="sid">${sid(id)}</span><button type="button" class="fx-jump" data-fx-open="${id}" aria-label="โหมดโฟกัสที่ ${sid(id)} / Focus mode at ${sid(id)}" title="Focus (F)">${icon('focus', 14)}</button></span>`;
 
-function renderSection(s, index, ctx) {
+function renderSection(s, index, ctx, part = null) {
   ctx.section = s;
   const summary = s.blocks.find((b) => b.type === 'container' && b.name === 'summary');
   const rest = s.blocks.filter((b) => b !== summary);
   const exercise = rest.length === 1 && rest[0].type === 'container' && rest[0].name === 'exercise' ? rest[0] : null;
 
-  const heading = `<h2 id="${s.id}-title" lang="en"${srcAttr(ctx, s.line)}>${inline(s.title)}</h2>${
+  const heading = `${part ? `<p class="part-tag">${partLabel(part)}</p>` : ''}<h2 id="${s.id}-title" lang="en"${srcAttr(ctx, s.line)}>${inline(s.title)}</h2>${
     s.attrs.th ? `<p class="h-sub" data-only="th"${srcAttr(ctx, s.line)}>${inline(s.attrs.th)}</p>` : ''
   }`;
 
@@ -181,7 +208,7 @@ ${renderBlocks(rest, ctx)}
 </article>`;
 }
 
-function renderSummary(node) {
+export function renderSummary(node) {
   const by = {};
   for (const line of node.lines) {
     const m = line.match(/^\s*(th|en)\s*:\s*(.*)$/);
@@ -602,6 +629,13 @@ function renderCode(n, output, stepOutputs, ctx, prompt = null) {
     stepOut = ` data-step-outputs="${esc(JSON.stringify(map))}"`;
   }
 
+  // {collapsed} folds the code and its output behind a Show code button; `code: collapsed` (course.yml or
+  // front matter) folds every cell, and {open} keeps one cell unfolded. A plot cell folds only its code:
+  // the chart is the content
+  const collapsed = n.attrs.open ? false : n.attrs.collapsed != null ? n.attrs.collapsed !== 'false' : Boolean(ctx.codeCollapsed);
+  const codeId = `cell${cell}-code`;
+  const foldable = collapsed || ctx.codeCollapsed || n.attrs.collapsed != null; // other lessons keep their plain header
+  const toggleBtn = !foldable ? '' : `<button type="button" class="btn btn-light btn-code-toggle" aria-expanded="${!collapsed}" aria-controls="${codeId}"><span class="when-closed">${T(['ดูโค้ด', 'Show code'])}</span><span class="when-open">${T(['ซ่อนโค้ด', 'Hide code'])}</span></button>`;
   let promptBtn = '';
   let promptPanel = '';
   const codeHtml = `<pre class="code" tabindex="0"><code>${linesHtml}</code></pre>`;
@@ -614,8 +648,8 @@ function renderCode(n, output, stepOutputs, ctx, prompt = null) {
   }
 
   return `${pre}<figure class="code-cell" data-env="${env}"${stepAttr}${stepOut}>
-<figcaption class="code-head"><span class="code-tag">${icon('code')}${T(UI.code)}</span>${label}<span class="code-actions">${promptBtn}<button type="button" class="btn btn-light" data-copy="${copyId}">${icon('copy')}${T(UI.copy)}</button>${downloadBtn}</span></figcaption>
-${promptPanel}${codeHtml}${out}
+<figcaption class="code-head"><span class="code-tag">${icon('code')}${T(UI.code)}</span>${label}<span class="code-actions">${toggleBtn}${promptBtn}<button type="button" class="btn btn-light" data-copy="${copyId}">${icon('copy')}${T(UI.copy)}</button>${downloadBtn}</span></figcaption>
+${promptPanel}${foldable ? `<div class="code-fold" id="${codeId}"${collapsed ? ' hidden' : ''}>${codeHtml}${output?.attrs.plot ? '' : out}</div>${output?.attrs.plot ? out : ''}` : `${codeHtml}${out}`}
 </figure>`;
 }
 
