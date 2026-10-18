@@ -1449,3 +1449,48 @@ s.both(X1 + 52, 398, "LLM ทำขั้น 1–2 ที่ต้องอ่�
 s.both(20, 456, "correctness ใช้ขั้นเดียวกัน แต่เทียบกับคำตอบมาตรฐาน (gold) แทน fact ที่ค้นมา",
        "Correctness uses the same steps, checked against the gold answer instead of the retrieved facts", "ml-ok")
 s.save("l12-llm-judge.svg", 472)
+
+
+# ---------------------------------------------------------------- 31. why BERTScore misses a wrong date: word-by-word matches (real values)
+# roberta-large, layer 17 (bert_score's default for English), cosine of word vectors. Answer C's words matched to the gold answer:
+# The 0.99, midterm→final 0.92, exam 0.99, was→is 0.96, on 0.98, Monday 0.98, 21→30 0.92, September→November 0.92,
+# 2026 0.99 (tokens 20 + 26: 0.989, 0.992). Gold-only "13:00-16:00": its 7 tokens' best matches in C average 0.77.
+# Whole answer (raw BERTScore F1): C 0.93, B 0.93; rescaled 0.57 vs 0.61.
+W = 1180
+s = Svg(W, "How BERTScore compares answer C with the gold answer, word by word. Each word of answer C is matched to the most similar "
+           "word in the gold answer. Same words score about 0.99. The wrong words still score 0.92: midterm matches final, 21 matches 30, "
+           "September matches November, because they are the same kind of word (an exam, a number, a month). So the wrong answer C gets "
+           "0.93 overall, the same as answer B.")
+COLS = [("The", "The", "0.99", False), ("final", "midterm", "0.92", True), ("exam", "exam", "0.99", False), ("is", "was", "0.96", True),
+        ("on", "on", "0.98", False), ("Monday", "Monday", "0.98", False), ("30", "21", "0.92", True), ("November", "September", "0.92", True),
+        ("2026,", "2026.", "0.99", False), ("13:00-16:00.", None, "0.77", True)]
+widths = [max(width(g), width(c or "")) + 26 for g, c, _, _ in COLS]
+gap = 10
+x = (W - (sum(widths) + gap * (len(COLS) - 1))) / 2
+s.both(20, 36, "คำตอบมาตรฐาน (gold)", "Gold answer", "pl-label")
+s.both(20, 274, "คำตอบ C (ผิด: ให้วันสอบกลางภาค)", "Answer C (wrong: the midterm date)", "pl-label")
+for (g, c, sc, diff), w in zip(COLS, widths):
+    cx = x + w / 2
+    s.box(x, 56, w, 40, "ml-cell", 8)
+    s.text(cx, 82, g, "pl-text", "middle")
+    if c:
+        s.box(x, 200, w, 40, "sw-chip-warn" if diff else "ml-cell", 8)
+        s.text(cx, 226, c, "pl-text", "middle")
+        s.out.append(f'<path d="M{cx:g} 98 V198" class="pl-line"/>')
+    else:
+        s.out.append(f'<rect x="{x:g}" y="200" width="{w:g}" height="40" rx="8" class="pl-chip-del" stroke-dasharray="6 5"/>')
+        s.both(cx, 226, "ไม่มี", "missing", "ml-neg", "middle")
+        s.out.append(f'<path d="M{cx:g} 98 V198" class="pl-line" stroke-dasharray="5 5"/>')
+    s.box(cx - 30, 134, 60, 28, "nt-bubble" if not diff else "sw-warn-box", 14)
+    s.text(cx, 154, sc, "ml-neg" if diff and sc != "0.96" else "pl-label", "middle")
+    x += w + gap
+s.both(20, 318, "คำเดียวกัน ≈ 0.99 · คำที่ผิดยังได้ 0.92 เพราะเป็นคำชนิดเดียวกัน:", "Same word ≈ 0.99 · the wrong words still get 0.92, because they are the same kind of word:", "pl-text")
+s.both(20, 346, "midterm ≈ final (สอบทั้งคู่) · 21 ≈ 30 (ตัวเลขทั้งคู่) · September ≈ November (เดือนทั้งคู่)",
+       "midterm ≈ final (both exams) · 21 ≈ 30 (both numbers) · September ≈ November (both months)", "pl-text")
+s.both(20, 382, "✗ BERTScore ถามว่า “มีคำที่ความหมายคล้ายกันไหม” ไม่ได้ถามว่า “วันที่ถูกไหม” → C ได้ 0.93 เท่ากับ B",
+       "✗ BERTScore asks “is there a word with a similar meaning?”, not “is the date right?” → C gets 0.93, like B", "ml-neg")
+s.both(20, 410, "(ปรับสเกลเป็น 0–1 แบบที่ใช้กันทั่วไป: C 0.57, B 0.61 ยังใกล้กันมาก)",
+       "(rescaled to the usual 0–1 range: C 0.57, B 0.61, still very close)", "pl-note")
+s.both(20, 440, "ค่าจริง: roberta-large ชั้นที่ 17 (ค่าเริ่มต้นของ BERTScore), cosine ของ vector คำ · 13:00-16:00 ไม่มีคู่ใน C จึงได้แค่ 0.77",
+       "real values: roberta-large, layer 17 (BERTScore's default), cosine of word vectors · 13:00-16:00 has no partner in C, so only 0.77", "pl-note")
+s.save("l12-bertscore-words.svg", 456)
