@@ -394,6 +394,9 @@ a.sched-title:hover .sched-name > [lang='en'] { text-decoration: underline; }
 @media (max-width: 600px) { .sched-row { grid-template-columns: minmax(0, 1fr); } }
 .home-list { list-style: none; margin: 0; padding: 0 !important; display: grid; gap: 12px; }
 .layout-home { grid-template-columns: minmax(0, var(--reading-max)); }
+/* the home has no lesson menu, so a remembered "menu hidden" choice (html.toc-collapsed) must not
+   give it the lesson pages' 64px menu column */
+.toc-collapsed .layout-home { grid-template-columns: minmax(0, var(--reading-max)); }
 /* ---------- ::: transform (before → after tables) ---------- */
 .transform { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tf-code {
@@ -667,6 +670,34 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
 .ml-i { font: 500 16px var(--font-head); fill: var(--muted); }
 .ml-cut { stroke: var(--accent); stroke-width: 2.5; }
 .ml-cut-guess { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 5 4; }
+/* stats-dh lesson maps as picture tiles (scripts/diagrams/stats_lesson_maps.py) */
+.mp-q { font: 600 25px var(--font-head); fill: var(--ink); }
+.mp-t { font: 600 19px var(--font-head); fill: var(--ink); }
+.mp-p { font: 600 15px var(--font-head); fill: var(--tag-concept-fg); }
+.mp-r { font: 600 18px var(--font-text); fill: var(--ink-2); }
+.mp-s { font: 500 14px var(--font-head); fill: var(--muted); }
+.mp-c { font: 600 14px var(--font-head); fill: var(--ink); }
+.mp-n { font: 700 17px var(--font-head); fill: var(--ink); }
+.mp-acc { font: 700 17px var(--font-head); fill: var(--accent); }
+.mp-big { font: 700 26px var(--font-head); fill: var(--accent); }
+.mp-big-ok { font: 700 26px var(--font-head); fill: var(--tag-exercise-fg); }
+/* card titles and ?/! marks in the people scenes (Open Peeps + Fluent robot, scripts/diagrams/stats_svg.py embed_svg) */
+.ct-mark { font: 800 30px var(--font-head); fill: var(--accent); }
+.ct-head-tp { font: 700 19px var(--font-head); fill: var(--tag-exercise-fg); }
+.ct-head-f { font: 700 19px var(--font-head); fill: var(--accent); }
+.mp-mono { font: 500 13px var(--font-code); fill: var(--ink); }
+.mp-pic { fill: var(--card); }
+.mp-axis { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.mp-guide { fill: none; stroke: var(--card-border); stroke-width: 1.4; stroke-dasharray: 4 4; }
+.mp-curve { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.mp-curve-b { fill: none; stroke: var(--tag-concept-dot); stroke-width: 3; stroke-linecap: round; }
+.mp-straight { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-dasharray: 7 5; }
+.mp-area { fill: var(--accent-tint); }
+.mp-ring { fill: none; stroke: var(--accent); stroke-width: 1.8; }
+.mp-ring-d { fill: none; stroke: var(--ink-2); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.mp-emoji { font-size: 30px; }
+.mp-chip { font: 600 16px var(--font-head); fill: var(--ink); }
+.mp-math { font: 28px KaTeX_Main, "Times New Roman", serif; fill: var(--ink); }
 /* lesson 13 infographics (scripts/diagrams/l13_figures.py) */
 .ml-neg { font: 600 19px var(--font-text); fill: var(--accent); }
 .ml-model { fill: var(--ink); }
