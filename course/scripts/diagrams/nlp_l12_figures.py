@@ -16,6 +16,8 @@ import sys
 import unicodedata
 from html import escape
 
+from stats_svg import both_icon, icon_markup, put_icon  # noqa: E402,F401  (generated icons)
+
 OUT = sys.argv[1] if len(sys.argv) > 1 else "courses/nlp/images"
 FS = 19
 
@@ -126,7 +128,7 @@ for x, band, hth, hen, icon, nth, nen, fact, _, ath, aen, acls, vth, ven, vcls i
     s.both(x + 20, 44, hth, hen, "pl-label")
     s.box(x + 20, 62, 390, 44, "nt-bubble", 22)
     s.text(x + 38, 91, "When is the 2190519 final exam?", "pl-text")
-    s.text(x + 30, 146, icon, "nt-icon")
+    put_icon(s, icon, x + 30, 146, "nt-icon", "start", 22)
     s.both(x + 66, 144, nth, nen, "pl-note")
     if fact:
         s.box(x + 20, 160, 390, 34, "ml-cell", 8)
@@ -264,14 +266,14 @@ s.text(450, 41, "When is the final exam of 2190519?", "pl-text", "middle")
 s.arrow(450, 60, 450, 84)
 # what Gemini learned
 s.box(20, 90, 520, 220, "nt-band-a", 14)
-s.both(40, 124, "🧠 สิ่งที่ Gemini เรียนมา (ข้อมูลที่ใช้เทรน)", "🧠 What Gemini learned (its training data)", "pl-label")
+both_icon(s, 40, 124, "🧠 สิ่งที่ Gemini เรียนมา (ข้อมูลที่ใช้เทรน)", "🧠 What Gemini learned (its training data)", "pl-label")
 s.both(40, 152, "ข้อความสาธารณะ เก็บถึงวันหนึ่ง (knowledge cutoff)", "public text, collected up to a cutoff date", "pl-note")
 chip_row(40, 196, ["Wikipedia", "หนังสือ", "ข่าว", "เว็บสาธารณะ"], ["Wikipedia", "books", "news", "public websites"])
 chip_row(40, 250, ["หน้าเว็บวิชาของเรา"], ["our course page"], "pl-chip-del", "pl-del")
 s.both(40, 292, "✗ วันสอบไม่ได้อยู่ในนี้", "✗ the exam date is not in here", "ml-neg")
 # our course page
 s.box(560, 90, 320, 220, "nt-band-b", 14)
-s.both(580, 124, "🔒 หน้าเว็บวิชาของเรา", "🔒 Our course page", "pl-label")
+both_icon(s, 580, 124, "🔒 หน้าเว็บวิชาของเรา", "🔒 Our course page", "pl-label")
 s.both(580, 152, "ต้องใช้รหัสผ่าน · เขียนเทอมนี้", "password-only · new this term", "pl-note")
 s.box(580, 172, 280, 76, "ml-cell", 10)
 s.text(596, 202, "The final exam is on", "pl-text")
@@ -314,7 +316,7 @@ for gth, gen, rows in GROUPS:
     y += 38
     for nth, nen, mth, men, eth, een in rows:
         s.box(30, y, W - 60, 46, "ml-cell", 10)
-        s.both(46, y + 30, nth, nen, "nt-task")
+        both_icon(s, 46, y + 30, nth, nen, "nt-task", size=22)
         s.both(330, y + 30, mth, men, "hk-desc")
         s.both(790, y + 30, eth, een, "ml-neg")
         y += 54
@@ -1494,3 +1496,436 @@ s.both(20, 410, "(ปรับสเกลเป็น 0–1 แบบที่�
 s.both(20, 440, "ค่าจริง: roberta-large ชั้นที่ 17 (ค่าเริ่มต้นของ BERTScore), cosine ของ vector คำ · 13:00-16:00 ไม่มีคู่ใน C จึงได้แค่ 0.77",
        "real values: roberta-large, layer 17 (BERTScore's default), cosine of word vectors · 13:00-16:00 has no partner in C, so only 0.77", "pl-note")
 s.save("l12-bertscore-words.svg", 456)
+
+# ---------------------------------------------------------------- 32. inside the bi-encoder and the cross-encoder (lesson 13)
+# Real (course/.venv, 2026-10-23): both models are BERT encoders with 6 layers, 384 numbers per token, 12 attention heads,
+# 22.7 M weights. all-MiniLM-L6-v2 encodes the question (9 tokens) and fact 4 (15 tokens) separately, mean-pools each to 384
+# numbers, cosine 0.347. ms-marco-MiniLM-L6-v2 reads [CLS] question [SEP] fact [SEP] (23 tokens, segments A/B) once; its
+# [CLS] vector goes through one linear layer (384 → 1) → 3.974. Attention (averaged over 6 layers × 12 heads) from the
+# question's "19" into the fact: highest on the fact's "19" (0.061), then "october" (0.042).
+W = 1180
+s = Svg(W, "Inside the two models. Both are the same small Transformer encoder (BERT): 6 layers, 384 numbers per token, 12 attention "
+           "heads, 22.7 million weights. Left, the bi-encoder all-MiniLM-L6-v2 runs twice: the question (9 tokens) and fact 4 (15 "
+           "tokens) each go through the encoder alone, each is averaged into one vector of 384 numbers, and the cosine of the two "
+           "vectors is 0.35. Right, the cross-encoder ms-marco-MiniLM-L6-v2 runs once on one input, [CLS] question [SEP] fact [SEP], "
+           "23 tokens; every token attends to every other, so the question's 19 links most strongly to the fact's 19; the [CLS] "
+           "vector goes through one linear layer from 384 numbers to 1, the score 3.97.")
+MW = 8.4  # dg-code character width
+
+
+def vec(cx, y, n=12):
+    x0 = cx - n * 11 / 2
+    for k in range(n):
+        s.box(x0 + k * 11, y, 8, 14, "pl-chip", 2)
+
+
+def tokrow(x, y, toks, hi=()):
+    for k, t in enumerate(toks):
+        w = len(t) * MW + 12
+        s.box(x, y, w, 26, "sw-chip-warn" if k in hi else "ml-cell", 6)
+        s.text(x + w / 2, y + 18, t, "dg-code", "middle")
+        if k in hi:
+            CENT.append(x + w / 2)
+        x += w + 5
+    return x
+
+
+# left: bi-encoder, two towers
+s.box(20, 20, 560, 512, "nt-band-a", 14)
+s.both(40, 52, "Bi-encoder: รัน encoder 2 ครั้ง แยกกัน", "Bi-encoder: the encoder runs twice, apart", "pl-label")
+for k, (l1, l2, n) in enumerate((("What is taught on", "19 October?", 9), ("On 19 October 2026 the", "class covers dense…", 15))):
+    x = 40 + k * 270
+    cx = x + 125
+    s.box(x, 70, 250, 54, "ml-cell", 8)
+    s.text(x + 12, 92, l1, "dg-code")
+    s.text(x + 12, 114, l2, "dg-code")
+    s.both(cx, 146, f"{'คำถาม' if k == 0 else 'fact 4'} · {n} token", f"{'question' if k == 0 else 'fact 4'} · {n} tokens", "pl-note", "middle")
+    s.arrow(cx, 154, cx, 172)
+    s.box(x, 176, 250, 64, "ml-model", 10)
+    s.both(cx, 204, "Transformer encoder", "Transformer encoder", "ml-model-text", "middle")
+    s.both(cx, 226, "6 ชั้น", "6 layers", "ml-model-sub", "middle")
+    s.arrow(cx, 242, cx, 258)
+    s.box(x + 35, 262, 180, 32, "ml-cell-b", 8)
+    s.both(cx, 284, "เฉลี่ยทุก token", "average the tokens", "hk-desc", "middle")
+    s.arrow(cx, 296, cx, 312)
+    vec(cx, 316)
+    s.both(cx, 350, "vector 384 ตัวเลข", "a vector of 384 numbers", "pl-note", "middle")
+s.arrow(165, 360, 270, 396)
+s.arrow(435, 360, 330, 396)
+s.box(200, 400, 200, 44, "nt-out", 10)
+s.text(300, 428, "cosine = 0.35", "pl-label", "middle")
+s.both(40, 490, "✗ สองข้อความไม่เคยเจอกันในโมเดล", "✗ the two texts never meet inside", "ml-neg")
+s.both(40, 516, "✓ vector ของ fact ทำครั้งเดียวล่วงหน้าได้", "✓ fact vectors are made once, in advance", "ml-ok")
+# right: cross-encoder, one tower on the pair
+s.box(600, 20, 560, 512, "nt-band-b", 14)
+s.both(620, 52, "Cross-encoder: รัน encoder ครั้งเดียว กับทั้งคู่", "Cross-encoder: the encoder runs once, on the pair", "pl-label")
+CENT = []
+tokrow(616, 66, ["[CLS]", "what", "is", "taught", "on", "19", "october", "?", "[SEP]"], hi=(5,))
+tokrow(616, 104, ["on", "19", "october", "202", "##6", "the", "class", "covers"], hi=(1,))
+tokrow(616, 142, ["dense", "retrieval", "and", "rag", ".", "[SEP]"])
+qx, fx = CENT
+s.out.append(f'<path d="M{qx:.1f} 92 C{qx:.1f} 102 {fx:.1f} 94 {fx:.1f} 104" class="pl-line" fill="none"/>')
+s.both(620, 190, "A = คำถาม · B = fact · รวม 23 token เป็น input เดียว", "A = question · B = fact · 23 tokens in one input", "pl-note")
+s.both(620, 218, "เส้นโยง: 19 ในคำถามมอง 19 ใน fact มากที่สุด", "the link: the question's 19 looks most at the fact's 19", "pl-note")
+s.both(620, 246, "(attention เฉลี่ย 6 ชั้น × 12 head)", "(attention, averaged over 6 layers × 12 heads)", "pl-note")
+s.arrow(880, 251, 880, 259)
+s.box(700, 260, 360, 60, "ml-model", 10)
+s.both(880, 286, "Transformer encoder", "Transformer encoder", "ml-model-text", "middle")
+s.both(880, 308, "6 ชั้น · ทุก token มองทุก token", "6 layers · every token sees all 23", "ml-model-sub", "middle")
+s.arrow(880, 322, 880, 336)
+vec(880, 340)
+s.both(960, 352, "vector ของ [CLS] (384)", "the [CLS] vector (384)", "pl-note")
+s.arrow(880, 358, 880, 372)
+s.box(760, 376, 240, 32, "ml-cell-b", 8)
+s.both(880, 398, "linear layer: 384 → 1", "linear layer: 384 → 1", "hk-desc", "middle")
+s.arrow(880, 410, 880, 422)
+s.box(780, 424, 200, 40, "nt-out", 10)
+s.text(880, 450, "score = 3.97", "pl-label", "middle")
+s.both(620, 490, "✓ attention ข้ามสองข้อความ เห็นคำที่ตรงกัน", "✓ attention crosses both texts: sees matches", "ml-ok")
+s.both(620, 516, "✗ ต้องรันใหม่ทุกคู่ (คำถาม, fact)", "✗ a new run for every (question, fact) pair", "ml-neg")
+s.both(20, 566, "ใช่ Transformer พื้นฐาน: ครึ่ง encoder แบบ BERT (ไม่ใช่ decoder แบบ GPT) ตัวเดียวกันทั้งคู่ ต่างแค่ input กับขั้นสุดท้าย",
+       "Yes, a basic Transformer: the encoder half (BERT), not the decoder (GPT). Same body; only the input and the last step differ.", "pl-label")
+s.both(20, 592, "ค่าจริง: ทั้งสองโมเดล 6 ชั้น · 384 ตัวเลขต่อ token · 12 attention head · 22.7 ล้านน้ำหนัก",
+       "real: both models have 6 layers · 384 numbers per token · 12 attention heads · 22.7 M weights", "pl-note")
+s.save("l13-cross-arch.svg", 606)
+
+# ---------------------------------------------------------------- 33. six query-translation techniques at a glance (lesson 13)
+# Real (all-MiniLM-L6-v2 on the 7 facts): asked as is, fact 4 is 4th (order 5, 3, 2, 4); each rewrite ranks it 2nd; RRF (k = 60)
+# over the 4 lists → fact 5 0.0656, fact 4 0.0640. Decomposition, step-back, routing and query construction use the card's examples.
+W = 1180
+s = Svg(W, "Six ways to fix the question before searching, each on our course facts. 1 Multi-query: an LLM rewrites 'What is taught on "
+           "19 October?' three ways, and each rewrite ranks fact 4 2nd instead of 4th. 2 RAG Fusion: merge the four ranked lists with RRF; "
+           "fact 5 0.0656 and fact 4 0.0640 make the top 2, Recall@2 from 0 to 1. 3 Decomposition: split a two-part question into 'class "
+           "on 12 October?' (fact 3) and 'class on 19 October?' (facts 5, 4). 4 Step-back: 'Will RAG be on the final exam?' has no fact, "
+           "so first ask 'What topics does the course cover?' (facts 5, 4, 6). 5 Routing: 'What was my midterm score?' goes to the grades "
+           "table, not the 7 facts. 6 Query construction: 'Which classes are in October?' becomes the filter month = 10, giving exactly "
+           "facts 3, 4, 5.")
+TX, TY, TW_, TH_ = [20, 404, 788], [52, 316], 372, 252
+BAND = ["nt-band-a", "nt-band-a", "nt-band-b", "nt-band-b", "rc-res", "rc-res"]
+HEAD = [("Multi-query", "ถามหลายแบบ", "ask it several ways"), ("RAG Fusion", "รวมผลด้วย RRF", "merge the lists with RRF"),
+        ("Decomposition", "แตกเป็นคำถามย่อย", "split it into parts"), ("Step-back", "ถอยไปถามกว้างขึ้น", "ask a broader question first"),
+        ("Routing", "ส่งไปแหล่งที่ถูก", "send it to the right source"), ("Query construction", "แปลงเป็นคำค้นของระบบ", "write the database query")]
+RES = [("fact 4: อันดับ 4 → 2 ทุกแบบ", "fact 4: 4th → 2nd in each"), ("Recall@2: 0 → 1", "Recall@2: 0 → 1"),
+       ("✓ แต่ละส่วนเจอ fact ของตัวเอง", "✓ each part finds its fact"), ("✓ ได้บริบทมาตอบ", "✓ background to answer from"),
+       ("✓ ไปที่แหล่งที่มีคำตอบ", "✓ goes where the answer is"), ("✓ ได้ fact 3, 4, 5 พอดี", "✓ exactly facts 3, 4, 5")]
+LEG = [(20, "nt-band-a", "1–2 เขียนใหม่ แล้วรวมผล", "1–2 rewrite, then merge"), (404, "nt-band-b", "3–4 ปรับรูปคำถาม", "3–4 reshape the question"),
+       (788, "rc-res", "5–6 เลือกที่ค้น", "5–6 choose where to search")]
+for x, cls, th, en in LEG:
+    s.box(x, 8, 26, 26, cls, 6)
+    s.both(x + 36, 28, th, en, "pl-note")
+
+
+def bub(x, y, w, t, h=32, cls="nt-bubble", tcls="hk-desc"):
+    s.box(x, y, w, h, cls, h / 2)
+    s.text(x + w / 2, y + h / 2 + 6, t, tcls, "middle")
+
+
+def tag(x, y, w, t, cls="ml-cell", tcls="hk-desc", h=28):
+    s.box(x, y, w, h, cls, 7)
+    s.text(x + w / 2, y + h / 2 + 6, t, tcls, "middle")
+
+
+for k in range(6):
+    x, y = TX[k % 3], TY[k // 3]
+    s.box(x, y, TW_, TH_, BAND[k], 14)
+    s.out.append(f'<circle cx="{x + 30}" cy="{y + 30}" r="13" class="pl-dot"/>')
+    s.text(x + 30, y + 35, str(k + 1), "pl-num", "middle")
+    s.text(x + 52, y + 36, HEAD[k][0], "pl-label")
+    s.both(x + 20, y + 62, HEAD[k][1], HEAD[k][2], "pl-note")
+    s.both(x + 20, y + 238, *RES[k], "ml-ok")
+# 1 multi-query
+x, y = TX[0], TY[0]
+bub(x + 16, y + 70, 340, "What is taught on 19 October?")
+s.arrow(x + 186, y + 104, x + 186, y + 128)
+s.both(x + 198, y + 124, "LLM เขียนใหม่", "an LLM rewrites", "pl-note")
+for j, t in enumerate(["19 October 2026 lecture topic", "19 October class content", "Which topic does the 19 Oct… class cover?"]):
+    yy = y + 134 + j * 28
+    s.box(x + 16, yy, 270, 24, "ml-cell", 6)
+    s.text(x + 26, yy + 17, t if j < 2 else "+ 1 more rewrite", "dg-code")
+    s.text(x + 300, yy + 18, "#2", "ml-ok", "start")
+# 2 RAG fusion: four ranked lists, fact 4 lit at its real rank
+x, y = TX[1], TY[1 - 1]
+for c, (lab, r4) in enumerate([("asked", 3), ("rw 1", 1), ("rw 2", 1), ("rw 3", 1)]):
+    cx = x + 16 + c * 42
+    for r in range(4):
+        s.box(cx, y + 80 + r * 24, 34, 20, "sw-chip-warn" if r == r4 else "ml-cell", 4)
+    s.text(cx + 17, y + 94 + r4 * 24, "4", "dg-code", "middle")
+    s.text(cx + 17, y + 196, lab, "dg-code", "middle")
+s.arrow(x + 180, y + 126, x + 202, y + 126)
+s.text(x + 191, y + 114, "RRF", "dg-code", "middle")
+for j, (f, sc, gold) in enumerate([("fact 5", "0.0656", False), ("fact 4", "0.0640", True), ("fact 3", "0.0476", False)]):
+    yy = y + 82 + j * 32
+    s.box(x + 206, yy, 152, 26, "sw-chip-warn" if gold else "ml-cell", 6)
+    s.text(x + 214, yy + 18, f"{j + 1} {f}", "dg-code")
+    s.text(x + 350, yy + 18, sc, "dg-code", "end")
+s.out.append(f'<path d="M{x + 202} {y + 143} H{x + 362}" class="pl-line" stroke-dasharray="6 4"/>')
+s.both(x + 206, y + 196, "top 2 ↑", "top 2 ↑", "pl-note")
+# 3 decomposition
+x, y = TX[2], TY[0]
+s.box(x + 16, y + 72, 340, 52, "nt-bubble", 14)
+s.text(x + 186, y + 94, "Is there class on 12 Oct, and", "hk-desc", "middle")
+s.text(x + 186, y + 116, "what is taught the week after?", "hk-desc", "middle")
+s.arrow(x + 140, y + 126, x + 100, y + 146)
+s.arrow(x + 232, y + 126, x + 272, y + 146)
+bub(x + 16, y + 150, 168, "class on 12 Oct?", cls="ml-cell")
+bub(x + 188, y + 150, 168, "taught on 19 Oct?", cls="ml-cell")
+s.text(x + 100, y + 206, "→ fact 3", "ml-ok", "middle")
+s.text(x + 272, y + 206, "→ facts 5, 4", "ml-ok", "middle")
+# 4 step-back
+x, y = TX[0], TY[1]
+bub(x + 16, y + 74, 340, "Will RAG be on the final exam?")
+s.both(x + 20, y + 128, "✗ ไม่มี fact ตอบ → ถอยไปถาม:", "✗ no fact says → step back:", "ml-neg")
+bub(x + 16, y + 140, 340, "What topics does the course cover?", cls="ml-cell")
+for j, f in enumerate(["fact 5", "fact 4", "fact 6"]):
+    tag(x + 40 + j * 104, y + 184, 88, f, "sw-chip-warn")
+# 5 routing
+x, y = TX[1], TY[1]
+bub(x + 16, y + 74, 340, "What was my midterm score?")
+s.arrow(x + 186, y + 108, x + 186, y + 120)
+s.box(x + 136, y + 122, 100, 30, "ml-model", 8)
+s.text(x + 186, y + 143, "router", "ml-model-text", "middle")
+s.arrow(x + 150, y + 154, x + 100, y + 172)
+s.arrow(x + 222, y + 154, x + 272, y + 172)
+tag(x + 16, y + 174, 168, "✗ 7 facts (vectors)", "ml-cell")
+tag(x + 188, y + 174, 168, "✓ grades table (SQL)", "sw-chip-warn")
+# 6 query construction
+x, y = TX[2], TY[1]
+bub(x + 16, y + 70, 340, "Which classes are in October?")
+s.arrow(x + 186, y + 104, x + 186, y + 130)
+s.both(x + 198, y + 124, "LLM เขียน", "an LLM writes", "pl-note")
+s.box(x + 66, y + 132, 240, 30, "ml-model", 8)
+s.text(x + 186, y + 152, "filter: month = 10", "ml-model-text", "middle")
+s.arrow(x + 186, y + 164, x + 186, y + 178)
+for j, f in enumerate(["fact 3", "fact 4", "fact 5"]):
+    tag(x + 40 + j * 104, y + 180, 88, f, "sw-chip-warn")
+s.both(20, 594, "คำถามที่ LLM เขียนใหม่เป็นตัวอย่าง · อันดับและคะแนน RRF เป็นค่าจริงจาก all-MiniLM-L6-v2 กับข้อเท็จจริง 7 ข้อ",
+       "the rewritten questions are examples an LLM may write · the ranks and RRF scores are real (all-MiniLM-L6-v2 on the 7 facts)", "pl-note")
+s.save("l13-query-techniques.svg", 606)
+
+# ---------------------------------------------------------------- 34. advanced indexing: multi-representation, RAPTOR, GraphRAG (lesson 13)
+# Real: agglomerative clustering (cosine, average linkage, 3 groups) of the 7 fact vectors (all-MiniLM-L6-v2) gives
+# {fact 1}, {facts 2, 7}, {facts 3, 4, 5, 6}. The group summaries, the syllabus and the Newton graph are examples.
+W = 1180
+s = Svg(W, "Three ways to index better. 1 Multi-representation: an LLM writes a short summary of a long document, such as a syllabus "
+           "with a table; the summary is what gets searched, and the whole document is what gets sent to the LLM. 2 RAPTOR: similar "
+           "chunks are grouped and each group is summarised, level by level, into a tree; our 7 facts fall into three groups (where the "
+           "class meets: fact 1; exams: facts 2 and 7; class dates and topics: facts 3 to 6), so a detail question finds a leaf and a "
+           "big-picture question finds a group summary. 3 GraphRAG: knowledge is stored as nodes and edges; to answer what Newton's "
+           "work explained, follow two edges, Newton → laws of motion → gravity.")
+PX3 = [20, 404, 788]
+for k, (cls, t, th, en) in enumerate([("nt-band-b", "Multi-representation", "ค้นด้วยสรุป ส่งฉบับเต็ม", "search a summary, send the whole"),
+                                      ("nt-band-b", "RAPTOR", "ต้นไม้ของบทสรุป", "a tree of summaries"),
+                                      ("rc-res", "GraphRAG", "เดินตามความสัมพันธ์", "follow the relations")]):
+    x = PX3[k]
+    s.box(x, 20, 372, 470, cls, 14)
+    s.out.append(f'<circle cx="{x + 30}" cy="50" r="13" class="pl-dot"/>')
+    s.text(x + 30, 55, str(k + 1), "pl-num", "middle")
+    s.text(x + 52, 56, t, "pl-label")
+    s.both(x + 20, 82, th, en, "pl-note")
+
+
+def page_icon(x, y, w=120, h=150):
+    s.box(x, y, w, h, "ml-cell", 6)
+    for j in range(4):
+        s.box(x + 12, y + 16 + j * 14, w - 24 - (j % 2) * 20, 5, "ml-bar", 2)
+    for r in range(3):
+        for c in range(3):
+            s.box(x + 12 + c * (w - 24) / 3, y + 80 + r * 18, (w - 24) / 3 - 4, 14, "pl-chip", 2)
+
+
+# 1 multi-representation
+x = PX3[0]
+page_icon(x + 16, 104, w=104)
+s.both(x + 68, 274, "ฉบับเต็ม (เก็บไว้)", "full text (stored)", "pl-note", "middle")
+s.arrow(x + 124, 154, x + 196, 154)
+s.text(x + 160, 144, "LLM", "pl-note", "middle")
+s.box(x + 200, 116, 156, 76, "sw-chip-warn", 8)
+for j, ln in enumerate(["Syllabus:", "schedule, exams,", "grading table"]):
+    s.text(x + 210, 138 + j * 20, ln, "dg-code")
+s.both(x + 278, 214, "บทสรุป (ใช้ค้น)", "summary (searched)", "pl-note", "middle")
+s.box(x + 186, 236, 170, 32, "nt-bubble", 16)
+s.text(x + 271, 258, "When is the final? ✓", "hk-desc", "middle")
+s.arrow(x + 278, 234, x + 278, 222)
+s.arrow(x + 68, 290, x + 68, 330)
+s.both(x + 82, 316, "ส่งฉบับเต็มไป", "send the whole text", "pl-note")
+s.box(x + 18, 334, 100, 34, "ml-model", 8)
+s.text(x + 68, 357, "LLM", "ml-model-text", "middle")
+s.both(x + 20, 410, "✓ ข้อความสั้นไว้ค้น ฉบับเต็มไว้อ่าน", "✓ short text to search, full text to read", "ml-ok")
+s.both(x + 20, 440, "ตาราง รูป: ค้นด้วยคำบรรยายของมัน", "tables, images: search their text summary", "pl-note")
+s.both(x + 20, 466, "(syllabus เป็นตัวอย่าง)", "(the syllabus is an example)", "pl-note")
+# 2 RAPTOR on the 7 facts
+x = PX3[1]
+LEAVES = [1, 2, 7, 3, 4, 5, 6]
+LX = {f: x + d for f, d in zip(LEAVES, [40, 98, 142, 200, 244, 288, 332])}
+s.box(x + 116, 104, 140, 34, "ml-model", 8)
+s.both(x + 186, 127, "ภาพรวมวิชา", "course overview", "ml-model-text", "middle")
+GROUPS = [([1], "ที่เรียน", "meets"), ([2, 7], "สอบ", "exams"), ([3, 4, 5, 6], "วันและหัวข้อ", "class topics")]
+for fs, th, en in GROUPS:
+    cx = sum(LX[f] for f in fs) / len(fs)
+    w = {1: 60, 2: 80, 4: 150}[len(fs)]
+    s.box(cx - w / 2, 190, w, 32, "sw-chip-warn" if en == "class topics" else "ml-cell", 8)
+    s.both(cx, 212, th, en, "hk-desc", "middle")
+    s.out.append(f'<path d="M{x + 186} 140 L{cx:.1f} 188" class="pl-line"/>')
+    for f in fs:
+        s.out.append(f'<path d="M{cx:.1f} 224 L{LX[f]:.1f} 272" class="pl-line"/>')
+for f in LEAVES:
+    s.box(LX[f] - 18, 274, 36, 30, "sw-chip-warn" if f == 7 else "ml-cell", 6)
+    s.text(LX[f], 295, f"f{f}", "dg-code", "middle")
+s.both(x + 20, 127, "บนสุด", "top", "pl-note")
+s.both(x + 20, 330, "ล่าง: chunk = ข้อเท็จจริง 7 ข้อ", "bottom: chunks = the 7 facts", "pl-note")
+s.both(x + 20, 366, "รายละเอียด: When is the final? → f7", "detail: When is the final? → f7", "hk-desc")
+s.both(x + 20, 392, "ภาพรวม: What do classes cover?", "big picture: What do classes cover?", "hk-desc")
+s.both(x + 36, 416, "→ กลุ่ม “วันและหัวข้อ”", "→ the “class topics” group", "hk-desc")
+s.both(x + 20, 452, "✓ ตอบได้ทั้งรายละเอียดและภาพรวม", "✓ details and the big picture", "ml-ok")
+# 3 GraphRAG
+x = PX3[2]
+s.box(x + 16, 100, 340, 34, "nt-bubble", 17)
+s.text(x + 186, 123, "What did Newton's work explain?", "hk-desc", "middle")
+NODES = [("Newton", 160, "sw-chip-warn"), ("laws of motion", 240, "sw-chip-warn"), ("gravity", 320, "sw-chip-warn")]
+for t, y, cls in NODES:
+    s.box(x + 40, y, 150, 36, cls, 18)
+    s.text(x + 115, y + 24, t, "hk-desc", "middle")
+s.arrow(x + 115, 198, x + 115, 238)
+s.text(x + 128, 224, "formulated", "dg-code")
+s.arrow(x + 115, 278, x + 115, 318)
+s.text(x + 128, 304, "explain", "dg-code")
+s.box(x + 232, 160, 110, 36, "ml-cell", 18)
+s.text(x + 287, 184, "Principia", "hk-desc", "middle")
+s.arrow(x + 192, 178, x + 230, 178)
+s.text(x + 211, 170, "wrote", "dg-code", "middle")
+s.both(x + 20, 378, "node = สิ่ง · edge = ความสัมพันธ์", "node = a thing · edge = a relation", "pl-note")
+s.both(x + 20, 408, "✗ vector: chunk เรื่องแรงโน้มถ่วง", "✗ vectors: the gravity chunk", "ml-neg")
+s.both(x + 38, 436, "อาจไม่มีชื่อ Newton เลย", "may never name Newton", "ml-neg")
+s.both(x + 20, 470, "✓ กราฟ: เดิน 2 edge → gravity", "✓ graph: follow 2 edges → gravity", "ml-ok")
+s.both(20, 514, "การจัดกลุ่มเป็นค่าจริง (all-MiniLM-L6-v2, 3 กลุ่ม) · ชื่อกลุ่ม syllabus และกราฟ Newton เป็นตัวอย่าง",
+       "the grouping is real (all-MiniLM-L6-v2, 3 groups) · the group names, the syllabus and the Newton graph are examples", "pl-note")
+s.save("l13-indexing.svg", 528)
+
+# ---------------------------------------------------------------- 35. long context vs RAG: needle in a haystack (lesson 13)
+# Sources: context sizes as announced (GPT-3.5 4K 2022, GPT-4 Turbo 128K 2023, Gemini 1.5 Pro 1M 2024, Llama 4 Scout 10M 2025);
+# today (provider docs, 2026-10-23): GPT-6 Astra 1.05M, Claude Opus 5.5 1M, Gemini 4 Argon 1M; the Odyssey (Project Gutenberg
+# #1727) = 176,383 tokens with OpenAI's o200k tokenizer (counted). Results as reported by LangChain (Mar 2024): single needle,
+# GPT-4 starts missing needles near the start at ≈ 73K tokens; 10 needles in ≈ 24.8K tokens → only the last 4 returned;
+# retrieve-then-reason (first letters) scores below retrieval alone. Result grids and bar lengths are sketches.
+W = 1180
+s = Svg(W, "Left: context windows grew from 4 thousand tokens (GPT-3.5, 2022) to 128 thousand (GPT-4 Turbo, 2023), 1 million (Gemini "
+           "1.5 Pro, 2024) and 10 million (Llama 4 Scout, 2025); today's flagships, GPT-6 Astra, Claude Opus 5.5 and Gemini 4 Argon, "
+           "read about 1 million; the whole Odyssey is about 176 thousand tokens. Right: how the needle-in-a-haystack test works. 1 take "
+           "a long text that has nothing to do with the question, the haystack, cut to a chosen length; 2 hide one sentence, the needle, "
+           "at a chosen depth, 0% at the start to 100% at the end; 3 ask a question only the needle answers and mark the answer right or "
+           "wrong; 4 repeat for every length and depth, giving a grid of right and wrong cells.")
+s.box(20, 20, 372, 456, "ml-cell", 14)
+s.text(40, 52, "1 · Bigger windows", "pl-label")
+s.both(40, 78, "context window โตเร็วมาก", "context windows keep growing", "pl-note")
+x = 20
+WIN = [("GPT-3.5 · 2022", 4e3, "4K"), ("GPT-4 Turbo · 2023", 128e3, "128K"), ("Gemini 1.5 Pro · 2024", 1e6, "1M"),
+       ("Llama 4 Scout · 2025", 1e7, "10M"), None,
+       ("GPT-6 Astra", 1.05e6, "1.05M"), ("Claude Opus 5.5", 1e6, "1M"), ("Gemini 4 Argon", 1e6, "1M")]
+for j_, row in enumerate(WIN):
+    y = 100 + j_ * 32
+    if row is None:
+        s.out.append(f'<path d="M{x + 20} {y + 10} H{x + 352}" class="dg-rule"/>')
+        s.both(x + 20, y + 26, "วันนี้ (ต.ค. 2026)", "today (Oct 2026)", "nt-head")
+        continue
+    lab, v, vt = row
+    s.text(x + 20, y + 22, lab, "hk-desc")
+    L = (math.log10(v) - 3) / 4 * 110
+    s.box(x + 192, y + 8, L, 16, "ml-bar-top" if j_ > 4 else "ml-bar", 3)
+    s.text(x + 198 + L, y + 22, vt, "dg-code")
+s.both(x + 20, 374, "แกนเป็น log: แต่ละช่วงคูณ 10", "log scale: each step is × 10", "pl-note")
+s.both(x + 20, 404, "Odyssey ทั้งเล่ม ≈ 176K token", "the whole Odyssey ≈ 176K tokens", "pl-text")
+s.both(x + 20, 430, "→ ใส่ใน window 1M ได้สบาย", "→ fits a 1M window easily", "ml-ok")
+# right: how the test works, four steps on our own example
+X = 404
+s.box(X, 20, 756, 456, "nt-band-a", 14)
+s.both(X + 20, 52, "2 · การทดสอบ: หาเข็มในกองฟาง", "2 · The test: a needle in a haystack", "pl-label")
+s.both(X + 20, 78, "ใส่ข้อความยาวไว้ใน prompt จริง ๆ แล้วดูว่าโมเดลหาข้อเท็จจริงที่ซ่อนไว้เจอไหม",
+       "really fill the prompt with a long text, then see if the model finds one hidden fact", "pl-note")
+STEPS = [("เอากองฟาง: ข้อความยาวที่ไม่เกี่ยวกับคำถาม", "Take a haystack: a long text unrelated to the question"),
+         ("ซ่อนเข็มหนึ่งประโยค ที่ความลึกที่เลือก", "Hide one sentence, the needle, at a chosen depth"),
+         ("ถามสิ่งที่มีแต่เข็มตอบได้ แล้วตรวจคำตอบ", "Ask what only the needle answers; check the answer"),
+         ("ทำซ้ำทุกความยาว × ทุกความลึก", "Repeat for every length × every depth")]
+for k, (th, en) in enumerate(STEPS):
+    y = 96 + k * 90
+    s.out.append(f'<circle cx="{X + 34}" cy="{y + 14}" r="13" class="pl-dot"/>')
+    s.text(X + 34, y + 19, str(k + 1), "pl-num", "middle")
+    s.both(X + 56, y + 20, th, en, "pl-text")
+# 1 haystack: pages + length
+for k in range(4):
+    s.box(X + 60 + k * 8, y0 := 96 + 32 - k * 4, 54, 40, "ml-cell", 4) if False else None
+for k in range(3):
+    s.box(X + 56 + k * 10, 128 + k * 4, 50, 38, "ml-cell", 4)
+s.both(X + 140, 154, "Odyssey ตัดเหลือความยาวที่เลือก: 1K … 128K token", "the Odyssey, cut to a chosen length: 1K … 128K tokens", "hk-desc")
+# 2 needle in a bar
+s.box(X + 56, 220, 300, 22, "ml-cell", 4)
+for k in range(18):
+    s.box(X + 62 + k * 16, 226, 11, 10, "ml-bar", 2)
+s.box(X + 56 + 300 * 0.3 - 5, 214, 10, 34, "ml-bar-top", 3)
+s.both(X + 56, 262, "0% = ต้น", "0% = start", "pl-note")
+s.both(X + 356, 262, "100% = ท้าย", "100% = end", "pl-note", "end")
+s.text(X + 376, 230, "“The final exam of course 2190519", "dg-code")
+s.text(X + 376, 250, " is on Monday 30 November 2026.”", "dg-code")
+# 3 ask and check
+s.box(X + 56, 312, 300, 32, "nt-bubble", 16)
+s.text(X + 206, 334, "When is the final exam of 2190519?", "hk-desc", "middle")
+s.arrow(X + 360, 328, X + 384, 328)
+s.both(X + 392, 330, "“30 November 2026” → ถูก ✓", "“30 November 2026” → right ✓", "ml-ok")
+s.both(X + 392, 354, "“ไม่มีข้อมูล” → ผิด ✗", "“I can't find it” → wrong ✗", "ml-neg")
+# 4 repeat: a small grid with the axes named
+GX, GY = X + 120, 396
+for r in range(3):
+    for c in range(8):
+        s.box(GX + c * 22, GY + r * 18, 18, 14, "sw-chip-warn" if (r, c) == (1, 3) else "ml-cell", 2)
+s.both(GX - 8, GY + 26, "ความลึก", "depth", "pl-note", "end")
+s.both(GX + 88, GY + 70, "ความยาว →", "length →", "pl-note", "middle")
+s.both(GX + 196, GY + 22, "1 ช่อง = ลอง 1 ครั้ง (ถูก/ผิด)", "1 cell = 1 try (right / wrong)", "hk-desc")
+s.both(GX + 196, GY + 46, "เช่น 50K token, ลึก 30%", "e.g. 50K tokens, 30% deep", "pl-note")
+s.save("l13-needle.svg", 490)
+
+# ---------------------------------------------------------------- 36. needle in a haystack: what happened (lesson 13)
+s = Svg(W, "Results of the needle tests. Left, one needle with GPT-4 (128K window, 2023): the grid of tries, context length from 1K to "
+           "128K tokens across and needle depth from the start to the end down; up to about 73K tokens every needle was found, beyond "
+           "that the needles near the start were missed even though they were in the prompt. Right, many needles with GPT-4 (2024): ten "
+           "secret pizza ingredients spread through about 25K tokens; asked for all of them, GPT-4 returned only the last four (recency "
+           "bias); asked to reason over them, giving the first letter of each, it scored lower than when only listing them.")
+s.box(20, 20, 560, 470, "ml-cell", 14)
+s.both(40, 52, "ผล: เข็มเดียว (GPT-4, window 128K, 2023)", "Result: one needle (GPT-4, 128K window, 2023)", "pl-label")
+COLS = ["1K", "25K", "50K", "75K", "100K", "128K"]
+ROWS = [("0% ต้น", "0% start"), ("25%", "25%"), ("50%", "50%"), ("75%", "75%"), ("100% ท้าย", "100% end")]
+GX, GY, CW, RH = 150, 100, 64, 44
+for r, (th, en) in enumerate(ROWS):
+    s.both(GX - 12, GY + r * RH + 27, th, en, "pl-note", "end")
+    for c in range(6):
+        miss = c >= 3 and r <= 1
+        s.box(GX + c * CW, GY + r * RH, CW - 6, RH - 6, "sw-chip-warn" if miss else "rc-res", 4)
+        s.text(GX + c * CW + (CW - 6) / 2, GY + r * RH + 26, "✗" if miss else "✓", "ml-neg" if miss else "ml-ok", "middle")
+for c, t in enumerate(COLS):
+    s.text(GX + c * CW + (CW - 6) / 2, GY + 5 * RH + 18, t, "dg-code", "middle")
+s.both(GX + 3 * CW, GY + 5 * RH + 44, "ความยาวของ context →", "context length →", "pl-note", "middle")
+s.both(40, GY - 12, "ความลึก ↓", "depth ↓", "pl-note")
+s.both(40, 412, "✗ ยาวเกิน ≈ 73K token: พลาดเข็มช่วงต้น", "✗ past ≈ 73K tokens: needles near the start missed", "ml-neg")
+s.both(40, 440, "ทั้งที่ข้อเท็จจริงอยู่ใน prompt แล้ว", "even though the fact was in the prompt", "pl-text")
+s.both(40, 470, "(ภาพร่างของผลที่รายงาน ✓ = เจอ ✗ = พลาด)", "(a sketch of the reported result: ✓ found, ✗ missed)", "pl-note")
+s.box(600, 20, 560, 470, "sw-warn-box", 14)
+s.both(620, 52, "ผล: หลายเข็ม (GPT-4, 2024)", "Result: many needles (GPT-4, 2024)", "pl-label")
+s.text(620, 86, "needle: “The secret ingredient for the perfect", "dg-code")
+s.text(620, 106, "        pizza is figs.” (× 10 ingredients)", "dg-code")
+s.box(620, 134, 520, 30, "ml-cell", 4)
+for k in range(10):
+    found = k >= 6
+    cx = 636 + k * 51
+    s.box(cx, 128, 12, 42, "ml-model" if found else "ml-bar", 3)
+    s.text(cx + 6, 190, "✓" if found else "✗", "ml-ok" if found else "ml-neg", "middle")
+s.both(620, 218, "ต้นข้อความ", "start of text", "pl-note")
+s.both(1140, 218, "ท้ายข้อความ (≈ 25K token)", "end (≈ 25K tokens)", "pl-note", "end")
+s.both(620, 254, "ถาม “ส่วนผสมลับมีอะไรบ้าง” → ได้แค่ 4 ตัวท้าย", "“What are the secret ingredients?” → only the last 4", "ml-neg")
+s.both(620, 280, "โมเดลสนใจท้าย input มากกว่า: recency bias", "it attends more to the end: recency bias", "pl-note")
+s.out.append('<path d="M620 300 H1140" class="dg-rule"/>')
+for k, (th, en, q, v, cls) in enumerate([("ค้นอย่างเดียว", "retrieve only", "“List the secret ingredients.”", 0.78, "ml-bar"),
+                                        ("ค้น + คิดต่อ", "retrieve + reason", "“Give the first letter of each.”", 0.46, "ml-bar-top")]):
+    y = 324 + k * 62
+    s.both(620, y + 4, th, en, "hk-desc")
+    s.text(790, y + 4, q, "dg-code")
+    s.box(620, y + 16, 500 * v, 18, cls, 3)
+s.both(620, 470, "✗ ต้องคิดต่อ คะแนนต่ำลงอีก (แท่งเป็นภาพร่าง)", "✗ reasoning scores lower still (bars are a sketch)", "ml-neg")
+s.save("l13-needle-results.svg", 506)

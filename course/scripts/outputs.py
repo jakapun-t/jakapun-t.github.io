@@ -10,6 +10,7 @@ Rules
 - Each python cell's following ```output block is replaced, or inserted if missing.
 - {run=false} on a cell skips it. {output=false} runs it but writes no output block.
   Lines starting with ! or % (pip installs, magics) are skipped.
+- Top-level `await` works, as in Colab (MCP cells): a cell with await runs on one shared event loop.
 - {plot="images/l11-name.png"} on a cell saves the figure it draws (matplotlib/seaborn) to that
   file and writes ```output {plot="..."}, which the page shows as the chart. End such cells with
   plt.show(), as students do.
@@ -17,6 +18,7 @@ Rules
 """
 
 import ast
+import asyncio
 import contextlib
 import datetime
 import io
@@ -40,6 +42,16 @@ except ImportError:
 
 FENCE = re.compile(r"^(\s*)(`{3,}|~{3,})\s*([\w-]*)\s*(.*?)\s*$")
 TABLE_ROWS = 10
+AWAIT = ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
+LOOP = asyncio.new_event_loop()
+
+
+def run_code(code, ns):
+    """eval a compiled cell; a cell with top-level await returns a coroutine, so run it on LOOP."""
+    value = eval(code, ns)
+    if code.co_flags & 0x80:  # CO_COROUTINE
+        value = LOOP.run_until_complete(value)
+    return value
 
 
 def parse_attrs(src):
@@ -105,8 +117,8 @@ def run_cell(code, ns):
         show_last = isinstance(last, ast.Expr) and not src.rstrip().endswith(";")
         body = tree.body[:-1] if show_last else tree.body
         with contextlib.redirect_stdout(buf):
-            exec(compile(ast.Module(body=body, type_ignores=[]), "<cell>", "exec"), ns)
-            value = eval(compile(ast.Expression(last.value), "<cell>", "eval"), ns) if show_last else None
+            run_code(compile(ast.Module(body=body, type_ignores=[]), "<cell>", "exec", flags=AWAIT), ns)
+            value = run_code(compile(ast.Expression(last.value), "<cell>", "eval", flags=AWAIT), ns) if show_last else None
         printed = buf.getvalue().rstrip("\n")
         if value is not None:
             k, t, note = display_value(value)
@@ -134,6 +146,8 @@ def main():
     cells = find_cells(lines)
 
     ns = {"__name__": "__main__"}
+    # like Colab, `python` on the PATH is the notebook's own Python (MCP servers start with command="python")
+    os.environ["PATH"] = os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", "")
     data_dir = os.path.join(course_dir, "data")
     cwd = os.getcwd()
     os.chdir(data_dir if os.path.isdir(data_dir) else course_dir)
