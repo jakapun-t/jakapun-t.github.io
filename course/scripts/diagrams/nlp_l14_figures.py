@@ -230,7 +230,7 @@ s.num(62, 428, 5)
 s.both(84, 434, "งานยาว: แผน · ไฟล์ · sub-agent · ย่อ context", "Long jobs: plans · files · sub-agents · shrink context", "hk-desc")
 s.box(600, 408, 540, 40, "ml-cell-b", 10)
 s.num(622, 428, 7)
-s.both(644, 434, "trace: บันทึกทุกการเรียก แล้วประเมินผล", "Trace: every call logged, then evaluated", "hk-desc")
+s.both(644, 434, "ประเมินผล: benchmark ค่าใช้จ่าย เวลา", "Evaluate: benchmarks, cost, time", "hk-desc")
 s.save("l14-map-lesson.svg", 476)
 
 # ---------------------------------------------------------------- 3. workflow vs agent
@@ -580,6 +580,50 @@ s.both(856, 326, "days_between แล้วจึงตอบ", "days_between, t
 s.both(20, 434, "โมเดลไม่ได้รันอะไรเอง: มันคืนคำขอ แล้ว harness (โค้ดของเรา) เป็นคนรัน",
        "The model runs nothing: it returns requests, and the harness (our code) runs them.", "pl-text")
 s.save("l14-function-call.svg", 450)
+
+# ---------------------------------------------------------------- 11a. what plugs into the harness: into the context window
+s = Svg(W, "The harness fills the context window from three outside sources. Long-term memory: AGENTS.md ('prefers Thai "
+           "answers') is read at the start into the rules. Skills: only each skill's name and description (about 41 tokens) "
+           "goes in; the full SKILL.md (about 144 tokens) is loaded only when a task matches. MCP: a calendar MCP server's "
+           "tools, such as create_event, join the tool descriptions like our own tools, and the harness forwards each call to "
+           "the server. Short-term memory is the thread itself: the earlier calls and results, saved by a checkpointer.")
+SRC = [("brain", "Memory (ระยะยาว)", "Memory (long-term)", "เก็บไว้นอก thread", "saved outside the thread", "AGENTS.md: prefers Thai", 150),
+       ("books", "Skills", "Skills", "วิธีทำงานในโฟลเดอร์", "know-how in a folder", "skills/exam-study-plan/", 342),
+       ("plug", "MCP server", "MCP server", "tool จากข้างนอก ปลั๊กเดียว", "outside tools, one plug", "calendar → create_event", 562)]
+for k, (icon, th, en, dth, den, code, target) in enumerate(SRC):
+    x = 20 + k * 380
+    s.box(x, 20, 368, 140, "nt-band-a", 14)
+    ic(s, icon, x + 40, 58, 52)
+    s.both(x + 76, 52, th, en, "pl-label")
+    s.both(x + 76, 78, dth, den, "hk-desc")
+    s.box(x + 16, 100, 336, 40, "ml-cell", 8)
+    s.code(x + 30, 126, code)
+    s.arrow(x + 184, 162, target, 222)
+s.both(40, 298, "context window ที่ harness ประกอบ (ไม่ตามสเกล)", "the context window the harness builds (not to scale)", "pl-note")
+BAR = [(40, 256, "dg-hl-col", "กฎ + AGENTS.md", "rules + AGENTS.md"), (260, 160, "ml-cell-b", "รายชื่อ skill", "skill list"),
+       (424, 276, "ml-bar", "คำอธิบาย tool", "tool descriptions"), (704, 26, "ml-model", "", ""),
+       (734, 226, "sw-chip-warn", "thread", "the thread")]
+for x, w, cls, th, en in BAR:
+    s.box(x, 226, w if w != 256 else 216, 48, cls, 4)
+    if en:
+        s.both(x + 12, 256, th, en, "hk-desc")
+s.both(717, 296, "คำถาม", "question", "hk-desc", "middle")
+s.box(966, 226, 174, 48, "nt-out", 4)
+s.both(980, 256, "→ token ถัดไป", "→ next token", "hk-desc")
+s.arrow(847, 334, 847, 278)
+s.both(760, 352, "ความจำระยะสั้น = thread", "short-term memory = the thread", "hk-desc")
+s.both(760, 376, "checkpointer บันทึกตาม thread_id", "saved by a checkpointer per thread_id", "pl-note")
+CAP = [(20, "ตอนเริ่ม: อ่าน AGENTS.md และแค่ชื่อกับคำอธิบาย", "At start: AGENTS.md, and only each skill's",
+        "ของแต่ละ skill (≈41 token) ทั้งไฟล์ (≈144)", "name + description (≈41 tokens); the full",
+        "โหลดเฉพาะเมื่องานตรงกัน", "SKILL.md (≈144) only when a task matches"),
+       (400, "tool ของ MCP ดูเหมือน tool ของเรา", "MCP tools look like our own tools;",
+        "เมื่อ Gemini เรียก create_event", "when Gemini calls create_event,",
+        "harness ส่งต่อให้ server", "the harness forwards it to the server")]
+for x, a_th, a_en, b_th, b_en, c_th, c_en in CAP:
+    s.box(x, 312, 368 if x == 20 else 340, 112, "ml-cell", 12)
+    for j, (th, en) in enumerate([(a_th, a_en), (b_th, b_en), (c_th, c_en)]):
+        s.both(x + 16, 344 + j * 28, th, en, "hk-desc")
+s.save("l14-plugins.svg", 440)
 
 # ---------------------------------------------------------------- 11. MCP
 s = Svg(W, "Before MCP: three apps (Claude Desktop, Cursor, Gemini CLI) each build their own connector to three services "
@@ -1008,6 +1052,62 @@ s.both(700, 392, "context engineering: เลือกว่าอะไรเ�
 s.both(700, 420, "ในรูปแบบไหน ที่ขั้นไหน", "in what form, at which step", "pl-text")
 s.save("l14-context-types.svg", 436)
 
+# ---------------------------------------------------------------- 21c. the context window (real tokens)
+s = Svg(W, "The context window: everything the model reads on one call, in order. Rules (a system prompt, if any), the tool "
+           "descriptions (about 245 tokens), the student's question (11), then everything from earlier rounds: Gemini's own "
+           "tool calls and the tool results (282 tokens after round 1, 53 more after round 2); then the model predicts the "
+           "next token. On call 3 of our question that is 591 tokens. Every call resends the whole window: 256, 538, 591 "
+           "tokens. The study-plan job read 97,743 tokens in 12 calls, the biggest 14,565. Every token is billed on every "
+           "call, long inputs are slower, and models do worse as the input grows (Chroma tested 18).")
+s.both(20, 34, "context window = ทุกอย่างที่โมเดลอ่านในการเรียก 1 ครั้ง", "The context window = everything the model reads on one call", "pl-label")
+SRC = [("icon", "notepad", "กฎ (system prompt)", "rules (system prompt)", 120),
+       ("icon", "tools", "คำอธิบาย tool", "tool descriptions", 300),
+       ("pic", "ag-student-ask", "คำถาม", "the question", 455),
+       ("pic", "ai-robot", "call เดิมของโมเดล", "its own past calls", 600),
+       ("icon", "magnifier", "ผลของ tool", "tool results", 800)]
+for kind, name, th, en, cx in SRC:
+    if kind == "icon":
+        ic(s, name, cx, 82, 52)
+    else:
+        pic(s, name, cx - 30, 52, 60, 62, "xMidYMid")
+    s.both(cx, 136, th, en, "hk-desc", "middle")
+    s.arrow(cx, 144, cx, 176)
+# the bar on call 3 of our question: 245 + 11 + 282 + 53 = 591 tokens
+X, SC, Y = 40, 1.48, 180
+SEG = [(16, "pl-chip-del", "none here"), (245, "ml-bar", "≈245"), (11, "ml-model", "11"), (282, "sw-chip-warn", "282"), (53, "sw-chip-warn", "53")]
+x = X
+for tok, cls, lab in SEG:
+    w = 24 if tok == 16 else tok * SC
+    s.box(x, Y, w, 44, cls, 3)
+    if lab == "none here":
+        s.both(x, Y + 66, "ไม่มีในรอบนี้", "none here", "hk-desc")
+    elif lab:
+        s.text(x + w / 2, Y + 66, lab, "hk-desc", "middle")
+    x += w + 2
+s.box(x + 6, Y, 1150 - x - 6, 44, "nt-out", 3)
+s.both(x + 20, Y + 28, "→ token ถัดไป", "→ next token", "pl-text")
+s.both(X, Y + 92, "การเรียกครั้งที่ 3 ของคำถามเรา: 591 token · รอบก่อนหน้า (call + ผล): 282 + 53",
+       "Call 3 of our question: 591 tokens · earlier rounds (calls + results): 282 + 53", "pl-note")
+# why it runs out
+s.box(20, 296, 560, 200, "ml-cell", 14)
+s.both(40, 326, "ส่งทั้ง window ไปใหม่ทุกครั้ง", "Every call resends the whole window", "pl-label")
+for k, tok in enumerate([256, 538, 591]):
+    y = 344 + k * 40
+    s.both(40, y + 22, f"ครั้งที่ {k + 1}", f"call {k + 1}", "hk-desc")
+    s.box(110, y + 4, tok * 0.6, 26, "ml-bar", 3)
+    s.text(116 + tok * 0.6, y + 23, str(tok), "pl-label")
+s.both(40, 482, "งานยาว: แผนอ่านหนังสือ 12 ครั้ง อ่าน 97,743 token", "a long job: the study plan, 12 calls, 97,743 tokens read", "pl-text")
+s.box(600, 296, 560, 200, "sw-warn-box", 14)
+s.both(620, 326, "ทำไม window ใหญ่ ๆ จึงเป็นปัญหา", "Why a big window is a problem", "pl-label")
+WHY = [("moneybag", "คิดเงินทุก token ทุกครั้งที่เรียก", "every token is billed, on every call"),
+       ("stopwatch", "input ยาว = ตอบช้าลง", "a longer input is slower"),
+       ("brain", "โมเดลแย่ลงเมื่อ input ยาว (Chroma, 18 โมเดล)", "models do worse as it grows (Chroma, 18)")]
+for k, (icon, th, en) in enumerate(WHY):
+    y = 344 + k * 48
+    ic(s, icon, 640, y + 16, 34)
+    s.both(668, y + 23, th, en, "pl-text")
+s.save("l14-context-window.svg", 512)
+
 # ---------------------------------------------------------------- 22. offload, reduce, isolate
 s = Svg(W, "Three ways to keep the window small. Offload: the agent writes plan.md, notes and full results to files and keeps "
            "only a path; Manus uses fewer than 20 general tools, and code calling MCP tools cut one job from 150,000 to 2,000 "
@@ -1342,6 +1442,50 @@ s.code(40, 406, "careful.invoke(Command(resume={\"decisions\": [{\"type\": \"app
 s.both(40, 442, "ต้องมี checkpointer: การรันหยุด แล้วกลับมาทำต่อจาก state ที่บันทึกไว้", "needs a checkpointer: the run stops, then continues from the saved state", "pl-note")
 s.save("l14-hitl.svg", 476)
 
+# ---------------------------------------------------------------- 21a. three ways to build the agent (tick table)
+s = Svg(W, "Three ways to build the same agent. Write it yourself (run_agent, 20 lines): you write every part, the loop too. create_agent (LangChain, 4 lines): the loop and any model are built in; guardrails and limits, saving "
+           "state and asking a person, a to-do plan and context management are one line each; files and sub-agents you write. "
+           "create_deep_agent (Deep Agents, 5 lines): files, sub-agents and context management are built in too; guardrails, "
+           "asking a person and the to-do plan are one line. Best for: learning, most apps, long jobs.")
+COLS = [("icon-coder", "เขียนเอง", "Write it yourself", "run_agent · 20 บรรทัด", "run_agent · 20 lines", "ml-cell"),
+        ("icon-puzzle", "create_agent", "create_agent", "LangChain · 4 บรรทัด", "LangChain · 4 lines", "ml-cell"),
+        ("ag-robot-plan", "create_deep_agent", "create_deep_agent", "Deep Agents · 5 บรรทัด", "Deep Agents · 5 lines", "nt-band-a")]
+X0, CW = 400, 248
+s.box(20, 20, 368, 108, "ml-cell", 14)
+for k, (mark, cls, th, en) in enumerate([("✓", "ml-ok", "มีให้แล้ว", "built in"), ("＋", "pl-label", "เพิ่ม 1 บรรทัด", "one line to add"),
+                                        ("✗", "ml-neg", "ต้องเขียนเอง", "you write it")]):
+    s.raw(f'<text x="48" y="{56 + k * 30}" class="{cls}" text-anchor="middle" style="font-size:24px">{mark}</text>')
+    s.both(72, 54 + k * 30, th, en, "hk-desc")
+for k, (picname, nth, nen, lth, len_, cls) in enumerate(COLS):
+    x = X0 + k * (CW + 8)
+    s.box(x, 20, CW, 108, cls, 14)
+    pic(s, picname, x + 8, 28, 56, 56, "xMidYMid")
+    s.both(x + 70, 54, nth, nen, "pl-label")
+    s.both(x + 70, 80, lth, len_, "hk-desc")
+ROWS = [("ลูป: เรียก รัน tool วนซ้ำ", "The loop: call, run tools, repeat", "✗✓✓"),
+        ("ใช้โมเดลเจ้าไหนก็ได้", "Any model: Gemini, GPT, Claude", "✗✓✓"),
+        ("guardrail และขีดจำกัด", "Guardrails and limits", "✗＋＋"),
+        ("บันทึก state และถามคน", "Save state, ask a person", "✗＋＋"),
+        ("แผนแบบ to-do", "A to-do plan", "✗＋＋"),
+        ("ไฟล์: ls อ่าน เขียน", "Files: ls, read, write", "✗✗✓"),
+        ("sub-agent", "Sub-agents", "✗✗✓"),
+        ("จัดการ context", "Context management", "✗＋✓")]
+MARK_CLS = {"✓": "ml-ok", "＋": "pl-label", "✗": "ml-neg"}
+for r, (th, en, marks) in enumerate(ROWS):
+    y = 140 + r * 40
+    s.box(20, y, 1140, 34, "ml-cell" if r % 2 == 0 else "ml-cell-b", 6)
+    s.both(36, y + 23, th, en, "hk-desc")
+    for k, m in enumerate(marks):
+        s.raw(f'<text x="{X0 + k * (CW + 8) + CW / 2:g}" y="{y + 27}" class="{MARK_CLS[m]}" text-anchor="middle" style="font-size:26px">{m}</text>')
+y = 140 + len(ROWS) * 40 + 6
+s.both(36, y + 30, "เหมาะกับ", "Best for", "pl-label")
+for k, (th, en) in enumerate([("เรียนรู้ว่าทำงานอย่างไร", "learning how it works"), ("แอปส่วนใหญ่ งานสั้น", "most apps, short tasks"),
+                              ("งานยาวหลายขั้น", "long, many-step jobs")]):
+    x = X0 + k * (CW + 8)
+    s.box(x, y, CW, 46, "nt-out", 10)
+    s.both(x + CW / 2, y + 29, th, en, "hk-desc", "middle")
+s.save("l14-three-ways.svg", y + 60)
+
 # ---------------------------------------------------------------- 21b. Deep Agents (real run)
 DEEP = [("gather", "รวบรวม", ["1 get_today()", "2 search_course(k=7) → all 7 facts", "3 days_between → 35"]),
         ("plan", "วางแผน", ["4 write_todos([...steps])"]),
@@ -1417,3 +1561,159 @@ for k, (cls, t) in enumerate(LEG):
     s.box(40 + k * 226, 484, 18, 18, cls, 3)
     s.code(66 + k * 226, 499, t)
 s.save("l14-trace.svg", 514)
+
+# ---------------------------------------------------------------- 27b. Artificial Analysis Coding Agent Index (24 Oct 2026)
+AA = [  # agent (harness · model), index, FrontierCode v1.1, Terminal-Bench 4.0, SWE-Atlas-QnA-AA; read from the page on 2026-10-24
+    ("Claude Code · Opus 5.5", 62, 56, 63, 66), ("Claude Code · Sonnet 5.5", 59, 48, 66, 64),
+    ("Muse Code · Muse Wonder Full", 59, 49, 59, 69), ("Codex · GPT-6 Astra", 55, 49, 56, 59),
+    ("Codex · GPT-6.1 Sol", 54, 49, 53, 60), ("Antigravity CLI · Gemini 4 Argon", 53, 49, 56, 55),
+    ("Grok Build · Grok 4.7", 47, 44, 33, 63), ("Kimi Code CLI · Kimi K3", 41, 43, 21, 60)]
+s = Svg(W, "How coding agents are scored today: the Artificial Analysis Coding Agent Index v2.0 (data read on 24 October "
+           "2026). What is tested is a harness plus a model as one agent, such as Claude Code with Opus 5.5, not the model "
+           "alone. Three benchmarks: FrontierCode v1.1 by Cognition, 100 software engineering tasks with partial credit; "
+           "Terminal-Bench 4.0 by Laude Institute, 66 terminal tasks, pass or fail; SWE-Atlas-QnA-AA by Scale AI, 124 "
+           "technical questions about a code base, pass or fail. Each score is the mean of 3 attempts per task, and the index "
+           "is the plain average of the three. Top rows: Claude Code with Opus 5.5 62 (56, 63, 66); Claude Code with Sonnet "
+           "5.5 59; Muse Code with Muse Wonder Full 59; Codex with GPT-6 Astra 55; Codex with GPT-6.1 Sol 54; Antigravity CLI "
+           "with Gemini 4 Argon 53; Grok Build with Grok 4.7 47; Kimi Code CLI with Kimi K3 41 (Terminal-Bench only 21).")
+# what a benchmark tests: the model inside its harness, as one agent
+s.box(20, 14, 1140, 64, "nt-out", 14)
+s.both(40, 54, "สิ่งที่ถูกทดสอบ:", "What is tested:", "pl-label")
+s.box(220, 24, 250, 44, "ml-cell-b", 10)
+pic(s, "icon-tools", 228, 28, 36, 36, "xMidYMid")
+s.both(272, 52, "harness: Claude Code", "harness: Claude Code", "hk-desc")
+s.text(490, 54, "+", "pl-label", "middle")
+s.box(510, 24, 220, 44, "ml-cell-b", 10)
+pic(s, "ai-robot", 518, 28, 36, 36, "xMidYMid")
+s.both(562, 52, "model: Opus 5.5", "model: Opus 5.5", "hk-desc")
+s.text(750, 54, "=", "pl-label", "middle")
+s.box(770, 24, 370, 44, "nt-band-a", 10)
+s.both(786, 52, "agent เดียว ไม่ใช่โมเดลอย่างเดียว", "one agent, not the model alone", "pl-label")
+BENCH = [("icon-coder", "FrontierCode v1.1", "Cognition · 100 งาน", "Cognition · 100 tasks", "งานซอฟต์แวร์ ได้คะแนนบางส่วน", "build features; partial credit"),
+         ("icon-laptop", "Terminal-Bench 4.0", "Laude Institute · 66 งาน", "Laude Institute · 66 tasks", "ใช้ terminal ผ่าน/ไม่ผ่าน", "work in a terminal; pass/fail"),
+         ("icon-magnifier", "SWE-Atlas-QnA-AA", "Scale AI · 124 งาน", "Scale AI · 124 tasks", "ถามตอบเรื่อง code ผ่าน/ไม่ผ่าน", "code questions; pass/fail")]
+for k, (icon, name, bth, ben, dth, den) in enumerate(BENCH):
+    x = 20 + k * 384
+    s.box(x, 98, 372, 112, "nt-band-a", 14)
+    pic(s, icon, x + 14, 112, 54, 54, "xMidYMid")
+    s.text(x + 80, 130, name, "pl-label")
+    s.both(x + 80, 154, bth, ben, "hk-desc")
+    s.both(x + 80, 180, dth, den, "pl-note")
+s.box(20, 220, 1140, 38, "nt-out", 10)
+s.both(36, 246, "Index = ค่าเฉลี่ยของ 3 คะแนน (น้ำหนักเท่ากัน) · แต่ละคะแนน = ค่าเฉลี่ยจากการทำ 3 ครั้งต่องาน",
+       "Index = the average of the 3 scores (equal weight) · each score = the mean of 3 attempts per task", "pl-text")
+s.both(36, 288, "agent (harness · โมเดล)", "agent (harness · model)", "pl-note")
+s.text(330, 288, "Index", "pl-note")
+for k, h in enumerate(["FrontierCode", "Terminal-Bench", "SWE-Atlas"]):
+    s.text(820 + k * 124, 288, h, "pl-note", "middle")
+for r, (name, idx, fc, tb, sa) in enumerate(AA):
+    y = 300 + r * 34
+    s.box(20, y, 1140, 28, "ml-cell" if r % 2 == 0 else "ml-cell-b", 5)
+    s.text(36, y + 20, name, "hk-desc")
+    s.box(330, y + 5, idx * 5.4, 18, "ml-bar-top" if r == 0 else "ml-bar", 3)
+    s.text(336 + idx * 5.4, y + 20, str(idx), "pl-label")
+    for k, v in enumerate((fc, tb, sa)):
+        s.text(820 + k * 124, y + 20, str(v), "ml-neg" if v < 30 else "hk-desc", "middle")
+s.both(20, 300 + len(AA) * 34 + 22, "ที่มา: Artificial Analysis, Coding Agent Index v2.0 (อ่านเมื่อ 24 ต.ค. 2026) · 8 จาก 14 agent",
+       "Source: Artificial Analysis, Coding Agent Index v2.0 (read 24 Oct 2026) · 8 of 14 agents shown", "pl-note")
+s.save("l14-agent-index.svg", 300 + len(AA) * 34 + 36)
+
+# ---------------------------------------------------------------- 27c. score vs cost and time (24 Oct 2026)
+TRADE = [("Opus 5.5", 62, 11.42, "1.0h"), ("Sonnet 5.5", 59, 13.30, "1.3h"), ("GPT-6 Astra", 55, 7.04, "24.8m"),
+         ("GPT-6.1 Sol", 54, 1.50, "23.7m"), ("Gemini 4 Argon", 53, 5.86, "34.7m"), ("Muse Wonder", 52, 8.05, "24.5m"),
+         ("Grok 4.7", 47, 9.48, "35.8m")]
+s = Svg(W, "Score is not everything. Left, the Coding Agent Index against the average API cost per task (Artificial Analysis, "
+           "24 October 2026): Claude Code with Opus 5.5 scores 62 at $11.42 and about 1.0 hour per task; Codex with GPT-6.1 "
+           "Sol scores 54 at $1.50 and 23.7 minutes; Claude Code with Sonnet 5.5 scores 59 at $13.30 and 1.3 hours. Right, "
+           "what to measure on your own agent: the outcome, the trajectory, cost and time, safety, and reliability over many "
+           "runs (pass^k), with this lesson's examples.")
+s.box(20, 20, 600, 440, "ml-cell", 14)
+s.both(40, 52, "คะแนน vs ค่าใช้จ่ายต่องาน (และเวลา)", "Index vs cost per task (and time)", "pl-label")
+X0, Y0, XW, YH = 90, 400, 500, 300
+s.line(X0, Y0, X0 + XW, Y0)
+s.line(X0, Y0, X0, Y0 - YH)
+for v in (0, 4, 8, 12):
+    s.text(X0 + v / 14 * XW, Y0 + 22, f"${v}", "hk-desc", "middle")
+for v in (45, 55, 65):
+    s.text(X0 - 10, Y0 - (v - 45) / 20 * YH + 6, str(v), "hk-desc", "end")
+s.both(X0 + XW / 2, Y0 + 46, "ค่า API เฉลี่ยต่องาน (USD)", "average API cost per task (USD)", "pl-note", "middle")
+for name, idx, cost, t in TRADE:
+    cx, cy = X0 + cost / 14 * XW, Y0 - (idx - 45) / 20 * YH
+    hl = name in ("Opus 5.5", "GPT-6.1 Sol")
+    s.raw(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{9 if hl else 6}" class="{"ml-model-done" if hl else "ml-model"}"/>')
+    dx, dy, anchor = {"Opus 5.5": (-12, -8, "end"), "Sonnet 5.5": (-12, -8, "end"), "GPT-6 Astra": (12, -8, "start"),
+                      "GPT-6.1 Sol": (12, -8, "start"), "Gemini 4 Argon": (-12, 24, "end"), "Muse Wonder": (12, -8, "start"),
+                      "Grok 4.7": (12, -8, "start")}[name]
+    s.text(cx + dx, cy + dy, f"{name} · {t}", "hk-desc", anchor)
+s.box(640, 20, 520, 440, "nt-band-a", 14)
+s.both(660, 52, "agent ของเราเอง: วัดอะไรบ้าง", "Your own agent: what to measure", "pl-label")
+MEAS = [("target", "ผลลัพธ์: ถูกไหม", "Outcome: is it right?", "35 วัน · แผนแต่งหัวข้อ ✗", "35 days · the plan invented topics ✗"),
+        ("magnifier", "เส้นทาง: tool และ argument ถูกไหม", "Trajectory: right tools, right args?", "Qwen 0.6B แต่งวันที่ ✗", "a small model made up dates ✗"),
+        ("stopwatch", "ค่าใช้จ่ายและเวลา", "Cost and time", "97,743 token สำหรับแผนเดียว", "97,743 tokens for one plan"),
+        ("shield", "ความปลอดภัย: ขออนุญาตก่อนไหม", "Safety: did it ask first?", "หยุดก่อน add_to_calendar ✓", "paused before add_to_calendar ✓"),
+        ("dice", "หลายรอบ: pass^k", "Many runs: pass^k", "90% ต่อครั้ง → 5 ครั้งติด 0.59", "90% each → all 5 right: 0.59")]
+for k, (icon, th, en, eth, een) in enumerate(MEAS):
+    y = 74 + k * 76
+    ic(s, icon, 682, y + 26, 40)
+    s.both(712, y + 22, th, en, "pl-text")
+    s.both(712, y + 48, eth, een, "pl-note")
+s.save("l14-agent-tradeoff.svg", 476)
+
+# ---------------------------------------------------------------- 27a. one Terminal-Bench task, as an exam
+# terminal-bench/tasks/sound-change-cascade (harbor-framework/terminal-bench, read 2026-10-24): described, not copied.
+# The word pairs drawn here are a made-up mini example; no task data or answers are reproduced (the task carries a
+# "never in training corpora" canary).
+s = Svg(W, "One Terminal-Bench 4.0 task, sound-change-cascade from Carnegie Mellon, tested like an exam. 1 The question: "
+           "find the ordered sound-change rules that turned old words into modern ones. A made-up mini example: pata → "
+           "pada, lupa → luba, tapu → tabu, so t becomes d and p becomes b between vowels; the first t of tapu stays. The "
+           "real task gives 780 pairs. 2 The exam room: a sealed computer (a Docker container), up to 8 hours, no answers "
+           "from the internet. 3 The student is the agent, harness plus model, working alone: try rules, check, fix. "
+           "4 Marking: the rules must reproduce all 780 known pairs and a set of hidden pairs exactly, and the files must "
+           "be valid; all 7 checks pass scores 1, anything else 0. Each task is tried 3 times and averaged.")
+s.both(20, 30, "งาน 1 ข้อของ Terminal-Bench 4.0 ทดสอบเหมือนการสอบ: sound-change-cascade (Carnegie Mellon)",
+       "One Terminal-Bench 4.0 task is tested like an exam: sound-change-cascade (Carnegie Mellon)", "pl-label")
+HEAD = [("1 · ข้อสอบ", "1 · The question", "icon-document"), ("2 · ห้องสอบ", "2 · The exam room", "icon-laptop"),
+        ("3 · ผู้สอบ", "3 · The student", "ag-robot-tools"), ("4 · ตรวจข้อสอบ", "4 · Marking", "icon-clipboard")]
+for k, (th, en, picname) in enumerate(HEAD):
+    x = 20 + k * 288
+    s.box(x, 46, 276, 330, "nt-band-a" if k == 3 else "ml-cell", 14)
+    s.both(x + 16, 76, th, en, "pl-label")
+    pic(s, picname, x + 206, 50, 60, 56, "xMidYMid")
+    if k < 3:
+        s.arrow(x + 277, 210, x + 287, 210)
+# 1: the question, with a made-up mini example
+s.both(36, 124, "คำเก่า → คำใหม่: หากฎ", "old → new: find the rules", "hk-desc")
+PAIRS = [("pata", "pa", "d", "a"), ("lupa", "lu", "b", "a"), ("tapu", "ta", "b", "u")]
+for r, (old, a, ch, b) in enumerate(PAIRS):
+    y = 158 + r * 32
+    s.raw(f'<text x="44" y="{y}" class="dg-code" style="font-size:20px">*{old}</text>')
+    s.arrow(118, y - 6, 146, y - 6)
+    s.raw(f'<text x="156" y="{y}" class="dg-code" style="font-size:20px">{a}<tspan class="ml-neg" font-weight="700">{ch}</tspan>{b}</text>')
+s.box(36, 236, 244, 46, "nt-out", 8)
+s.both(48, 256, "t→d, p→b ระหว่างสระ", "t→d, p→b between vowels", "hk-desc")
+s.code(48, 275, "/ V _ V")
+s.both(36, 308, "t ตัวแรกของ tapu ไม่เปลี่ยน", "tapu's first t stays", "pl-note")
+s.both(36, 336, "ตัวอย่างสมมติ", "a made-up example;", "pl-note")
+s.both(36, 362, "งานจริงมี 780 คู่", "the real task: 780 pairs", "pl-note")
+# 2: the exam room
+for j, (th, en) in enumerate([("คอมพิวเตอร์ปิด (Docker)", "a sealed computer (Docker)"), ("สอบได้ถึง 8 ชั่วโมง", "up to 8 hours"),
+                              ("ห้ามหาเฉลยออนไลน์", "no answers from the internet")]):
+    s.both(324, 134 + j * 34, th, en, "pl-text")
+# 3: the student
+for j, (th, en) in enumerate([("agent = harness + โมเดล", "the agent: harness + model"), ("ทำคนเดียว", "working alone"),
+                              ("ลองกฎ → ตรวจ → แก้", "try rules → check → fix")]):
+    s.both(612, 134 + j * 34, th, en, "pl-text")
+ic(s, "loop", 714, 280, 64)
+# 4: marking
+for j, (th, en) in enumerate([("✓ คู่ที่ให้มา ถูกครบ 780", "✓ all 780 known pairs"), ("✓ คู่ที่ซ่อนไว้ ถูกหมด", "✓ all hidden pairs"),
+                              ("✓ ไฟล์และรูปแบบถูก", "✓ files and format valid")]):
+    s.both(900, 134 + j * 34, th, en, "pl-text")
+s.box(900, 270, 244, 62, "nt-out", 10)
+s.both(916, 296, "ผ่านทั้ง 7 ข้อ → 1", "all 7 checks pass → 1", "ml-ok")
+s.both(916, 320, "ข้อใดไม่ผ่าน → 0", "any fails → 0", "ml-neg")
+s.box(20, 392, 1140, 74, "ml-cell-b", 12)
+s.both(36, 422, "คู่ที่ซ่อนไว้ = ข้อสอบใหม่ที่ไม่เคยเห็น: ต้องหากฎจริงให้ได้ ไม่ใช่แค่จำคู่ที่ให้มา",
+       "Hidden pairs = new exam questions: the agent must find the real rules, not memorise the pairs it was given.", "pl-text")
+s.both(36, 452, "ทำงานละ 3 ครั้งแล้วเฉลี่ย · 66 งาน → คะแนน Terminal-Bench 4.0",
+       "Each task is tried 3 times and averaged · 66 tasks → the Terminal-Bench 4.0 score", "pl-note")
+s.save("l14-bench-task.svg", 480)
