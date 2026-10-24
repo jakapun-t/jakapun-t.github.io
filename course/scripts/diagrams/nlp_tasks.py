@@ -10,6 +10,8 @@ and its ไทย/EN labels follow the page's language switch (data-only).
 import sys
 from html import escape
 
+from stats_svg import icon_markup  # noqa: E402  (generated icons)
+
 W = 960
 ROW = 64
 NAME_X, IN_X, IN_W = 24, 250, 300
@@ -67,7 +69,7 @@ for g in GROUPS:
     ry = y + 46
     for icon, th, en, src, res in g["rows"]:
         cy = ry + ROW / 2 - 4
-        text(NAME_X, cy + 7, icon, "nt-icon")
+        out.append(icon_markup(icon, NAME_X + 13, cy - 1, 32) or f'<text x="{NAME_X}" y="{cy + 7}" class="nt-icon">{icon}</text>')
         both(NAME_X + 34, cy + 7, th, en, "nt-task")
         out.append(f'<rect x="{IN_X}" y="{cy - 22}" width="{IN_W}" height="44" rx="22" class="nt-bubble"/>')
         text(IN_X + 18, cy + 7, src, "nt-text")

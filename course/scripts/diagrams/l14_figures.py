@@ -11,6 +11,8 @@ import sys
 import unicodedata
 from html import escape
 
+from stats_svg import both_icon, icon_markup, put_icon  # noqa: E402,F401  (generated icons)
+
 OUT = sys.argv[1] if len(sys.argv) > 1 else "courses/nlp-basic/images"
 FS = 19
 
@@ -55,17 +57,17 @@ class Svg:
 s = Svg(900, "Opening a website: your browser sends a request over the internet to a server, the server runs code and reads data, and sends a page back for the browser to show.")
 # the two ends: you and the server
 s.box(10, 40, 210, 200, "nt-band-a", 16)
-s.text(115, 104, "👩‍💻", "gs-icon", "middle")
+put_icon(s, "👩‍💻", 115, 104, "gs-icon", "middle", 40)
 s.both(115, 146, "คุณ + เบราว์เซอร์", "You + a browser", "pl-label", "middle")
 s.both(115, 172, "Chrome, Safari", "Chrome, Safari", "pl-note", "middle")
 s.both(115, 212, "แสดงหน้าเว็บ", "shows the page", "in-sub", "middle")
 s.box(680, 40, 210, 200, "nt-band-b", 16)
-s.text(785, 104, "🖥️", "gs-icon", "middle")
+put_icon(s, "🖥️", 785, 104, "gs-icon", "middle", 40)
 s.both(785, 146, "Server", "Server", "pl-label", "middle")
 s.both(785, 172, "คอมพิวเตอร์ที่เปิดตลอด", "an always-on computer", "pl-note", "middle")
 s.both(785, 212, "รันโค้ด อ่านข้อมูล", "runs code, reads data", "in-sub", "middle")
 # the internet in the middle, request going right, response coming back
-s.text(450, 140, "🌐", "gs-icon", "middle")
+put_icon(s, "🌐", 450, 140, "gs-icon", "middle", 40)
 s.both(450, 176, "อินเทอร์เน็ต", "the internet", "pl-note", "middle")
 s.arrow(232, 92, 668, 92)
 s.both(450, 80, "① ขอหน้าเว็บ (request)", "① asks for a page (request)", "ws-req", "middle")
@@ -89,7 +91,7 @@ for k, (icon, rth, ren, term, dth, den, ath, aen, tools, band) in enumerate(laye
     x0 = 10 + k * 297
     cx = x0 + 142
     s.box(x0, 10, 285, 300, band, 16)
-    s.text(cx, 66, icon, "gs-icon", "middle")
+    put_icon(s, icon, cx, 66, "gs-icon", "middle", 40)
     s.both(cx, 104, rth, ren, "pl-label", "middle")
     s.text(cx, 134, "= " + term, "rr-term", "middle")
     s.both(cx, 168, dth, den, "pl-note", "middle")
@@ -213,7 +215,7 @@ for k, ln in enumerate(["text = st.text_area(...)", "r = analyze_text(text)", "s
 s.both(471, 222, "✏️ AI ช่วยปรับได้", "✏️ AI may improve it", "ml-ok", "middle")
 s.arrow(660, 125, 616, 125)
 s.box(668, 70, 222, 110, "ml-model", 16)
-s.text(698, 132, "🤖", "fc-robot", "middle")
+put_icon(s, "🤖", 698, 132, "fc-robot", "middle", 30)
 s.both(724, 118, "AI ช่วยเขียน", "AI assistant", "ml-model-text")
 s.both(724, 144, "เฉพาะ interface", "interface only", "ml-model-sub")
 s.save("l14-logic-ui.svg", 250)
@@ -247,7 +249,7 @@ for k, (icon, th, en, sth, sen) in enumerate(steps):
     x0 = 10 + k * 222
     cx = x0 + 100
     s.box(x0, 14, 200, 180, "nt-band-a" if k % 2 == 0 else "nt-band-b", 14)
-    s.text(cx, 76, icon, "gs-icon", "middle")
+    put_icon(s, icon, cx, 76, "gs-icon", "middle", 40)
     s.both(cx, 120, th, en, "pl-label", "middle")
     s.both(cx, 150, sth, sen, "in-sub", "middle")
     if k < 3:
@@ -259,7 +261,7 @@ s.save("l14-deploy.svg", 272)
 # ---------------------------------------------------------------- 9. what Git and GitHub do (S15)
 s = Svg(900, "Git keeps save points (commits) of your project folder on your computer; push uploads them to GitHub, an online copy that Streamlit Cloud can read.")
 s.box(10, 30, 330, 250, "nt-band-a", 16)
-s.both(28, 62, "💻 เครื่องของเรา (Git)", "💻 Your computer (Git)", "pl-label")
+both_icon(s, 28, 62, "💻 เครื่องของเรา (Git)", "💻 Your computer (Git)", "pl-label")
 s.box(28, 80, 140, 40, "dv-file", 8)
 s.text(40, 106, "📁 my-app/", "ks-mono")
 s.both(184, 106, "โฟลเดอร์โปรเจกต์", "project folder", "pl-note")
@@ -275,7 +277,7 @@ s.arrow(348, 150, 420, 150)
 s.both(384, 136, "push", "push", "gt-verb", "middle")
 s.both(384, 176, "อัปโหลด", "upload", "in-sub", "middle")
 s.box(428, 30, 230, 250, "nt-band-b", 16)
-s.both(446, 62, "☁️ GitHub", "☁️ GitHub", "pl-label")
+both_icon(s, 446, 62, "☁️ GitHub", "☁️ GitHub", "pl-label")
 s.both(446, 88, "เว็บเก็บโค้ดออนไลน์", "stores code online", "pl-note")
 s.box(446, 108, 194, 100, "dv-file", 10)
 s.text(460, 136, "repo: my-app", "ks-mono")
@@ -286,7 +288,7 @@ s.both(543, 236, "repository (repo)", "repository (repo)", "gt-verb", "middle")
 s.both(543, 260, "= โฟลเดอร์โปรเจกต์บนเว็บ", "= the project folder, online", "in-sub", "middle")
 s.arrow(666, 150, 718, 150)
 s.box(726, 80, 164, 140, "ml-model", 16)
-s.text(808, 132, "☁️", "fc-robot", "middle")
+put_icon(s, "☁️", 808, 132, "fc-robot", "middle", 30)
 s.both(808, 168, "Streamlit Cloud", "Streamlit Cloud", "ml-model-text", "middle")
 s.both(808, 194, "อ่านโค้ดจาก repo", "reads the repo", "ml-model-sub", "middle")
 s.save("l14-git.svg", 290)
@@ -324,7 +326,7 @@ for i, (th, en, kind) in enumerate(steps):
         s.both(cx, yv + 78, "ฟรี", "free", "in-sub", "middle")
     elif kind == "vscode":
         s.box(x0 + 14, yv, 40, 96, "ks-term", 8)
-        s.text(x0 + 34, yv + 82, "👤", "ks-icon", "middle")
+        put_icon(s, "👤", x0 + 34, yv + 82, "ks-icon", "middle", 18)
         s.add(f'<path d="M{x0 + 54:g} {yv + 76} H{x0 + 74:g}" class="pl-line"/>')
         s.box(x0 + 76, yv + 60, PW - 90, 32, "ks-btn", 16)
         s.text(x0 + 76 + (PW - 90) / 2, yv + 81, "Sign in with GitHub", "gt-tiny", "middle")

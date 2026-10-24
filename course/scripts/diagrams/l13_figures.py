@@ -12,6 +12,8 @@ import sys
 import unicodedata
 from html import escape
 
+from stats_svg import both_icon, icon_markup, put_icon  # noqa: E402,F401  (generated icons)
+
 OUT = sys.argv[1] if len(sys.argv) > 1 else "courses/nlp-basic/images"
 FS = 19
 
@@ -187,7 +189,7 @@ for i, (app, llm, co, ask, reply) in enumerate(apps):
     # down to the brain inside
     s.out.append(f'<path d="M{x0 + 100} 228 V254" class="pl-line"/><path d="M{x0 + 94} 246 L{x0 + 100} 254 L{x0 + 106} 246" class="pl-line"/>')
     s.box(x0 + 20, 262, 160, 54, "ml-model", 14)
-    s.text(x0 + 48, 297, "🧠", "ai-brain", "middle")
+    put_icon(s, "🧠", x0 + 48, 297, "ai-brain", "middle", 24)
     s.text(x0 + 70, 296, llm, "ml-model-text")
     s.text(x0 + 100, 344, "🏢 " + co, "pl-note", "middle")
 s.save("l13-llm-apps.svg", 360)
@@ -206,7 +208,7 @@ for i, (icon, big_th, big_en, lab_th, lab_en, cmp_th, cmp_en) in enumerate(tiles
     x0 = 10 + i * 222
     cx = x0 + 105
     s.box(x0, 10, 210, 330, ["nt-band-a", "nt-band-b", "nt-band-a", "nt-band-b"][i], 16)
-    s.text(cx, 62, icon, "gs-icon", "middle")
+    put_icon(s, icon, cx, 62, "gs-icon", "middle", 40)
     s.both(cx, 106, big_th, big_en, "gs-big", "middle")
     s.both(cx, 134, lab_th, lab_en, "pl-note", "middle")
     # a small picture of the comparison
@@ -299,8 +301,8 @@ s.save("l13-inside-llm.svg", 304)
 
 # ---------------------------------------------------------------- 10. language models you already use (L13-S08)
 s = Svg(900, "You already use language models: a search box completes your query, and a phone keyboard suggests the next word.")
-s.both(20, 30, "🔍 ช่องค้นหาเติมคำให้", "🔍 Search suggests the rest", "pl-label")
-s.both(560, 30, "📱 แป้นพิมพ์ทายคำถัดไป", "📱 Keyboard suggests a word", "pl-label")
+both_icon(s, 20, 30, "🔍 ช่องค้นหาเติมคำให้", "🔍 Search suggests the rest", "pl-label")
+both_icon(s, 560, 30, "📱 แป้นพิมพ์ทายคำถัดไป", "📱 Keyboard suggests a word", "pl-label")
 examples = {
     "th": ("อากาศวันนี้", ["อากาศวันนี้ กรุงเทพ", "อากาศวันนี้ ฝนตกไหม", "อากาศวันนี้ เชียงใหม่", "อากาศวันนี้ ร้อนไหม"],
            ["ขอบคุณมากที่ช่วย", "เตรียมงานเมื่อวาน"], ["นะ", "ครับ", "ค่ะ"]),
@@ -311,14 +313,14 @@ for lang, (query, sugg, msg, nxt) in examples.items():
     s.out.append(f'<g data-only="{lang}"' + (' lang="en"' if lang == "en" else "") + ">")
     # search box and its dropdown
     s.box(20, 48, 470, 44, "ev-search", 22)
-    s.text(46, 77, "🔍", "ev-icon")
+    put_icon(s, "🔍", 46, 77, "ev-icon", "start", 18)
     s.text(76, 77, query, "in-text")
     qx = 76 + width(query, 18)
     s.out.append(f'<path d="M{qx + 3:g} 60 V82" class="ev-caret"/>')
     s.box(20, 98, 470, 4 * 40 + 16, "ev-drop", 12)
     for k, t in enumerate(sugg):
         y = 128 + k * 40
-        s.text(46, y + 5, "🔍", "ev-icon-sm")
+        put_icon(s, "🔍", 46, y + 5, "ev-icon-sm", "start", 14)
         s.text(76, y + 6, query, "ev-typed")
         s.text(76 + width(query, 17) + 2, y + 6, t[len(query):], "ev-guess")
     # phone with a message, the suggestion bar and a keyboard
@@ -421,7 +423,7 @@ for i, (th, en, kind) in enumerate(steps):
     elif kind == "copy":
         s.box(x0 + 22, yv + 2, PW - 44, 38, "ks-key", 10)
         s.text(x0 + 36, yv + 27, "AIza•••••••••••••", "ks-mono")
-        s.text(x0 + PW - 40, yv + 28, "📋", "ks-icon", "middle")
+        put_icon(s, "📋", x0 + PW - 40, yv + 28, "ks-icon", "middle", 18)
         s.both(cx, yv + 64, "ทำเหมือนรหัสผ่าน", "treat it like a password", "wv-note", "middle")
         s.both(cx, yv + 84, "ห้ามแชร์ ห้ามขึ้น GitHub", "never share, never on GitHub", "in-sub", "middle")
     else:

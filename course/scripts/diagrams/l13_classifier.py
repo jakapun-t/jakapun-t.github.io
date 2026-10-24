@@ -18,6 +18,8 @@ import unicodedata
 from collections import Counter
 from html import escape
 
+from stats_svg import both_icon, icon_markup, put_icon  # noqa: E402,F401  (generated icons)
+
 import pandas as pd
 from pythainlp import word_tokenize
 from sklearn.feature_extraction.text import CountVectorizer
@@ -116,7 +118,7 @@ def card(s, x, y, text, label, w=260, tilt=0):
 
 def robot(s, x, y, w, h, th="โมเดล", en="Model"):
     s.box(x, y, w, h, "ml-model", 16)
-    s.text(x + 34, y + h / 2 + 10, "🤖", "fc-robot", "middle")
+    put_icon(s, "🤖", x + 34, y + h / 2 + 10, "fc-robot", "middle", 30)
     s.both(x + 60, y + h / 2 + 7, th, en, "ml-model-text")
 
 
@@ -130,7 +132,7 @@ def vote_chip(s, x, y, w_, fs=17):
 # ---------------------------------------------------------------- S02 flashcards
 s = Svg(900, "Training is like studying flashcards: each card has a review and its label. Then the model answers a card it has never seen.")
 s.box(10, 10, 880, 290, "nt-band-a", 16)
-s.both(30, 44, "📚 1. เรียน (training): ทบทวนบัตรคำนับร้อยใบ", "📚 1. Training: study hundreds of flashcards", "pl-label")
+both_icon(s, 30, 44, "📚 1. เรียน (training): ทบทวนบัตรคำนับร้อยใบ", "📚 1. Training: study hundreds of flashcards", "pl-label")
 card(s, 46, 64, "ต้มยำอร่อยมาก ร้านสะอาด", "positive", tilt=-2)
 card(s, 70, 142, "รอนานมาก ผัดไทยจืดมาก", "negative", tilt=2)
 card(s, 40, 220, "ส้มตำหอมมาก แนะนำเลย", "positive", w=260, tilt=-1)
@@ -141,12 +143,12 @@ s.both(360, 220, "มักมากับคำตอบไหน", "words go w
 s.arrow(586, 165, 636, 165)
 robot(s, 644, 125, 236, 80, "โมเดลที่เรียนแล้ว", "trained model")
 s.box(10, 316, 880, 124, "nt-band-b", 16)
-s.both(30, 350, "📝 2. สอบ (prediction): บัตรใบใหม่ ไม่มีคำตอบ", "📝 2. Prediction: a new card with no answer", "pl-label")
+both_icon(s, 30, 350, "📝 2. สอบ (prediction): บัตรใบใหม่ ไม่มีคำตอบ", "📝 2. Prediction: a new card with no answer", "pl-label")
 card(s, 46, 358, "อาหารอร่อย บรรยากาศดี", "", w=280)
 s.text(296, 400, "?", "fc-q", "middle")
 s.arrow(340, 392, 510, 392)
 s.box(518, 366, 90, 52, "ml-model", 12)
-s.text(563, 402, "🤖", "fc-robot", "middle")
+put_icon(s, "🤖", 563, 402, "fc-robot", "middle", 30)
 s.arrow(616, 392, 690, 392)
 s.box(698, 372, 130, 40, "fc-pos", 20)
 s.text(763, 399, "positive", "fc-label-lg", "middle")
@@ -156,7 +158,7 @@ s.save("l13-flashcards.svg", 450)
 s = Svg(900, "Bag of words: cut the text into words, pour them into a bag (the order is lost), then count each word of the vocabulary.")
 cols = [(20, "✂️ 1. ตัดคำ", "✂️ 1. Tokenize"), (320, "🛍️ 2. เทลงถุง", "🛍️ 2. Into the bag"), (620, "🔢 3. นับ", "🔢 3. Count")]
 for x, th, en in cols:
-    s.both(x, 32, th, en, "pl-label")
+    both_icon(s, x, 32, th, en, "pl-label")
 s.box(20, 56, 250, 46, "nt-bubble", 23)
 s.text(145, 86, "อาหารไม่อร่อย", "pl-text", "middle")
 s.arrow(145, 108, 145, 136)
@@ -327,14 +329,14 @@ rows = [
 ]
 for y0, band, th, en, second, mid, out in rows:
     s.box(10, y0, 880, 140, band, 16)
-    s.both(30, y0 + 32, th, en, "pl-label")
+    both_icon(s, 30, y0 + 32, th, en, "pl-label")
     yb = y0 + 54
     two_line(30, yb, 150, "ข้อมูล", "Data", "รีวิว", "reviews")
     s.text(197, yb + 40, "+", "ml-plus", "middle")
     two_line(214, yb, 230, *second, cls="ml-swap")
     s.arrow(452, yb + 32, 492, yb + 32)
     s.box(500, yb, 150, 64, "ml-model", 12)
-    s.text(530, yb + 42, "🖥️", "fc-robot", "middle")
+    put_icon(s, "🖥️", 530, yb + 42, "fc-robot", "middle", 30)
     s.both(558, yb + 39, mid[0], mid[1], "ml-model-sub")
     s.arrow(658, yb + 32, 698, yb + 32)
     two_line(706, yb, 174, *out, cls="ml-swap" if y0 > 10 else "nt-bubble")

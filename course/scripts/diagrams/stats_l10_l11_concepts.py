@@ -6,14 +6,16 @@ exact spot, the real numbers attached to what they describe. ไทย/EN labels
     python3 scripts/diagrams/stats_l10_l11_concepts.py courses/stats-dh/images
 
 Every number is a real run in course/.venv, the same as the lessons' code cells:
-  L10 diabetes (load_diabetes, 80/20 split, random_state=42): LinearRegression test R² 0.453 on all 10
-      columns, 0.454 on bmi, bp, s5. |r| with y on the training set: bmi .60, s5 .55, bp .44, s4 .43,
-      s6 .39, s3 .38, s1 .20, age .20, s2 .15, sex .01. Forward SFS (cv=5): bmi 0.322, + s5 0.415,
-      + bp 0.440 (10 + 9 + 8 = 27 candidate sets × 5 folds = 135 trainings). Lasso alpha=1: β bmi 413,
-      s5 258, bp 35, the other 7 exactly 0, CV R² 0.324. Ridge CV R²: alpha 0.001 0.450, 0.01 0.453,
-      0.1 0.456, 1 0.380, 10 0.109, 100 −0.012; the curve is 41 alphas on a log grid. RandomizedSearchCV
-      (loguniform(0.001, 100), n_iter=10, random_state=1) tries 0.001 0.003 0.005 0.009 0.032 0.053
-      0.096 0.122 0.494 3.996, best 0.096 (CV R² 0.457); both searches give test R² 0.461.
+  L10 students (UCI Student Performance, math course, the 357 students who sat the final exam; 10 columns age, Medu,
+      Fedu, studytime, failures, goout, Dalc, Walc, absences, term1_grade; target final_grade; 80/20 split, random_state=42; train 285):
+      LinearRegression test R² 0.801 on all 10 columns, 0.807 on age, absences, term1_grade. r with final_grade on the training set:
+      term1_grade .89, failures −.29, absences −.20, Walc −.20, goout −.17, Medu .16, Fedu .15, Dalc −.15, studytime .13,
+      age −.13. Forward SFS (cv=5): term1_grade 0.794, + absences 0.804, + age 0.809 (10 + 9 + 8 = 27 sets × 5 folds = 135
+      trainings); the filter's top 3 (term1_grade, failures, absences) score 0.800. Lasso on standardised columns, alpha 0.3:
+      β term1_grade 2.60, absences −0.06, age −0.05, the other 7 exactly 0, CV R² 0.788. Lasso CV R²: alpha 0.001 0.796,
+      0.01 0.798, 0.1 0.803, 1 0.700, 10 and 100 −0.011; the curve is 41 alphas on a log grid. RandomizedSearchCV
+      (loguniform(0.001, 100), n_iter=10, random_state=1) tries 0.001 0.003 0.005 0.009 0.032 0.053 0.096 0.122
+      0.494 3.996, best 0.096 (CV R² 0.803); both searches give test R² 0.805.
   L11 obesity (108 rows): Weight-only model b0 −109.42, b1 1.1195; 100 kg → z 2.53, p̂ 0.926.
       4-class model (70/30 split, random_state=42, StandardScaler, LogisticRegression): train 75, test 33;
       Height on train mean 165.3, sd 27.0 (175 cm → 0.36); first test person (60, 120 cm, 70 kg, female)
@@ -103,34 +105,34 @@ def logx(a, x0, per_decade, lo=-3):
 
 
 # ================================================================ L10-S01: two ways to score better
-s = Svg(W, "Model tuning on the diabetes data, same linear model. 1 Feature selection changes which columns it learns from: "
-           "keep bmi, bp and s5 and drop the other 7, and the test R² stays at 0.454 (0.453 with all 10). 2 Hyperparameter "
-           "tuning changes how it learns: Ridge with all 10 columns scores CV R² 0.450, 0.453, 0.456, 0.380, 0.109 and −0.012 "
-           "for alpha 0.001, 0.01, 0.1, 1, 10 and 100; the best is alpha 0.1.")
-s.bubble("ข้อมูล diabetes 442 คน โมเดล linear เดิม: ทำคะแนนให้ดีขึ้นได้ไหม",
-         "Diabetes, 442 patients, the same linear model: can we score better?")
+s = Svg(W, "Model tuning on the student data, same linear model. 1 Feature selection changes which columns it learns from: "
+           "keep age, absences and term1_grade and drop the other 7, and the test R² rises from 0.801 (all 10) to 0.807. 2 "
+           "Hyperparameter tuning changes how it learns: Lasso with all 10 columns scores CV R² 0.796, 0.798, 0.803, 0.700, "
+           "−0.011 and −0.011 for alpha 0.001, 0.01, 0.1, 1, 10 and 100; the best is alpha 0.1.")
+s.bubble("นักเรียน 357 คน โมเดล linear เดิม: ทายเกรดปลายปีให้แม่นขึ้นได้ไหม",
+         "357 students, the same linear model: can we predict the final grade better?")
 # 1. feature selection: ten column strips, three kept
 s.panel(20, 70, 560, 370, "nt-band-a", "Feature selection: เรียนจากคอลัมน์ไหน", "Feature selection: which columns it learns from", 1)
-s.both(40, 128, "ค่าที่วัด 10 อย่าง = 10 คอลัมน์", "10 measurements = 10 columns", "pl-note")
-COLS = ["age", "sex", "bmi", "bp", "s1", "s2", "s3", "s4", "s5", "s6"]
-KEEP = {"bmi", "bp", "s5"}
+s.both(40, 128, "10 คอลัมน์ = 10 feature", "10 columns = 10 features", "pl-note")
+COLS = ["age", "Medu", "Fedu", "studytime", "failures", "goout", "Dalc", "Walc", "absences", "term1_grade"]
+KEEP = {"age", "absences", "term1_grade"}
 for k, c in enumerate(COLS):
     x = 46 + k * 51
     keep = c in KEEP
-    s.box(x, 176, 42, 150, "rc-res" if keep else "pl-chip-del", 6)
-    for yy in range(192, 320, 16):
+    s.box(x, 190, 42, 136, "rc-res" if keep else "pl-chip-del", 6)
+    for yy in range(204, 320, 16):
         if keep:
             s.box(x + 8, yy, 26, 4, "ml-bar", 2)
         else:
             s.raw(f'<path d="M{x + 8} {yy + 2} H{x + 34}" class="dg-rule"/>')
-    s.text(x + 21, 166, c, "pl-label" if keep else "pl-del", "middle")
+    s.text(x + 21, 182 if k % 2 == 0 else 160, c, "ml-b" if keep else "ml-i", "middle")
     s.text(x + 21, 352, "✓" if keep else "✗", "ml-ok" if keep else "ml-neg", "middle")
-s.both(40, 392, "✓ เก็บ bmi, bp, s5 ตัดอีก 7", "✓ keep bmi, bp, s5; drop the other 7", "ml-ok")
-s.both(40, 420, "test R² 0.453 (10 คอลัมน์) → 0.454 (3 คอลัมน์)", "test R² 0.453 (10 columns) → 0.454 (3 columns)", "pl-text")
+s.both(40, 392, "✓ เก็บ age, absences, term1_grade ตัดอีก 7", "✓ keep age, absences, term1_grade; drop the other 7", "ml-ok")
+s.both(40, 420, "test R² 0.801 (10 คอลัมน์) → 0.807 (3 คอลัมน์)", "test R² 0.801 (10 columns) → 0.807 (3 columns)", "pl-text")
 # 2. hyperparameter tuning: a slider for alpha, a CV R² bar under each stop
 s.panel(600, 70, 560, 370, "nt-band-b", "Hyperparameter: เรียนอย่างไร", "Hyperparameter: how it learns", 2)
-s.both(620, 128, "ครบ 10 คอลัมน์ · Ridge(alpha=…) · แท่ง = CV R²", "all 10 columns · Ridge(alpha=…) · bars = CV R²", "pl-note")
-ALPHAS = [(0.001, 0.450), (0.01, 0.453), (0.1, 0.456), (1, 0.380), (10, 0.109), (100, -0.012)]
+s.both(620, 128, "ครบ 10 คอลัมน์ · Lasso(alpha=…) · แท่ง = CV R²", "all 10 columns · Lasso(alpha=…) · bars = CV R²", "pl-note")
+ALPHAS = [(0.001, 0.796), (0.01, 0.798), (0.1, 0.803), (1, 0.700), (10, -0.011), (100, -0.011)]
 ax = lambda a: logx(a, 670, 90)
 s.raw(f'<path d="M{ax(0.001) - 14:g} 176 H{ax(100) + 14:g}" class="dg-rule-strong" stroke-width="6" stroke-linecap="round"/>')
 for a, r2 in ALPHAS:
@@ -138,42 +140,50 @@ for a, r2 in ALPHAS:
     s.line(x, 168, x, 184, "dg-rule-strong")
     s.text(x, 206, f"{a:g}", "pl-note", "middle")
     best = a == 0.1
-    base, sc = 392, 260
+    base, sc = 400, 190
     hgt = r2 * sc
     s.box(x - 18, base - max(hgt, 0), 36, max(abs(hgt), 2), "ml-bar-top" if best else "ml-bar", 3)
     s.text(x, base - max(hgt, 0) - 8, f"{r2:.3f}".replace("-", "−"), "pl-label" if best else "pl-note", "middle")
-s.line(650, 392, 1140, 392, "dg-rule-strong")
+s.line(650, 400, 1140, 400, "dg-rule-strong")
 s.raw(f'<circle cx="{ax(0.1):g}" cy="176" r="12" class="ml-bar-top"/>')
 s.both(ax(0.1) + 18, 160, "alpha = 0.1", "alpha = 0.1", "pl-label")
-s.both(620, 420, "✓ alpha 0.1 ดีที่สุด (0.456) · alpha 100 พัง (−0.012)", "✓ alpha 0.1 is best (0.456) · alpha 100 fails (−0.012)", "ml-ok")
+s.both(620, 424, "✓ alpha 0.1 ดีที่สุด (0.803) · alpha 10 พัง (−0.011)", "✓ alpha 0.1 is best (0.803) · alpha 10 fails (−0.011)", "ml-ok")
 s.both(20, 472, "ทั้งสองแบบเปลี่ยนสิ่งเดียว ไม่เปลี่ยนชนิดของโมเดล และวัดกับข้อมูลที่โมเดลไม่เคยเห็น (CV หรือชุด test)",
        "Each changes one thing, never the kind of model, and is scored on data the model has not seen (CV or the test set)", "pl-note")
 s.save("l10-two-tools.svg", 488)
 
-# ================================================================ L10-S03: the checklist on the houses table
-HOUSE = [  # column, width, verdict (keep/drop/target), badge, values
-    ("id", 54, "drop", 1, ["1", "2", "3", "4"]),
-    ("name", 84, "drop", 2, ["A123", "B456", "C789", "D012"]),
-    ("size_sqft", 112, "keep", None, ["1800", "2400", "1500", "3000"]),
-    ("bedrooms", 112, "keep", None, ["3", "4", "2", "5"]),
-    ("location", 118, "keep", 4, ["Suburb", "Downtown", "Suburb", "Suburb"]),
-    ("year_built", 118, "keep", None, ["2005", "2010", "1995", "2018"]),
-    ("owner_name", 138, "drop", 1, ["John Doe", "Jane Smith", "Mark Lee", "Emily Chen"]),
-    ("price", 106, "target", None, ["350000", "500000", "300000", "600000"]),
+# ================================================================ L10-S03: the checklist on the student table
+# The first 4 students of the lesson's data (UCI Student Performance, math class, final_grade > 0) with more of their real columns
+# (reason, Mjob, term2_grade) and two added ones: student_id (a row number) and course ("math": the file holds only the math class).
+# Over the 357 students: final_grade mean 11.3–11.8 for every reason; r(term2_grade, final_grade) = 0.97; r(Dalc, Walc) = 0.64.
+STUD = [  # column, width, verdict (keep/drop/flag/target), badge, values
+    ("student_id", 104, "drop", 2, ["1", "2", "3", "4"]),
+    ("reason", 80, "drop", 1, ["course", "course", "other", "home"]),
+    ("studytime", 98, "keep", None, ["2", "2", "2", "3"]),
+    ("absences", 92, "keep", None, ["6", "4", "10", "2"]),
+    ("Mjob", 84, "keep", 4, ["at_home", "at_home", "at_home", "health"]),
+    ("course", 70, "drop", 5, ["math", "math", "math", "math"]),
+    ("Dalc", 52, "flag", 6, ["1", "1", "2", "1"]),
+    ("Walc", 52, "flag", 6, ["1", "1", "3", "1"]),
+    ("term1_grade", 112, "keep", None, ["5", "5", "7", "15"]),
+    ("term2_grade", 112, "drop", 3, ["6", "5", "8", "14"]),
+    ("final_grade", 106, "target", None, ["6", "6", "10", "15"]),
 ]
-s = Svg(W, "The six-question checklist on the houses table, predicting price. id and owner_name fail question 1 (not about "
-           "the house); name fails question 2 (noise: a different code in every row); location passes but is text, so "
-           "question 4 turns it into a 0/1 column; size_sqft, bedrooms and year_built are kept; price is the target. "
-           "Questions 3, 5 and 6 find nothing in this table.")
-s.bubble("ทำนาย price: คอลัมน์ไหนเป็น feature ได้", "Predict price: which columns can be features?")
-GAP = 6
-total = sum(c[1] for c in HOUSE) + GAP * (len(HOUSE) - 1)
+s = Svg(W, "The six-question checklist on the student table, predicting the final grade final_grade at the end of term 1. reason fails "
+           "question 1 (about the school, not the student; grades barely differ by reason); student_id fails question 2 "
+           "(noise: a row number); term2_grade fails question 3 (the term 2 grade is not known yet: it leaks the answer); Mjob passes "
+           "but is text, so question 4 turns it into 0/1 columns; course fails question 5 (math in every row); Dalc and Walc "
+           "overlap (question 6, r = 0.64), so an algorithm should decide; studytime, absences and term1_grade are kept.")
+s.bubble("จบเทอม 1 อยากทาย final_grade: คอลัมน์ไหนเป็น feature ได้", "End of term 1, predicting final_grade: which columns can be features?")
+GAP = 4
+total = sum(c[1] for c in STUD) + GAP * (len(STUD) - 1)
 x = (W - total) / 2
 TOP = 124
-VERD = {"keep": ("✓ เก็บ", "✓ keep", "ml-ok", "rc-res"), "drop": ("✗ ตัด", "✗ drop", "ml-neg", "sw-warn-box"),
-        "target": ("y", "target y", "pl-label", "rc-ctx")}
+VERD = {"keep": ("✓", "✓", "ml-ok", "rc-res"), "drop": ("✗", "✗", "ml-neg", "sw-warn-box"),
+        "flag": ("?", "?", "pl-label", "rc-ctx"), "target": ("y", "y", "pl-label", "ml-cell-b")}
+s.both(W - 20, 76, "✓ เก็บ · ✗ ตัด · ? ดูต่อ · y = target", "✓ keep · ✗ drop · ? check · y = target", "pl-note", "end")
 xs = {}
-for name, w, verdict, badge, vals in HOUSE:
+for name, w, verdict, badge, vals in STUD:
     th, en, tcls, fill = VERD[verdict]
     xs[name] = x + w / 2
     s.both(x + w / 2, 100, th, en, tcls, "middle")
@@ -181,38 +191,38 @@ for name, w, verdict, badge, vals in HOUSE:
     s.raw(f'<path d="M{x + 6:g} {TOP + 40} H{x + w - 6:g}" class="dg-rule"/>')
     s.text(x + w / 2, TOP + 27, name, "pl-del" if verdict == "drop" else "pl-label", "middle")
     for k, v in enumerate(vals):
-        s.text(x + w / 2, TOP + 68 + k * 38, v, "pl-text", "middle")
+        s.text(x + w / 2, TOP + 68 + k * 38, v, "pl-note" if len(v) > 5 else "pl-text", "middle")
     if badge:
         s.line(x + w / 2, TOP + 204, x + w / 2, TOP + 230)
         s.badge(x + w / 2, TOP + 244, badge)
     x += w + GAP
-s.both(xs["location"], TOP + 282, "→ location_Suburb 1/0", "→ location_Suburb 1/0", "pl-note", "middle")
 NOTES = [
-    (1, "ไม่เกี่ยวกับตัวบ้าน: id เป็นแค่เลขแถว owner_name เป็นชื่อคน", "Not about the house: id is only a row number; owner_name is a person"),
-    (2, "noise: name เป็นรหัสที่ไม่ซ้ำกันเลยทุกแถว (A123, B456 …)", "Noise: name is a different code in every row (A123, B456 …)"),
-    (4, "ชนิดข้อมูล: location เป็นข้อความ แปลงเป็น 0/1 ก่อน (Suburb = 1, Downtown = 0)", "Type: location is text, so turn it into 0/1 first (Suburb = 1, Downtown = 0)"),
+    (1, "ไม่เกี่ยวกับการเรียนของนักเรียน: reason คือเหตุผลที่ครอบครัวเลือกโรงเรียน (เกรดเฉลี่ย 11.3–11.8 ทุกเหตุผล)",
+        "Not about the student's learning: reason = why the family chose the school (grades 11.3–11.8 for every reason)"),
+    (2, "noise: student_id เป็นแค่เลขแถว ไม่ซ้ำกันเลยทุกแถว", "Noise: student_id is only a row number, different in every row"),
+    (3, "รั่วคำตอบ: term2_grade คือเกรดเทอม 2 ได้มาหลายเดือนหลังจบเทอม 1 (r = 0.97 กับ final_grade)", "Leaks the answer: term2_grade, the term 2 grade, arrives months after term 1 (r = 0.97 with final_grade)"),
+    (4, "ชนิดข้อมูล: Mjob (อาชีพแม่) เป็นข้อความ แปลงเป็นคอลัมน์ 0/1 ก่อน", "Type: Mjob (mother's job) is text, so turn it into 0/1 columns first"),
+    (5, "ค่าคงที่: course เป็น math ทุกแถว (ไฟล์นี้มีแต่ชั้นคณิต)", "Constant: course is math in every row (this file is only the math class)"),
+    (6, "ซ้ำกันบางส่วน: Dalc กับ Walc (r = 0.64) เก็บไว้ก่อน ให้อัลกอริทึมช่วยตัดสิน", "Overlap: Dalc and Walc (r = 0.64): keep both for now, let an algorithm decide"),
 ]
 for k, (b, th, en) in enumerate(NOTES):
-    y = 446 + k * 34
-    s.badge(64, y - 6, b)
-    s.both(86, y, th, en, "pl-text")
-s.raw('<g class="dg-badge" opacity=".45">' + "".join(
-    f'<circle cx="{64 + j * 30}" cy="{544}" r="13"/><text x="{64 + j * 30}" y="549" text-anchor="middle">{b}</text>'
-    for j, b in enumerate((3, 5, 6))) + "</g>")
-s.both(146, 550, "รั่วคำตอบไหม · ค่าเหมือนกันทุกแถวไหม · ซ้ำกับคอลัมน์อื่นไหม: ตารางนี้ไม่มีคอลัมน์ที่ต้องตัดด้วยสามข้อนี้",
-       "Leaks the answer? Same value in every row? Repeats another column? Nothing in this table fails these three", "pl-note")
-s.both(20, 596, "✓ feature: size_sqft, bedrooms, location (เป็น 0/1), year_built · ✗ ตัด id, name, owner_name",
-       "✓ features: size_sqft, bedrooms, location (as 0/1), year_built · ✗ drop id, name, owner_name", "ml-ok")
-s.save("l10-checklist-houses.svg", 612)
+    y = 432 + k * 32
+    s.badge(46, y - 6, b)
+    s.both(68, y, th, en, "pl-note")
+s.both(20, 636, "✓ feature: studytime, absences, Mjob (เป็น 0/1), Dalc, Walc, term1_grade · ✗ ตัด student_id, reason, course, term2_grade",
+       "✓ features: studytime, absences, Mjob (as 0/1), Dalc, Walc, term1_grade · ✗ drop student_id, reason, course, term2_grade", "ml-ok")
+s.save("l10-checklist-students.svg", 654)
 
 # ================================================================ L10-S06: three families answer the same question
-R = [("bmi", .60), ("s5", .55), ("bp", .44), ("s4", .43), ("s6", .39), ("s3", .38), ("s1", .20), ("age", .20), ("s2", .15), ("sex", .01)]
-LASSO = {"bmi": 413, "s5": 258, "bp": 35}
-s = Svg(W, "Three ways an algorithm picks diabetes columns. 1 Filter ranks the columns by |r| with y, no model, and keeps "
-           "the top k = 3: bmi, s5, bp, CV R² 0.440, 0 trainings. 2 Wrapper (forward SFS) trains a model on each candidate "
-           "set and adds the best column each round: bmi 0.322, + s5 0.415, + bp 0.440, 135 trainings. 3 Embedded (Lasso, "
-           "alpha 1) trains once and sets the β of 7 columns to exactly 0, keeping bmi 413, s5 258, bp 35, CV R² 0.324.")
-s.bubble("diabetes: ควรเก็บคอลัมน์ไหนจาก 10 ตัว", "Diabetes: which of the 10 columns should we keep?")
+R = [("term1_grade", .89), ("failures", .29), ("absences", .20), ("Walc", .20), ("goout", .17), ("Medu", .16), ("Fedu", .15),
+     ("Dalc", .15), ("studytime", .13), ("age", .13)]
+LASSO = {"term1_grade": 2.60, "absences": -0.06, "age": -0.05}
+s = Svg(W, "Three ways an algorithm picks student columns. 1 Filter ranks the columns by |r| with the final grade, no model, "
+           "and keeps the top k = 3: term1_grade, failures, absences, CV R² 0.800, 0 trainings. 2 Wrapper (forward SFS) trains a "
+           "model on each candidate set and adds the best column each round: term1_grade 0.794, + absences 0.804, + age 0.809, 135 "
+           "trainings. 3 Embedded (Lasso, alpha 0.3, standardised columns) trains once and sets the β of 7 columns to "
+           "exactly 0, keeping term1_grade 2.60, absences −0.06, age −0.05, CV R² 0.788.")
+s.bubble("นักเรียน: ควรเก็บคอลัมน์ไหนจาก 10 ตัว", "Students: which of the 10 columns should we keep?")
 PW, PT, PH = 364, 70, 450
 ROW0, RH = 162, 25
 for i in range(3):
@@ -221,13 +231,13 @@ for i in range(3):
 X0 = 20
 s.badge(X0 + 32, PT + 26, 1)
 s.both(X0 + 54, PT + 32, "Filter: ใช้สถิติอย่างเดียว", "Filter: statistics only", "pl-label")
-s.both(X0 + 20, PT + 60, "|r| กับ y ของแต่ละคอลัมน์ ไม่ต้องฝึกโมเดล", "|r| of each column with y, no model", "pl-note")
+s.both(X0 + 20, PT + 60, "|r| กับเกรดปลายปี ไม่ต้องฝึกโมเดล", "|r| with the final grade, no model", "pl-note")
 for k, (c, r) in enumerate(R):
     y = ROW0 + k * RH
     top = k < 3
     s.text(X0 + 20, y + 17, c, "ml-b" if top else "ml-i")
-    s.box(X0 + 66, y + 5, r * 300, 15, "ml-bar-top" if top else "ml-bar", 3)
-    s.text(X0 + 72 + r * 300, y + 17, f"{r:.2f}", "ml-b" if top else "ml-i")
+    s.box(X0 + 128, y + 5, r * 170, 15, "ml-bar-top" if top else "ml-bar", 3)
+    s.text(X0 + 134 + r * 170, y + 17, f"{r:.2f}", "ml-b" if top else "ml-i")
 cut = ROW0 + 3 * RH + 1
 s.line(X0 + 14, cut, X0 + PW - 14, cut, "ml-cut-guess")
 s.text(X0 + PW - 16, cut + 20, "k = 3 ✂", "ml-neg", "end")
@@ -236,76 +246,78 @@ X0 = 20 + PW + 24
 s.badge(X0 + 32, PT + 26, 2)
 s.both(X0 + 54, PT + 32, "Wrapper: ฝึกจริงแล้ววัดผล", "Wrapper: train and score", "pl-label")
 s.both(X0 + 20, PT + 60, "SFS: ทุกรอบเพิ่มตัวที่ช่วยมากที่สุด", "SFS: one best column per round", "pl-note")
-ROUNDS = [(["bmi"], 0.322, 10, "bmi"), (["bmi", "s5"], 0.415, 9, "s5"), (["bmi", "s5", "bp"], 0.440, 8, "bp")]
+ROUNDS = [(["term1_grade"], 0.794, 10, "term1_grade"), (["term1_grade", "absences"], 0.804, 9, "absences"), (["term1_grade", "absences", "age"], 0.809, 8, "age")]
 for k, (cols, cv, tried, new) in enumerate(ROUNDS):
     y = 168 + k * 84
     cx = X0 + 18
     for c in cols:
-        w = width(c, 16) + 16
+        w = width(c, 16) + 14
         s.box(cx, y, w, 30, "rc-res" if c == new else "ml-cell-b", 8)
         s.text(cx + w / 2, y + 21, c, "ml-b", "middle")
         cx += w + 4
-    s.arrow(X0 + 160, y + 15, X0 + 186, y + 15)
-    s.box(X0 + 192, y - 4, 154, 38, "ml-model-done" if k == 2 else "ml-model", 8)
-    s.text(X0 + 269, y + 22, f"CV R² {cv:.3f}", "ml-model-text", "middle")
-    s.both(X0 + 20, y + 58, f"รอบ {k + 1}: ลอง {tried} ชุด เก็บ {new}", f"round {k + 1}: tried {tried} sets, kept {new}", "ml-i")
+    s.both(X0 + 20, y + 58, f"รอบ {k + 1}: เก็บ {new}", f"round {k + 1}: kept {new}", "ml-i")
+    s.text(X0 + PW - 16, y + 58, f"CV {cv:.3f}", "ml-b", "end")
 # 3 embedded
 X0 = 20 + 2 * (PW + 24)
 s.badge(X0 + 32, PT + 26, 3)
 s.both(X0 + 54, PT + 32, "Embedded: เลือกระหว่างฝึก", "Embedded: picks while training", "pl-label")
-s.both(X0 + 20, PT + 60, "Lasso (alpha = 1): ค่า β ของแต่ละคอลัมน์", "Lasso (alpha = 1): each column's β", "pl-note")
+s.both(X0 + 20, PT + 60, "Lasso (alpha = 0.3): ค่า β ของแต่ละคอลัมน์", "Lasso (alpha = 0.3): each column's β", "pl-note")
 for k, (c, _) in enumerate(R):
     y = ROW0 + k * RH
     b = LASSO.get(c, 0)
     if b:
         s.text(X0 + 20, y + 17, c, "ml-b")
-        s.box(X0 + 66, y + 5, b / 413 * 200, 15, "ml-bar-top", 3)
-        s.text(X0 + 72 + b / 413 * 200, y + 17, str(b), "ml-b")
+        bw = max(abs(b) / 2.6 * 140, 4)
+        s.box(X0 + 128, y + 5, bw, 15, "ml-bar-top", 3)
+        s.text(X0 + 134 + bw, y + 17, f"{b:.2f}".replace("-", "−"), "ml-b")
     else:
         s.text(X0 + 20, y + 17, c, "ml-i")
         s.raw(f'<path d="M{X0 + 17} {y + 12} H{X0 + 22 + width(c, 16)}" class="ml-cut"/>')
-        s.text(X0 + 66, y + 17, "0", "ml-i")
-s.arrow(X0 + 156, ROW0 + 6 * RH + 13, X0 + 92, ROW0 + 6 * RH + 13)
-s.both(X0 + 164, ROW0 + 6 * RH + 6, "7 ตัว β = 0", "7 columns: β = 0", "ml-neg")
-s.both(X0 + 164, ROW0 + 6 * RH + 34, "= ตัดทิ้ง", "= dropped", "ml-neg")
+        s.text(X0 + 128, y + 17, "0", "ml-i")
+s.arrow(X0 + 204, ROW0 + 5 * RH + 13, X0 + 148, ROW0 + 5 * RH + 13)
+s.both(X0 + 210, ROW0 + 5 * RH + 6, "7 ตัว β = 0", "7 columns: β = 0", "ml-neg")
+s.both(X0 + 210, ROW0 + 5 * RH + 34, "= ตัดทิ้ง", "= dropped", "ml-neg")
 # results
-for i, (th, en, cv) in enumerate((("ฝึก 0 ครั้ง", "0 trainings", "0.440"), ("27 ชุด × cv 5 = ฝึก 135 ครั้ง", "27 sets × cv 5 = 135 trainings", "0.440"),
-                                  ("ฝึกครั้งเดียว", "1 training", "0.324"))):
+RES = (("✓ เก็บ term1_grade, failures, absences", "✓ keeps term1_grade, failures, absences", "ฝึก 0 ครั้ง", "0 trainings", "0.800"),
+       ("✓ เก็บ term1_grade, absences, age", "✓ keeps term1_grade, absences, age", "27 ชุด × cv 5 = ฝึก 135 ครั้ง", "27 sets × cv 5 = 135 trainings", "0.809"),
+       ("✓ เก็บ term1_grade, absences, age", "✓ keeps term1_grade, absences, age", "ฝึกครั้งเดียว", "1 training", "0.788"))
+for i, (kth, ken, th, en, cv) in enumerate(RES):
     X0 = 20 + i * (PW + 24)
-    s.both(X0 + 20, 446, "✓ เก็บ bmi, s5, bp", "✓ keeps bmi, s5, bp", "ml-ok")
+    s.both(X0 + 20, 446, kth, ken, "ml-ok")
     s.both(X0 + 20, 476, th, en, "pl-note")
     s.text(X0 + 20, 504, f"CV R² {cv}", "pl-note")
-s.both(20, 556, "ข้อมูลนี้ทั้งสามแบบเลือกชุดเดียวกัน · ต่างกันที่ความเร็ว (ฝึก 0 / 135 / 1 ครั้ง) และ ① ดูทีละคอลัมน์ ส่วน ② ③ ดูหลายคอลัมน์พร้อมกัน",
-       "Here all three pick the same set · they differ in speed (0 / 135 / 1 trainings), and ① looks at one column at a time while ② ③ see them together",
+s.both(20, 556, "① ดูทีละคอลัมน์ จึงเก็บ failures ซึ่งซ้ำกับ term1_grade · ② ③ ดูหลายคอลัมน์พร้อมกัน จึงเก็บ age แทน",
+       "① one column at a time: keeps failures, which repeats term1_grade · ② ③ see columns together, keep age",
        "pl-note")
 s.save("l10-three-families.svg", 572)
 
-# ================================================================ L10-S09: grid vs random search on Ridge's alpha
-CURVE = [(0.001, 0.4504), (0.0013, 0.4507), (0.0018, 0.451), (0.0024, 0.4513), (0.0032, 0.4516), (0.0042, 0.4519),
-         (0.0056, 0.4522), (0.0075, 0.4524), (0.01, 0.4527), (0.0133, 0.4531), (0.0178, 0.4535), (0.0237, 0.454),
-         (0.0316, 0.4546), (0.0422, 0.4553), (0.0562, 0.4559), (0.075, 0.4564), (0.1, 0.4565), (0.1334, 0.4558),
-         (0.1778, 0.4539), (0.2371, 0.4502), (0.3162, 0.4439), (0.4217, 0.4343), (0.5623, 0.4208), (0.7499, 0.4029),
-         (1.0, 0.3802), (1.3335, 0.353), (1.7783, 0.3216), (2.3714, 0.2868), (3.1623, 0.2498), (4.217, 0.2119),
-         (5.6234, 0.1749), (7.4989, 0.14), (10.0, 0.1085), (13.3352, 0.081), (17.7828, 0.0577), (23.7137, 0.0385),
-         (31.6228, 0.023), (42.1697, 0.0106), (56.2341, 0.0009), (74.9894, -0.0066), (100.0, -0.0123)]
-GRID = [(0.001, 0.450), (0.01, 0.453), (0.1, 0.456), (1, 0.380), (10, 0.109), (100, -0.012)]
-RAND = [(0.001, 0.450), (0.003, 0.452), (0.005, 0.452), (0.009, 0.453), (0.032, 0.455), (0.053, 0.456), (0.096, 0.457),
-        (0.122, 0.456), (0.494, 0.427), (3.996, 0.219)]
-s = Svg(W, "Choosing Ridge's alpha on the diabetes data. Both panels show the same CV R² curve. Grid search tries the 6 listed "
-           "values 0.001 to 100 and finds 0.1 (CV R² 0.456), but never tries anything between 0.01 and 0.1. Random search "
-           "draws 10 values on a log scale and finds 0.096 (CV R² 0.457). Both give test R² 0.461. With 4 hyperparameters "
+# ================================================================ L10-S09: grid vs random search on Lasso's alpha
+CURVE = [(0.001, 0.7961), (0.0013, 0.7961), (0.0018, 0.7962), (0.0024, 0.7963), (0.0032, 0.7964), (0.0042, 0.7966),
+         (0.0056, 0.7969), (0.0075, 0.7971), (0.01, 0.7975), (0.0133, 0.798), (0.0178, 0.7985), (0.0237, 0.7991),
+         (0.0316, 0.7998), (0.0422, 0.8009), (0.0562, 0.8018), (0.075, 0.8028), (0.1, 0.8032), (0.1334, 0.8025),
+         (0.1778, 0.8002), (0.2371, 0.7945), (0.3162, 0.7863), (0.4217, 0.7777), (0.5623, 0.7651), (0.7499, 0.7419),
+         (1.0, 0.7003), (1.3335, 0.6261), (1.7783, 0.4936), (2.3714, 0.2573), (3.1623, -0.0106), (4.217, -0.0106),
+         (5.6234, -0.0106), (7.4989, -0.0106), (10.0, -0.0106), (13.3352, -0.0106), (17.7828, -0.0106), (23.7137, -0.0106),
+         (31.6228, -0.0106), (42.1697, -0.0106), (56.2341, -0.0106), (74.9894, -0.0106), (100.0, -0.0106)]
+GRID = [(0.001, 0.796), (0.01, 0.798), (0.1, 0.803), (1, 0.700), (10, -0.011), (100, -0.011)]
+RAND = [(0.001, 0.796), (0.003, 0.796), (0.005, 0.797), (0.009, 0.797), (0.032, 0.800), (0.053, 0.802), (0.096, 0.803),
+        (0.122, 0.803), (0.494, 0.772), (3.996, -0.011)]
+s = Svg(W, "Choosing Lasso's alpha on the student data. Both panels show the same CV R² curve. Grid search tries the 6 listed "
+           "values 0.001 to 100 and finds 0.1 (CV R² 0.803), but never tries anything between 0.01 and 0.1. Random search "
+           "draws 10 values on a log scale and finds 0.096 (CV R² 0.803). Both give test R² 0.805. With 4 hyperparameters "
            "of 5 values each, a grid needs 625 models; random search always needs only N.")
-s.bubble("Ridge กับ diabetes: ควรลอง alpha ค่าไหนบ้าง (ลอง 1 ค่า = ฝึก 1 โมเดล)", "Ridge on diabetes: which alphas should we try? (1 try = 1 model)")
-py = lambda v: 341 - v * 380
+s.bubble("Lasso กับข้อมูลนักเรียน: ควรลอง alpha ค่าไหนบ้าง (ลอง 1 ค่า = ฝึก 1 โมเดล)", "Lasso on the students: which alphas should we try? (1 try = 1 model)")
+py = lambda v: 341 - v * 230
 
 
 def score_plot(x0, tried, best):
     px = lambda a: logx(a, x0 + 80, 90)
     s.line(x0 + 66, 341, x0 + 540, 341, "dg-rule-strong")
     s.text(x0 + 60, 347, "0", "pl-note", "end")
-    s.text(x0 + 60, py(0.4) + 6, "0.4", "pl-note", "end")
-    s.line(x0 + 66, py(0.4), x0 + 540, py(0.4), "dg-rule")
-    s.text(x0 + 16, 270, "CV R²", "pl-note")
+    for g in (0.4, 0.8):
+        s.text(x0 + 60, py(g) + 6, f"{g}", "pl-note", "end")
+        s.line(x0 + 66, py(g), x0 + 540, py(g), "dg-rule")
+    s.text(x0 + 16, 192, "CV R²", "pl-note")
     pts = " ".join(f"{px(a):.1f},{py(v):.1f}" for a, v in CURVE)
     s.raw(f'<polyline points="{pts}" class="pl-line" opacity=".35"/>')
     for a in (0.001, 0.01, 0.1, 1, 10, 100):
@@ -325,16 +337,16 @@ for a, v in GRID:
     s.text(px(a), py(v) - 16, f"{v:.3f}".replace("-", "−"), "pl-label" if a == 0.1 else "pl-note", "middle")
 mid = (px(0.01) + px(0.1)) / 2
 s.box(px(0.01) + 10, 336, px(0.1) - px(0.01) - 20, 10, "sw-chip-warn", 4)
-s.arrow(mid, 262, mid, 196)
-s.both(mid, 284, "ระหว่าง 0.01 กับ 0.1: ไม่เคยลอง", "between 0.01 and 0.1: never tried", "ml-neg", "middle")
-s.both(40, 462, "✓ ได้ alpha 0.1 · CV R² 0.456 · test R² 0.461", "✓ best alpha 0.1 · CV R² 0.456 · test R² 0.461", "ml-ok")
+s.arrow(mid, 286, mid, 336)
+s.both(mid, 270, "ระหว่าง 0.01 กับ 0.1: ไม่เคยลอง", "between 0.01 and 0.1: never tried", "ml-neg", "middle")
+s.both(40, 462, "✓ ได้ alpha 0.1 · CV R² 0.803 · test R² 0.805", "✓ best alpha 0.1 · CV R² 0.803 · test R² 0.805", "ml-ok")
 s.both(40, 494, "เขียนรายการเอง: ลองแค่ค่าที่เราเดา", "you write the list: it tries only your guesses", "pl-note")
 s.panel(600, 70, 560, 450, "nt-band-a", "Random search: สุ่ม 10 ค่าในช่วง", "Random search: 10 random values in a range", 2)
 px = score_plot(600, RAND, 0.096)
-s.arrow(px(0.096) - 40, 236, px(0.096) - 4, 180)
-s.text(px(0.096) - 44, 256, "alpha 0.096 → 0.457", "pl-label", "middle")
-s.text(px(3.996), py(0.219) - 16, "0.219", "pl-note", "middle")
-s.both(620, 462, "✓ ได้ alpha 0.096 · CV R² 0.457 · test R² 0.461", "✓ best alpha 0.096 · CV R² 0.457 · test R² 0.461", "ml-ok")
+s.arrow(px(0.096) - 30, 250, px(0.096) - 4, py(0.803) + 12)
+s.text(px(0.096) - 34, 270, "alpha 0.096 → 0.803", "pl-label", "middle")
+s.text(px(3.996), py(-0.011) - 16, "−0.011", "pl-note", "middle")
+s.both(620, 462, "✓ ได้ alpha 0.096 · CV R² 0.803 · test R² 0.805", "✓ best alpha 0.096 · CV R² 0.803 · test R² 0.805", "ml-ok")
 s.both(620, 494, "ให้ช่วง 0.001–100 และจำนวนครั้ง N = 10", "you give the range 0.001–100 and N = 10 tries", "pl-note")
 s.both(20, 560, "ต้องฝึกกี่โมเดล · grid: จำนวนค่าคูณกัน hyperparameter 4 ตัว ตัวละ 5 ค่า = 5⁴ = 625 โมเดล (cv=5 คือฝึก 3,125 ครั้ง)",
        "How many models? Grid: the lists multiply: 4 hyperparameters × 5 values = 5⁴ = 625 models (3,125 trainings with cv=5)", "pl-text")
@@ -428,7 +440,18 @@ s = Svg(W, "Softmax for a 36-year-old man, 190 cm, 75 kg, really Normal Weight. 
            "5.93, 0.56, 1.41, 0.21, sum 8.11. 3 Dividing by the sum gives probabilities that add up to 1: 0.73, 0.07, 0.17, 0.03. "
            "Normal Weight wins, which is right.")
 s.bubble("ชาย 36 ปี สูง 190 ซม. หนัก 75 กก.: อยู่กลุ่มไหน", "A man, 36, 190 cm, 75 kg: which weight group?")
-s.text(W / 2, 92, "P(group j) = e^(z_j) / (e^(z_1) + e^(z_2) + e^(z_3) + e^(z_4))", "pl-label", "middle")
+# the formula as real math: superscripts and subscripts drawn with tspans (a plain "e^(z_j)" string read as code)
+parts = [("P(group ", 0, None, False), ("j", 0, None, True), (") = ", 0, None, False)]
+for i, k in enumerate(["j", "1", "2", "3", "4"]):
+    if i == 1:
+        parts.append((" / (", 0, None, False))
+    elif i > 1:
+        parts.append((" + ", 0, None, False))
+    parts += [("e", 0, None, False), ("z", -13, 19, True), (k, 6, 14, k == "j"), ("\u200a", 7, None, False)]
+parts.append((")", 0, None, False))
+spans = "".join(f'<tspan dy="{dy}"{f' font-size="{fs}"' if fs else ''}{' font-style="italic"' if it else ''}>{txt}</tspan>'
+                for txt, dy, fs, it in parts)
+s.raw(f'<text x="{W / 2}" y="94" text-anchor="middle" class="mp-math" lang="en">{spans}</text>')
 HEADS = [(250, "คะแนน z ของแต่ละกลุ่ม", "Score z of each group"), (580, "ยก e กำลัง z", "Raise e to z"), (880, "หารด้วยผลรวม 8.11", "Divide by the sum 8.11")]
 for k, (x, th, en) in enumerate(HEADS):
     s.badge(x + 12, 128, k + 1)
@@ -532,41 +555,106 @@ s.both(x + 222, y + 200, "✓ ทาย Normal Weight: ถูก", "✓ predicts
 s.both(20, 548, "ผลกับ 33 คนใน test: ทายถูก 27 คน (accuracy 0.82)", "On the 33 test people: 27 right (accuracy 0.82)", "ml-ok")
 s.save("l11-train-steps.svg", 564)
 
-# ================================================================ L11-S12: the confusion matrix as people
-s = Svg(W, "The confusion matrix of the weight model on its 33 test people, with Overweight as the positive class. "
-           "TP 4: said Overweight and right. FN 5: really Overweight but said other (all 5 were called Normal Weight), a "
-           "Type II error. FP 0: said Overweight but wrong, a Type I error. TN 24: said other and right.")
-s.bubble("โมเดลภาวะน้ำหนัก ชุด test 33 คน: ใครเป็น Overweight", "The weight model, 33 test people: who is Overweight?")
-C1, C2, CW = 250, 590, 330
-R1, R2, RH = 128, 300, 162
-s.both(C1 + CW / 2, 116, "ทายว่า Overweight", "said Overweight", "pl-label", "middle")
-s.both(C2 + CW / 2, 116, "ทายว่ากลุ่มอื่น", "said another group", "pl-label", "middle")
-s.both(C1 - 18, R1 + RH / 2 - 4, "Overweight จริง", "really Overweight", "pl-label", "end")
-s.both(C1 - 18, R1 + RH / 2 + 22, "9 คน", "9 people", "pl-note", "end")
-s.both(C1 - 18, R2 + RH / 2 - 4, "จริงเป็นกลุ่มอื่น", "really another group", "pl-label", "end")
-s.both(C1 - 18, R2 + RH / 2 + 22, "24 คน", "24 people", "pl-note", "end")
-CELLS = [  # x, y, fill, key, n, dot, th, en
-    (C1, R1, "rc-res", "TP = 4", 4, "ml-ok", "ทายว่าบวก และถูก", "said positive, right"),
-    (C2, R1, "sw-warn-box", "FN = 5", 5, "ml-bar-top", "ทายว่าลบ แต่ผิด · Type II", "said negative, wrong · Type II"),
-    (C1, R2, "sw-warn-box", "FP = 0", 0, "ml-bar-top", "ทายว่าบวก แต่ผิด · Type I", "said positive, wrong · Type I"),
-    (C2, R2, "ml-cell", "TN = 24", 24, "ml-bar", "ทายว่าลบ และถูก", "said negative, right"),
+# ================================================================ L11-S12: the confusion matrix as four illustrated cards
+# Test people by real group: Underweight 13, Normal 6, Overweight 9, Obese 5. With Overweight positive: TP 4, FN 5 (all
+# called Normal Weight), FP 0, TN 24 (13 Underweight, 6 Normal, 5 Obese). Cards follow the matrix: rows = real group,
+# columns = the model's guess. A person's build and shirt colour show their real group. The characters were generated
+# with ElevenLabs (gpt-image-2.5) for this course; see assets/LICENSES.md.
+from stats_svg import embed_png  # noqa: E402
+
+GCOL = {"U": "var(--tag-concept-dot)", "N": "var(--tag-exercise-dot)", "Ov": "var(--tag-example-dot)", "Ob": "var(--accent)"}
+
+
+def fig_person(x, y, color, k=1.0):
+    s.raw(f'<g transform="translate({x:g} {y:g}) scale({k:g})" style="fill:{color}"><circle cx="0" cy="-9" r="7"/>'
+          f'<path d="M-10 16 Q-10 1 0 1 Q10 1 10 16 Z"/></g>')
+
+
+s = Svg(W, "The confusion matrix of the weight model on its 33 test people, with Overweight as the positive class, as four "
+           "illustrated cards. True positive, 4 people: an Overweight person, the AI says 'You're Overweight!': caught. "
+           "False negative, 5 people: an Overweight person, the AI says 'Normal Weight': missed, a Type II error. False "
+           "positive, 0 people: a person who is not Overweight, the AI says 'You're Overweight!': a false alarm, a Type I "
+           "error. True negative, 24 people: not Overweight, the AI says 'not Overweight': rightly left out. Right: the same "
+           "counts as a 2 × 2 matrix.")
+CW, CH, GX, GY = 404, 256, 14, 12
+CARDS = [  # col, row, true?, title th/en, n, actual th/en, said th/en, bubble th/en, person build/shirt/mood/mark, caption th/en, people
+    (0, 0, True, ("True Positive (TP) = 4", "True Positive (TP) = 4"), ("จริง: น้ำหนักเกิน", "Actual: Overweight"),
+     ("ทาย: น้ำหนักเกิน", "Predicted: Overweight"), ("คุณน้ำหนักเกิน", "You're Overweight!"), ("ai-over-calm.png", "Ov", None),
+     ("จับได้ถูกคน", "caught: rightly flagged"), ["Ov"] * 4),
+    (1, 0, False, ("False Negative (FN) = 5", "False Negative (FN) = 5"), ("จริง: น้ำหนักเกิน", "Actual: Overweight"),
+     ("ทาย: ปกติ", "Predicted: Normal"), ("คุณน้ำหนักปกติ", "You're Normal Weight."), ("ai-over-worried.png", "Ov", None),
+     ("พลาด (Type II)", "missed (Type II error)"), ["Ov"] * 5),
+    (0, 1, False, ("False Positive (FP) = 0", "False Positive (FP) = 0"), ("จริง: ไม่ใช่น้ำหนักเกิน", "Actual: not Overweight"),
+     ("ทาย: น้ำหนักเกิน", "Predicted: Overweight"), ("คุณน้ำหนักเกิน", "You're Overweight!"), ("ai-normal-puzzled.png", "N", "?"),
+     ("เตือนผิด (Type I)", "false alarm (Type I error)"), []),
+    (1, 1, True, ("True Negative (TN) = 24", "True Negative (TN) = 24"), ("จริง: ไม่ใช่น้ำหนักเกิน", "Actual: not Overweight"),
+     ("ทาย: กลุ่มอื่น ไม่ใช่เกิน", "Predicted: another group"), ("คุณน้ำหนักปกติ", "You're Normal Weight."), ("ai-normal-happy.png", "N", None),
+     ("ไม่นับ ถูกแล้ว", "rightly left out"), ["U"] * 13 + ["N"] * 6 + ["Ob"] * 5),
 ]
-for x, y, fill, key, n, dot, th, en in CELLS:
-    s.box(x, y, CW, RH - 10, fill, 12)
-    s.text(x + 18, y + 32, key, "rc-key")
-    s.both(x + 18, y + 58, th, en, "pl-note")
-    for i in range(n):
-        r, c = divmod(i, 12)
-        s.person(x + 30 + c * 25, y + 92 + r * 30, dot)
-    if n == 0:
-        s.both(x + 18, y + 100, "ไม่มีเลย", "nobody", "pl-text")
-s.arrow(C2 + CW + 30, R1 + 86, C2 + CW - 8, R1 + 86)
-for i, (th, en, cls) in enumerate((("Overweight 5 คน", "5 Overweight people", "ml-neg"), ("ถูกทายว่า", "were called", "pl-text"),
-                                  ("Normal Weight", "Normal Weight", "pl-text"), ("= พลาด", "= missed", "ml-neg"))):
-    s.both(C2 + CW + 36, R1 + 60 + i * 26, th, en, cls)
-s.both(20, 500, "อ่านชื่อช่อง: คำแรก (True / False) = ทายถูกไหม · คำหลัง (Positive / Negative) = โมเดลทายว่าอะไร",
-       "Read a cell's name: the 1st word (True / False) = was the guess right? · the 2nd (Positive / Negative) = what the model said", "pl-note")
-s.save("l11-confusion-people.svg", 516)
+for col, row, ok, (tth, ten), (ath, aen), (pth, pen), (bth, ben), (peep, g, mark), (cth, cen), people in CARDS:
+    x, y = 10 + col * (CW + GX), 10 + row * (CH + GY)
+    s.box(x, y, CW, CH, "rc-res" if ok else "rc-con", 16)
+    s.box(x + 12, y + 10, CW - 24, 38, "ml-cell", 19)
+    s.both(x + CW / 2, y + 36, tth, ten, "ct-head-tp" if ok else "ct-head-f", "middle")
+    s.both(x + CW / 2, y + 70, f"{ath}  |  {pth}", f"{aen}  |  {pen}", "mp-c", "middle")
+    embed_png(s, peep, x + 16, y + 78, 134, 126)
+    if mark:
+        s.text(x + 146, y + 112, mark, "ct-mark")
+    embed_png(s, "ai-robot.png", x + 324, y + 92, 74, 112)
+    bw = 168
+    s.box(x + 156, y + 92, bw, 46, "ml-cell", 14)
+    s.raw(f'<path d="M{x + 156 + bw - 18:g} {y + 136:g} L{x + 332:g} {y + 140:g} L{x + 156 + bw - 40:g} {y + 137:g} Z" class="ml-cell"/>')
+    s.both(x + 156 + bw / 2, y + 121, bth, ben, "mp-chip", "middle")
+    s.box(x + 12, y + 204, CW - 24, 42, "ml-cell", 12)
+    s.both(x + 26, y + 231, cth, cen, "ct-head-tp" if ok else "ct-head-f")
+    n = len(people)
+    if 0 < n <= 9:
+        for i, gg in enumerate(people):
+            fig_person(x + CW - 30 - (n - 1 - i) * 16, y + 228, GCOL[gg], 0.55)
+    elif n > 9:     # TN: one small person per real group, with its count
+        for i, gg in enumerate(("U", "N", "Ob")):
+            px = x + CW - 150 + i * 46
+            fig_person(px, y + 228, GCOL[gg], 0.6)
+            s.text(px + 10, y + 232, f"×{people.count(gg)}", "mp-c")
+    else:
+        s.both(x + CW - 26, y + 231, "0 คน", "0 people", "pl-note", "end")
+# the same counts as a matrix, what "negative" means with 4 groups, and who is inside TN and FN
+X0, Y0 = 10 + 2 * CW + GX + 20, 10
+PWD = 1170 - X0
+s.box(X0, Y0, PWD, 2 * CH + GY, "ml-cell", 16)
+s.both(X0 + 18, Y0 + 34, "ชุด test 33 คน", "33 test people", "pl-label")
+s.both(X0 + 18, Y0 + 64, "บวก = น้ำหนักเกิน", "positive = Overweight", "pl-note")
+s.both(X0 + 18, Y0 + 94, "ลบ = ทายกลุ่มอื่นกลุ่มไหนก็ได้", "negative = any other group", "ct-head-f")
+mx, my, cw2, ch2 = X0 + 104, Y0 + 156, 100, 82
+s.both(mx + cw2, my - 32, "โมเดลทาย →", "predicted →", "ml-i", "middle")
+s.both(mx + cw2 / 2, my - 8, "เกิน", "Over", "ml-b", "middle")
+s.both(mx + 1.5 * cw2, my - 8, "อื่น", "other", "ml-b", "middle")
+s.both(mx - 10, my + ch2 / 2 + 6, "เกิน", "Over", "ml-b", "end")
+s.both(mx - 10, my + 1.5 * ch2 + 6, "อื่น", "other", "ml-b", "end")
+s.both(X0 + 18, my + ch2 + 6, "จริง ↓", "real ↓", "ml-i")
+for (c, r, lab, n, ok, sub) in ((0, 0, "TP", 4, True, ""), (1, 0, "FN", 5, False, "Type II"), (0, 1, "FP", 0, False, "Type I"), (1, 1, "TN", 24, True, "")):
+    cx, cy = mx + c * cw2, my + r * ch2
+    s.box(cx + 3, cy + 3, cw2 - 6, ch2 - 6, "rc-res" if ok else "rc-con", 10)
+    s.text(cx + cw2 / 2, cy + 25, lab, "pl-label", "middle")
+    s.text(cx + cw2 / 2, cy + 56, str(n), "mp-big-ok" if ok else "mp-big", "middle")
+    if sub:
+        s.text(cx + cw2 / 2, cy + 75, sub, "mp-s", "middle")
+# who is inside: real group → what the model said (the real 4×4 test matrix)
+by = my + 2 * ch2 + 8
+s.box(X0 + 10, by, PWD - 20, 2 * CH + GY - (by - Y0) - 10, "rc-ctx", 12)
+s.both(X0 + 22, by + 24, "ข้างในมีใคร: กลุ่มจริง → โมเดลทาย", "who is inside: real → model said", "mp-c")
+ROWS = [("TN", "U", "ผอม 13 → ผอม 12 · ปกติ 1", "Under 13 → Under 12 · Normal 1"),
+        ("TN", "N", "ปกติ 6 → ปกติ 6", "Normal 6 → Normal 6"),
+        ("TN", "Ob", "อ้วน 5 → อ้วน 5", "Obese 5 → Obese 5"),
+        ("FN", "Ov", "เกิน 5 → ปกติ 5", "Over 5 → Normal 5")]
+for i, (cell, g, th, en) in enumerate(ROWS):
+    yy = by + 48 + i * 23
+    s.text(X0 + 22, yy, cell, "ct-head-tp" if cell == "TN" else "ct-head-f")
+    s.raw(f'<rect x="{X0 + 62}" y="{yy - 12}" width="14" height="14" rx="3" style="fill:{GCOL[g]}"/>')
+    s.both(X0 + 84, yy, th, en, "mp-s")
+s.both(X0 + 22, by + 148, "ทาย “ปกติ” ผิด 1 คน แต่ยังนับเป็น TN", "1 Under called Normal is wrong,", "mp-s")
+s.both(X0 + 22, by + 168, "เพราะโมเดลไม่ได้บอกว่า “เกิน”", "yet still a TN: it didn't say Over", "mp-s")
+s.save("l11-confusion-people.svg", 2 * CH + GY + 20)
 
 # ================================================================ L11-S13: precision looks down a column, recall along a row
 s = Svg(W, "Precision and recall of the weight model for Overweight (TP 4, FN 5, FP 0, TN 24). Precision looks down the "
@@ -649,28 +737,33 @@ for (y, lines, th, en) in ((R1, 2, "2 ขีด: บอกว่าติดเ�
         s.text(cx + CW / 2, y + RH / 2 + 6, "?", "ml-plus", "middle")
 s.save("l11-atk-question.svg", 410, sized=True)
 
-# ================================================================ L11-S16: per-class counts in a 3×3 matrix
-M = [[4, 1, 0], [0, 3, 1], [1, 1, 3]]
-NAMES = "ABC"
-STATS = [(4, 1, 1, "4/5 = 0.80", "4/5 = 0.80"), (3, 2, 1, "3/5 = 0.60", "3/4 = 0.75"), (3, 1, 2, "3/4 = 0.75", "3/5 = 0.60")]
-s = Svg(W, "Per-author counts in the 3 × 3 confusion matrix of 14 texts. For each author, TP is its diagonal cell, FP the rest "
-           "of its column, FN the rest of its row. Author A: TP 4, FP 1, FN 1, precision 0.80, recall 0.80. Author B: TP 3, "
-           "FP 2, FN 1, precision 0.60, recall 0.75. Author C: TP 3, FP 1, FN 2, precision 0.75, recall 0.60. Macro average "
-           "precision (0.80 + 0.60 + 0.75) / 3 = 0.72; micro average pools TP 10, FP 4, FN 4: 10 / 14 = 0.71, the accuracy.")
-s.bubble("ข้อความ 14 ชิ้น ผู้แต่ง 3 คน: โมเดลเก่งกับผู้แต่งแต่ละคนแค่ไหน", "14 texts, 3 authors: how good is the model for each author?")
-PW = 364
-for k in range(3):
-    X0 = 20 + k * (PW + 24)
+# ================================================================ L11-S16: per-class counts in the obesity model's 4×4 matrix
+# The lesson's 4-group model (70/30 split, random_state=42, StandardScaler, LogisticRegression) on its 33 test people;
+# rows = real group, columns = predicted, in the order Underweight, Normal, Overweight, Obese.
+M = [[12, 1, 0, 0], [0, 6, 0, 0], [0, 5, 4, 0], [0, 0, 0, 5]]
+GRP = [("ผอม", "Underweight", "U"), ("ปกติ", "Normal", "N"), ("น้ำหนักเกิน", "Overweight", "Ov"), ("อ้วน", "Obese", "Ob")]
+STATS = [(12, 0, 1, "12/12 = 1.00", "12/13 = 0.92"), (6, 6, 0, "6/12 = 0.50", "6/6 = 1.00"),
+         (4, 0, 5, "4/4 = 1.00", "4/9 = 0.44"), (5, 0, 0, "5/5 = 1.00", "5/5 = 1.00")]
+s = Svg(W, "The obesity model's 4 × 4 confusion matrix for its 33 test people, read once per weight group. For each group, TP is "
+           "its diagonal cell, FP the rest of its column, FN the rest of its row. Underweight: TP 12, FP 0, FN 1, precision "
+           "1.00, recall 0.92. Normal: TP 6, FP 6, FN 0, precision 0.50, recall 1.00. Overweight: TP 4, FP 0, FN 5, precision "
+           "1.00, recall 0.44. Obese: TP 5, FP 0, FN 0, precision 1.00, recall 1.00. Macro average precision (1.00 + 0.50 + "
+           "1.00 + 1.00) / 4 = 0.88; micro average pools TP 27, FP 6, FN 6: 27 / 33 = 0.82, the accuracy.")
+s.bubble("คน test 33 คน 4 กลุ่ม: โมเดลเก่งกับแต่ละกลุ่มแค่ไหน", "33 test people, 4 groups: how good is the model for each group?")
+PW = 273
+for k in range(4):
+    X0 = 20 + k * (PW + 16)
     s.box(X0, 70, PW, 360, "nt-band-a", 14)
-    s.both(X0 + 20, 102, f"ผู้แต่ง {NAMES[k]} เป็นกลุ่มบวก", f"Author {NAMES[k]} as positive", "pl-label")
-    mx, my, cw, ch = X0 + 126, 162, 66, 44
-    s.both(mx + 1.5 * cw, 132, "ทาย →", "predicted →", "ml-i", "middle")
-    s.both(X0 + 20, my + 1.5 * ch + 6, "จริง ↓", "real ↓", "ml-i")
-    for j in range(3):
-        s.text(mx + j * cw + cw / 2, my - 8, NAMES[j], "ml-b", "middle")
-        s.text(mx - 14, my + j * ch + ch / 2 + 6, NAMES[j], "ml-b", "end")
-    for r in range(3):
-        for c in range(3):
+    s.both(X0 + 18, 100, GRP[k][0], GRP[k][1], "pl-label")
+    s.both(X0 + 18, 124, "เป็นกลุ่มบวก", "as the positive class", "pl-note")
+    mx, my, cw, ch = X0 + 62, 182, 48, 36
+    s.both(mx + 2 * cw, 148, "ทาย →", "predicted →", "ml-i", "middle")
+    s.both(X0 + 14, my - 8, "จริง ↓", "real ↓", "ml-i")
+    for j in range(4):
+        s.text(mx + j * cw + cw / 2, my - 8, GRP[j][2], "ml-b", "middle")
+        s.text(mx - 10, my + j * ch + ch / 2 + 6, GRP[j][2], "ml-b", "end")
+    for r in range(4):
+        for c in range(4):
             if r == k and c == k:
                 cls = "rc-res"
             elif c == k:
@@ -682,10 +775,10 @@ for k in range(3):
             s.box(mx + c * cw + 2, my + r * ch + 2, cw - 4, ch - 4, cls, 6)
             s.text(mx + c * cw + cw / 2, my + r * ch + ch / 2 + 7, str(M[r][c]), "pl-label" if cls != "ml-cell" else "pl-note", "middle")
     tp, fp, fn, prec, rec = STATS[k]
-    s.text(X0 + 20, 346, f"TP {tp} · FP {fp} · FN {fn}", "pl-label")
-    s.text(X0 + 20, 378, f"precision = {prec}", "pl-text")
-    s.text(X0 + 20, 408, f"recall = {rec}", "pl-text")
-LEG = [("rc-res", "TP: ช่องทแยงของกลุ่มนั้น", "TP: the class's diagonal cell"),
+    s.text(X0 + 18, 344, f"TP {tp} · FP {fp} · FN {fn}", "pl-label")
+    s.text(X0 + 18, 374, f"precision = {prec}", "pl-text")
+    s.text(X0 + 18, 404, f"recall = {rec}", "pl-text")
+LEG = [("rc-res", "TP: ช่องทแยงของกลุ่มนั้น", "TP: the group's diagonal cell"),
        ("sw-chip-warn", "FP: ที่เหลือในคอลัมน์ (ทายว่าใช่ แต่ผิด)", "FP: rest of its column (said it, wrong)"),
        ("rc-ctx", "FN: ที่เหลือในแถว (ใช่จริง แต่พลาด)", "FN: rest of its row (really it, missed)")]
 lx = 20
@@ -693,8 +786,183 @@ for cls, th, en in LEG:
     s.box(lx, 452, 22, 22, cls, 4)
     s.both(lx + 30, 470, th, en, "pl-note")
     lx += 30 + max(width(th, 18), width(en, 18)) + 34
-s.both(20, 512, "macro: เฉลี่ยของ 3 คน precision = (0.80 + 0.60 + 0.75) / 3 = 0.72 · ทุกคนนับเท่ากัน",
-       "Macro: the mean of the 3 authors, precision = (0.80 + 0.60 + 0.75) / 3 = 0.72 · every author counts the same", "pl-text")
-s.both(20, 544, "micro: รวมตัวนับก่อน TP 10 · FP 4 · FN 4 → 10 / 14 = 0.71 = accuracy",
-       "Micro: pool the counts first, TP 10 · FP 4 · FN 4 → 10 / 14 = 0.71 = accuracy", "pl-text")
+s.both(20, 512, "macro: เฉลี่ยของ 4 กลุ่ม precision = (1.00 + 0.50 + 1.00 + 1.00) / 4 = 0.88 · ทุกกลุ่มนับเท่ากัน",
+       "Macro: the mean of the 4 groups, precision = (1.00 + 0.50 + 1.00 + 1.00) / 4 = 0.88 · every group counts the same", "pl-text")
+s.both(20, 544, "micro: รวมตัวนับก่อน TP 27 · FP 6 · FN 6 → 27 / 33 = 0.82 = accuracy",
+       "Micro: pool the counts first, TP 27 · FP 6 · FN 6 → 27 / 33 = 0.82 = accuracy", "pl-text")
 s.save("l11-multiclass-metrics.svg", 560)
+
+# ================================================================ L10-S01: meet the data, one student = one row
+# UCI Student Performance (math course), first row: age 18, Medu 4, Fedu 4, studytime 2, failures 0, goout 4, Dalc 1, Walc 1,
+# absences 6, term1_grade 5, final_grade 6. Final grades of the 357 students who sat the exam run 4–20; 25.8% are below the pass mark 10.
+LEFT = [("age", "18", "อายุ (ปี)", "age (years)"), ("studytime", "2", "อ่านหนังสือ 2–5 ชม./สัปดาห์", "study: 2–5 hours a week"),
+        ("failures", "0", "เคยสอบตกกี่วิชา", "past classes failed"), ("goout", "4", "เที่ยวกับเพื่อน (1–5)", "going out (1–5)"),
+        ("absences", "6", "ขาดเรียน (วัน)", "absences (days)")]
+RIGHT = [("Medu", "4", "แม่จบปริญญา", "mother: a degree"), ("Fedu", "4", "พ่อจบปริญญา", "father: a degree"),
+         ("Dalc", "1", "ดื่มวันธรรมดา (1–5)", "weekday drinks (1–5)"), ("Walc", "1", "ดื่มเสาร์อาทิตย์ (1–5)", "weekend drinks (1–5)"),
+         ("term1_grade", "5", "เกรดเทอม 1 (0–20)", "term 1 grade (0–20)")]
+G3HIST = {4: 1, 5: 7, 6: 15, 7: 9, 8: 32, 9: 28, 10: 56, 11: 47, 12: 31, 13: 31, 14: 27, 15: 33, 16: 16, 17: 6, 18: 12, 19: 5, 20: 1}
+s = Svg(W, "The student data: one row is one student. At the end of term 1 we know 10 things about student 1: age 18, studies "
+           "2–5 hours a week, failed 0 classes before, goes out 4 (on 1–5), 6 days absent, mother's and father's education "
+           "level 4 (a degree), weekday alcohol 1 and weekend alcohol 1 (on 1–5), and the term 1 grade term1_grade = 5 out of 20. "
+           "These are the features. At the end of the year the school gives the final grade final_grade, out of 20 with 10 to pass: "
+           "student 1 got 6. Over the 357 students final_grade runs from 4 to 20, and 25.8% are below 10. final_grade is the target.")
+s.bubble("ข้อมูลนักเรียน: หนึ่งแถว = นักเรียนหนึ่งคน", "The student data: one row = one student")
+s.panel(20, 70, 830, 430, "nt-band-a", "จบภาคเรียนที่ 1: นักเรียนคนที่ 1", "End of term 1: student 1", 1)
+s.both(40, 126, "10 คอลัมน์ที่รู้แล้ว = feature (สิ่งที่โมเดลใช้ทาย)", "10 columns we already know = features (what the model predicts from)", "pl-note")
+
+
+def row(x, y, name, val, th, en, lit=False):
+    s.box(x, y, 390, 46, "rc-ctx" if lit else "ml-cell", 10)
+    s.text(x + 12, y + 30, name, "ml-b")
+    s.text(x + 146, y + 30, val, "pl-label", "end")
+    s.both(x + 160, y + 30, th, en, "pl-note")
+
+
+s.both(40, 166, "ตัวนักเรียน", "The student", "pl-label")
+for k, r in enumerate(LEFT):
+    row(40, 180 + k * 54, *r)
+s.both(440, 166, "ครอบครัว · การดื่ม · เกรดเทอม 1", "Family · alcohol · term 1 grade", "pl-label")
+for k, r in enumerate(RIGHT):
+    row(440, 180 + k * 54, *r, lit=(r[0] == "term1_grade"))
+s.both(40, 476, "เลข 1–5 คือระดับที่นักเรียนตอบในแบบสอบถาม (1 = น้อยมาก 5 = มากมาก)", "1–5 values are survey answers (1 = very low, 5 = very high)", "pl-note")
+s.arrow(856, 290, 872, 290)
+s.panel(878, 70, 282, 430, "rc-res", "ปลายปี: target", "Year end: target", 2)
+s.text(898, 126, "final_grade", "ml-b")
+s.both(898, 152, "เกรดทั้งปี · เต็ม 20 · ผ่านที่ 10", "year grade · of 20 · pass 10", "pl-note")
+s.raw('<text x="1019" y="216" text-anchor="middle" style="font: 700 56px var(--font-head); fill: var(--ink)">6</text>')
+HX0, HX1, HB = 900, 1140, 370
+hx = lambda v: HX0 + (v - 3.5) / 17 * (HX1 - HX0)
+for v, c in G3HIST.items():
+    h = c / 56 * 96
+    s.box(hx(v - 0.5) + 1, HB - h, (HX1 - HX0) / 17 - 2, h, "ml-bar-top" if v == 6 else "ml-bar", 2)
+s.line(hx(9.5), HB - 104, hx(9.5), HB, "ml-cut-guess")
+s.text(hx(9.5) + 6, HB - 92, "10", "pl-note")
+s.line(HX0, HB, HX1, HB, "dg-rule-strong")
+for v in (4, 10, 20):
+    s.text(hx(v), HB + 22, str(v), "pl-note", "middle")
+s.both(898, 254, "นักเรียน 357 คน:", "the 357 students:", "pl-note")
+s.both(898, 420, "6 < 10 → สอบตก", "6 < 10 → failed", "pl-text")
+s.both(898, 452, "ตก 25.8% · ค่าเฉลี่ย 11.5", "25.8% fail · mean 11.5", "pl-note")
+s.both(898, 482, "นี่คือสิ่งที่โมเดลต้องทาย", "this is what we predict", "pl-note")
+s.both(20, 540, "× นักเรียน 357 คน  ·  งาน: จบเทอม 1 ใช้ 10 คอลัมน์ทายเกรดทั้งปี final_grade (regression เพราะคำตอบเป็นตัวเลข)",
+       "× 357 students  ·  The task: at the end of term 1, predict the year grade final_grade from 10 columns (regression)", "pl-label")
+s.save("l10-students-data.svg", 558)
+
+# ================================================================ L10-S07: SFS round by round, like the lecture slide
+# Real forward SFS on the student data (LinearRegression, cv=5, 285 training students): the 3 best tries of each round.
+SFS_ROUNDS = [
+    ([["term1_grade"], ["failures"], ["Walc"]], [0.794, 0.062, 0.025], 7),
+    ([["term1_grade", "absences"], ["term1_grade", "age"], ["term1_grade", "goout"]], [0.804, 0.802, 0.795], 6),
+    ([["term1_grade", "absences", "age"], ["term1_grade", "absences", "goout"], ["term1_grade", "absences", "Medu"]],
+     [0.809, 0.804, 0.804], 5),
+]
+s = Svg(W, "Forward SFS on the student data, round by round. Round 1 tries each of the 10 columns alone; term1_grade is best "
+           "(CV R² 0.794), failures 0.062, Walc 0.025, 7 more lower. Round 2 adds one more column to term1_grade: absences is "
+           "best (0.804), age 0.802, goout 0.795, 6 more. Round 3 adds one more to term1_grade + absences: age is best (0.809), "
+           "goout 0.804, Medu 0.804, 5 more. Result: term1_grade, absences, age. 10 + 9 + 8 = 27 sets tried; trying every set "
+           "of 3 would take 120.")
+COLX = [150, 430, 710]
+PILL_W, PILL_H = 134, 28
+BOX_W = PILL_W + 16
+SPACING = [96, 122, 150]
+TOP = 132
+
+
+def set_box(cx, y, cols, win, cv, new_last=True):
+    h = len(cols) * (PILL_H + 6) + 10
+    s.box(cx - BOX_W / 2, y, BOX_W, h, "ml-cell", 10)
+    if win:
+        s.raw(f'<rect x="{cx - BOX_W / 2 - 3:g}" y="{y - 3:g}" width="{BOX_W + 6:g}" height="{h + 6:g}" rx="12" fill="none" class="pl-line"/>')
+    for j, c in enumerate(cols):
+        py = y + 8 + j * (PILL_H + 6)
+        s.box(cx - PILL_W / 2, py, PILL_W, PILL_H, "rc-res" if win else "sw-warn-box", 14)
+        s.text(cx, py + 20, c, "ml-b" if win else "ml-i", "middle")
+    s.text(cx, y + h + 22, f"CV R² {cv:.3f}" + (" ✓" if win else ""), "pl-label" if win else "pl-note", "middle")
+    return y, h
+
+
+boxes = []
+for r, (sets, cvs, more) in enumerate(SFS_ROUNDS):
+    cx = COLX[r]
+    s.both(cx, 100, f"รอบ {r + 1}: ลอง {10 - r} ชุด", f"Round {r + 1}: {10 - r} sets tried", "pl-label", "middle")
+    col = []
+    for k, (cols, cv) in enumerate(zip(sets, cvs)):
+        y, h = set_box(cx, TOP + k * SPACING[r], cols, k == 0, cv)
+        col.append((y, h))
+    last_y = col[-1][0] + col[-1][1] + 50
+    s.both(cx, last_y, f"+ อีก {more} ชุด (CV ต่ำกว่า)", f"+ {more} more (lower CV)", "pl-note", "middle")
+    boxes.append(col)
+# arrows: from the kept set of each round to every tried set of the next round
+for r in range(2):
+    y0, h0 = boxes[r][0]
+    for (y1, h1) in boxes[r + 1]:
+        s.arrow(COLX[r] + BOX_W / 2 + 6, y0 + h0 / 2, COLX[r + 1] - BOX_W / 2 - 8, y1 + h1 / 2)
+# result
+RX = 1020
+s.both(RX, 100, "ผลลัพธ์", "Result", "pl-label", "middle")
+y0, h0 = boxes[2][0]
+ry = 300
+s.arrow(COLX[2] + BOX_W / 2 + 6, y0 + h0 / 2, RX - BOX_W / 2 - 8, ry + 55)
+s.box(RX - BOX_W / 2, ry, BOX_W, 3 * (PILL_H + 6) + 10, "rc-res", 10)
+for j, c in enumerate(["term1_grade", "absences", "age"]):
+    py = ry + 8 + j * (PILL_H + 6)
+    s.box(RX - PILL_W / 2, py, PILL_W, PILL_H, "ml-cell", 14)
+    s.text(RX, py + 20, c, "ml-b", "middle")
+s.text(RX, ry + 3 * (PILL_H + 6) + 34, "CV R² 0.809", "pl-label", "middle")
+s.both(RX, ry + 3 * (PILL_H + 6) + 62, "k = 3 ครบแล้ว หยุด", "k = 3 reached: stop", "pl-note", "middle")
+# legend + counts
+LY = 668
+s.box(20, LY - 16, 22, 20, "rc-res", 6)
+s.both(50, LY, "ชุดที่ดีที่สุดของรอบ → เก็บ แล้วต่อยอดรอบถัดไป", "the round's best set → kept, and the next round builds on it", "pl-note")
+s.box(600, LY - 16, 22, 20, "sw-warn-box", 6)
+s.both(630, LY, "ลองแล้วแพ้ → ไม่ใช้ต่อ", "tried and lost → not used again", "pl-note")
+s.both(20, 708, "SFS ลอง 10 + 9 + 8 = 27 ชุด · ถ้าลองทุกชุด 3 คอลัมน์จาก 10 ต้องลอง 120 ชุด",
+       "SFS tries 10 + 9 + 8 = 27 sets · trying every set of 3 columns out of 10 would take 120", "pl-label")
+s.save("l10-sfs-rounds.svg", 726)
+
+# ================================================================ L10-S07: SFS vs brute force on 4 columns f1–f4
+s = Svg(W, "SFS versus brute force on 4 columns f1 to f4. SFS: step 1 tries [f1], [f2], [f3], [f4] and keeps f2; step 2 tries "
+           "[f2, f1], [f2, f3], [f2, f4] and keeps f2, f4; step 3 tries [f2, f4, f1], [f2, f4, f3] and keeps f2, f4, f3; step 4 has "
+           "only [f2, f4, f3, f1]: 4 + 3 + 2 + 1 = 10 experiments. Brute force tries every set: 4 of size 1, 6 of size 2, 4 of "
+           "size 3 and 1 of size 4: 15 experiments.")
+s.bubble("มี 4 คอลัมน์ f1–f4: ต้องฝึกโมเดลกี่ครั้ง", "4 columns, f1–f4: how many models do we train?")
+
+
+def chip_row(x0, y, sets, win=None):
+    x = x0
+    for k, st in enumerate(sets):
+        label = ", ".join(st)
+        w = width(label, 17) + 22
+        s.box(x, y - 22, w, 32, "rc-res" if k == win else "ml-cell", 8)
+        s.text(x + w / 2, y, label, "ml-b" if k == win else "ml-i", "middle")
+        x += w + 8
+
+
+s.panel(20, 70, 560, 520, "nt-band-a", "SFS: ฝึก 10 ครั้ง", "SFS: 10 experiments", 1)
+STEPS = [("ขั้น 1: ลองทีละตัว", "Step 1: each column alone", [["f1"], ["f2"], ["f3"], ["f4"]], 1, "เก็บ f2", "keep f2"),
+         ("ขั้น 2: เพิ่มอีกตัวให้ f2", "Step 2: add one more to f2", [["f2", "f1"], ["f2", "f3"], ["f2", "f4"]], 2, "เก็บ f2, f4", "keep f2, f4"),
+         ("ขั้น 3: เพิ่มอีกตัวให้ f2, f4", "Step 3: add one more to f2, f4", [["f2", "f4", "f1"], ["f2", "f4", "f3"]], 1, "เก็บ f2, f4, f3", "keep f2, f4, f3"),
+         ("ขั้น 4: เหลือตัวเดียว", "Step 4: only one left", [["f2", "f4", "f3", "f1"]], 0, "ครบ 4 ตัว", "all 4")]
+for k, (th, en, sets, win, kth, ken) in enumerate(STEPS):
+    y = 132 + k * 110
+    s.both(40, y, th, en, "pl-text")
+    chip_row(40, y + 42, sets, win)
+    s.both(560, y, f"{len(sets)} ชุด · {kth}", f"{len(sets)} set{'s' if len(sets) > 1 else ''} · {ken}", "pl-note", "end")
+s.both(40, 566, "4 + 3 + 2 + 1 = 10 ✓ เร็ว แต่ไม่รับประกันว่าได้ชุดที่ดีที่สุด", "4 + 3 + 2 + 1 = 10 ✓ fast, but the best set isn't guaranteed", "ml-ok")
+s.panel(600, 70, 560, 520, "sw-warn-box", "ลองทุกชุด (brute force): ฝึก 15 ครั้ง", "Brute force: 15 experiments", 2)
+SIZES = [("ขนาด 1", "Size 1", [["f1"], ["f2"], ["f3"], ["f4"]]),
+         ("ขนาด 2", "Size 2", [["f1", "f2"], ["f1", "f3"], ["f1", "f4"], ["f2", "f3"], ["f2", "f4"], ["f3", "f4"]]),
+         ("ขนาด 3", "Size 3", [["f1", "f2", "f3"], ["f1", "f2", "f4"], ["f1", "f3", "f4"], ["f2", "f3", "f4"]]),
+         ("ขนาด 4", "Size 4", [["f1", "f2", "f3", "f4"]])]
+y = 128
+for th, en, sets in SIZES:
+    s.both(620, y, th, en, "pl-text")
+    s.both(1140, y, f"{len(sets)} ชุด", f"{len(sets)} set{'s' if len(sets) > 1 else ''}", "pl-note", "end")
+    rows = [sets[:3], sets[3:]] if len(sets) > 4 else [sets]
+    for rset in rows:
+        chip_row(620, y + 38, rset)
+        y += 40
+    y += 56
+s.both(620, 566, "4 + 6 + 4 + 1 = 15 ✗ ได้ชุดที่ดีที่สุดแน่นอน แต่โตเร็วมาก", "4 + 6 + 4 + 1 = 15 ✗ finds the best for sure, but explodes", "ml-neg")
+s.save("l10-sfs-vs-brute.svg", 610)

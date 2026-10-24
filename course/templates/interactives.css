@@ -14,7 +14,7 @@
 .stp-pos { font: 600 calc(15 * var(--ix)) var(--font-code); color: var(--muted); }
 .stp-label { margin: 0 0 calc(8 * var(--ix)); font-weight: 600; color: var(--ink); font-size: calc(17 * var(--ix)); }
 .stp-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(4 * var(--ix)); }
-.stp-row { display: grid; grid-template-columns: calc(56 * var(--ix)) minmax(0, 1fr) calc(64 * var(--ix)); align-items: center; gap: calc(10 * var(--ix)); font: calc(14 * var(--ix))/1.5 var(--font-code); }
+.stp-row { display: grid; grid-template-columns: calc(104 * var(--ix)) minmax(0, 1fr) calc(64 * var(--ix)); align-items: center; gap: calc(10 * var(--ix)); font: calc(14 * var(--ix))/1.5 var(--font-code); }
 .stp-name { color: var(--ink); }
 .stp-val { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .stp-track { position: relative; height: calc(16 * var(--ix)); background: var(--cream); border-radius: calc(4 * var(--ix)); }
