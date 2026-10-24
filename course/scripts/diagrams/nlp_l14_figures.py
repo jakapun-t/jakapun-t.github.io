@@ -6,8 +6,10 @@ the page; ไทย/EN labels follow the language switch.
 Real numbers (computed in course/.venv on 2026-10-19):
 - search_course = all-MiniLM-L6-v2 over the 7 course facts: "How many days are left until the final exam?" → fact 7
   (0.693), fact 2 (0.509); "final exam date" → fact 7 (0.830). 26 Oct → 30 Nov 2026 = 35 days; → 2 Nov = 7 days.
-- Tokens (OpenAI o200k tokenizer, as an estimate for Gemini): system prompt 32, the 3 tool schemas 220 (83 + 42 + 94),
-  question 10; the four calls of the running question send 262, 307, 325, 358 tokens (1,252 in, 94 out).
+- Gemini runs (2026-10-23, gemini-3.5-flash-lite unless noted; the lesson's kept outputs): the running question reads
+  256, 538, 591 input tokens in 3 calls (1,385 in, 102 out; the question alone is 11). The Deep Agent study-plan run
+  (gemini-3.8-flash): 16 tool calls, 12 model calls, 97,743 input tokens (largest call 14,565). The earlier run before
+  search_course had k: 65 tool calls (54 searches), 22 model calls, 167,828 input tokens, an empty final reply.
 - exam-study-plan SKILL.md: name + description 41 tokens, whole file 144.
 - Run B in l14-eval is a real run of Qwen3-0.6B (transformers chat template with the three tools): it called
   days_between("2023-10-01", "2023-11-01") → 31 and answered "There are 31 days left until the final exam."
@@ -104,85 +106,132 @@ def bubble2(s, th, en, y=8, w=700):
 
 
 Q = "How many days are left until the final exam?"
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+
+def pic(s, name, x, y, w, h, align="xMidYMax"):
+    """Inline a generated picture from assets/ (characters stand on the bottom edge of their box)."""
+    import base64
+    data = base64.b64encode(open(os.path.join(ASSETS, name + ".png"), "rb").read()).decode()
+    s.raw(f'<image x="{x:g}" y="{y:g}" width="{w:g}" height="{h:g}" preserveAspectRatio="{align} meet" '
+          f'href="data:image/png;base64,{data}"/>')
+
+
+def ic(s, name, cx, cy, size):
+    """A generated icon (assets/icon-<name>.png) centred on (cx, cy)."""
+    pic(s, "icon-" + name, cx - size / 2, cy - size / 2, size, size, "xMidYMid")
 
 # ---------------------------------------------------------------- 1. hook: RAG workflow vs agent
-s = Svg(W, "The question 'How many days are left until the final exam?', asked on Monday 26 October. Left, the RAG workflow: "
+s = Svg(W, "A student asks 'How many days are left until the final exam?' on Monday 26 October. Left, the RAG workflow: "
            "it searches the 7 facts and keeps the top 2 (fact 7, final exam on Monday 30 November, cosine 0.693; fact 2, the "
            "midterm, 0.509), builds a prompt and lets Gemini write; no fact gives today's date and no step counts days, so the "
-           "model can only guess. Right, an agent: the LLM calls search_course('final exam date') → fact 7, get_today() → "
-           "2026-10-26, days_between('2026-10-26', '2026-11-30') → 35, then answers 35 days.")
-bubble2(s, "“เหลืออีกกี่วันถึงสอบปลายภาค” (ถามวันจันทร์ที่ 26 ต.ค.)", "“How many days are left until the final exam?” (asked Mon 26 Oct)", w=720)
-s.box(20, 72, 560, 388, "sw-warn-box", 14)
-s.both(40, 104, "✗ RAG แบบ workflow (ขั้นตอนตายตัว)", "✗ RAG workflow (fixed steps)", "pl-label")
-s.box(40, 120, 520, 124, "ml-cell", 10)
-s.num(62, 144, 1)
-s.both(84, 150, "ค้นข้อเท็จจริง 7 ข้อ เก็บ 2 อันดับแรก", "Search the 7 facts, keep the top 2", "pl-text")
-s.box(58, 164, 484, 32, "sw-chip-warn", 8)
-s.both(70, 186, "fact 7 · สอบปลายภาค จันทร์ 30 พ.ย. · cos 0.693", "fact 7 · final exam, Mon 30 Nov · cos 0.693", "pl-note")
-s.box(58, 202, 484, 32, "ml-cell", 8)
-s.both(70, 224, "fact 2 · สอบกลางภาค 21 ก.ย. · cos 0.509", "fact 2 · midterm, 21 Sep · cos 0.509", "pl-note")
-s.box(40, 256, 520, 44, "ml-cell", 10)
-s.num(62, 278, 2)
-s.both(84, 284, "prompt = คำถาม + fact 2 ข้อนั้น", "Prompt = question + those 2 facts", "pl-text")
-s.box(40, 312, 520, 44, "ml-cell", 10)
-s.num(62, 334, 3)
-s.both(84, 340, "Gemini เขียนคำตอบ", "Gemini writes the answer", "pl-text")
-s.both(40, 396, "✗ ไม่มี fact ไหนบอกวันที่ของวันนี้", "✗ No fact gives today's date,", "ml-neg")
-s.both(40, 426, "และไม่มีขั้นไหนนับวัน → โมเดลต้องเดา", "and no step counts days → it guesses", "ml-neg")
-s.box(600, 72, 560, 388, "nt-band-a", 14)
-s.both(620, 104, "✓ Agent: LLM เลือกแต่ละขั้นเอง", "✓ Agent: the LLM picks each step", "pl-label")
-s.llm(620, 124, 92, 224, "LLM", "LLM")
-CALLS = [('search_course("final exam date")', "→ fact 7: จันทร์ 30 พฤศจิกายน 2026", "→ fact 7: Monday 30 November 2026"),
-         ("get_today()", "→ 2026-10-26", "→ 2026-10-26"),
-         ('days_between("2026-10-26", "2026-11-30")', "→ 35", "→ 35")]
-for k, (c, rth, ren) in enumerate(CALLS):
-    y = 124 + k * 82
+           "model can only guess. Right, an agent (a robot with tools): the LLM calls search_course('final exam date') → fact 7, "
+           "get_today() → 2026-10-26, days_between('2026-10-26', '2026-11-30') → 35, then answers 35 days; the student is happy.")
+pic(s, "ag-student-ask", 196, 4, 90, 112)
+s.box(296, 34, 680, 46, "nt-bubble", 23)
+s.both(636, 64, "“เหลืออีกกี่วันถึงสอบปลายภาค” (ถามวันจันทร์ที่ 26 ต.ค.)", "“How many days are left until the final exam?” (asked Mon 26 Oct)", "pl-text", "middle")
+Y = 108
+s.box(20, Y + 12, 560, 388, "sw-warn-box", 14)
+s.both(40, Y + 44, "✗ RAG แบบ workflow (ขั้นตอนตายตัว)", "✗ RAG workflow (fixed steps)", "pl-label")
+s.box(40, Y + 60, 520, 124, "ml-cell", 10)
+s.num(62, Y + 84, 1)
+s.both(84, Y + 90, "ค้นข้อเท็จจริง 7 ข้อ เก็บ 2 อันดับแรก", "Search the 7 facts, keep the top 2", "pl-text")
+s.box(58, Y + 104, 484, 32, "sw-chip-warn", 8)
+s.both(70, Y + 126, "fact 7 · สอบปลายภาค จันทร์ 30 พ.ย. · cos 0.693", "fact 7 · final exam, Mon 30 Nov · cos 0.693", "pl-note")
+s.box(58, Y + 142, 484, 32, "ml-cell", 8)
+s.both(70, Y + 164, "fact 2 · สอบกลางภาค 21 ก.ย. · cos 0.509", "fact 2 · midterm, 21 Sep · cos 0.509", "pl-note")
+s.box(40, Y + 196, 520, 44, "ml-cell", 10)
+s.num(62, Y + 218, 2)
+s.both(84, Y + 224, "prompt = คำถาม + fact 2 ข้อนั้น", "Prompt = question + those 2 facts", "pl-text")
+s.box(40, Y + 252, 520, 44, "ml-cell", 10)
+s.num(62, Y + 274, 3)
+s.both(84, Y + 280, "Gemini เขียนคำตอบ", "Gemini writes the answer", "pl-text")
+s.both(40, Y + 336, "✗ ไม่มี fact ไหนบอกวันที่ของวันนี้", "✗ No fact gives today's date,", "ml-neg")
+s.both(40, Y + 366, "และไม่มีขั้นไหนนับวัน → โมเดลต้องเดา", "and no step counts days → it guesses", "ml-neg")
+s.box(600, Y + 12, 560, 388, "nt-band-a", 14)
+s.both(620, Y + 44, "✓ Agent: LLM เลือกแต่ละขั้นเอง", "✓ Agent: the LLM picks each step", "pl-label")
+pic(s, "ag-robot-tools", 612, Y + 76, 112, 150)
+s.both(668, Y + 252, "LLM + tool", "LLM + tools", "pl-note", "middle")
+CALLS = [('search_course("final exam date")', "→ fact 7: จันทร์ 30 พฤศจิกายน 2026", "→ fact 7: Monday 30 November 2026", "magnifier"),
+         ("get_today()", "→ 2026-10-26", "→ 2026-10-26", "clock"),
+         ('days_between("2026-10-26", "2026-11-30")', "→ 35", "→ 35", "abacus")]
+for k, (c, rth, ren, icon) in enumerate(CALLS):
+    y = Y + 64 + k * 82
     s.box(736, y, 404, 64, "ml-cell", 10)
     s.num(752, y + 20, k + 1)
     s.code(772, y + 26, c)
     s.both(772, y + 52, rth, ren, "ml-ok" if k == 2 else "pl-note")
-    s.arrow(712, y + 32, 734, y + 32)
-s.box(620, 362, 520, 46, "nt-out", 10)
-s.both(880, 392, "“35 วัน: จันทร์ 30 พ.ย. 13:00–16:00”", "“35 days: Mon 30 Nov, 13:00–16:00”", "pl-text", "middle")
-s.both(620, 440, "✓ LLM เลือก tool 3 ตัว โค้ดของเราเป็นคนนับ", "✓ the LLM chose 3 tools; our code counted", "ml-ok")
-s.save("l14-hook.svg", 476)
+    if k < 2:
+        ic(s, icon, 1110, y + 44, 30)
+    s.arrow(726, y + 32, 734, y + 32)
+s.box(620, Y + 306, 450, 46, "nt-out", 10)
+s.both(845, Y + 336, "“35 วัน: จันทร์ 30 พ.ย. 13:00–16:00”", "“35 days: Mon 30 Nov, 13:00–16:00”", "pl-text", "middle")
+pic(s, "ag-student-happy", 1078, Y + 290, 76, 94)
+s.both(620, Y + 382, "✓ LLM เลือก tool 3 ตัว โค้ดของเราเป็นคนนับ", "✓ the LLM chose 3 tools; our code counted", "ml-ok")
+s.save("l14-hook.svg", Y + 416)
 
-# ---------------------------------------------------------------- 2. lesson map
-def tw(t, fs):
-    return sum(0 if unicodedata.category(c) == "Mn" else fs * 0.58 for c in t)
-
-
-ROWS = [
-    ("1 ปัญหา", "1 The problem", "จากการตอบ สู่การลงมือทำ", "From answering to doing", "“เหลืออีกกี่วัน”: RAG นับไม่ได้ ✗", "“How many days?”: RAG can't count ✗"),
-    ("2 Workflow", "2 Workflows", "โค้ดกำหนดเส้นทาง", "Code fixes the path", "route คำถามเรื่องวัน → 35 วัน ✓", "date questions routed → 35 days ✓"),
-    ("3 Tools, MCP, skills, memory", "3 Tools, MCP, skills, memory", "ให้มือกับโมเดล", "Give the model hands", "search_course, get_today, days_between ✓", "search_course, get_today, days_between ✓"),
-    ("4 ReAct", "4 Reasoning: ReAct", "คิด → ลงมือ → สังเกต", "Think → act → observe", "tool call 3 ครั้ง → 35 วัน ✓", "3 tool calls → 35 days ✓"),
-    ("5 หลาย agent", "5 Many agents", "แบ่งงานใหญ่", "Split a big job", "แผนอ่านหนังสือ: ผู้จัดการ + worker ✓", "study plan: a manager + workers ✓"),
-    ("6 Context engineering", "6 Context engineering", "เลือกสิ่งที่โมเดลเห็น", "Choose what it sees", "262 → 358 token งานยาวใช้ไฟล์ ✓", "262 → 358 tokens; files for long jobs ✓"),
-    ("7 Agent harness", "7 The agent harness", "โค้ดรอบตัวโมเดล", "The code around the model", "ถามก่อนแตะปฏิทิน ✓", "asks before touching the calendar ✓"),
-    ("8 ประเมินผล", "8 Evaluate it", "ตรวจคำตอบและเส้นทาง", "Check answer and path", "จับ “31 วัน” จากวันที่แต่งขึ้นได้ ✓", "catches “31 days” from made-up dates ✓"),
-]
-s = Svg(W, "Lesson map: one course assistant followed through eight parts. The problem (RAG can't count the days left), workflows "
-           "(code fixes the path; a router can count days if someone foresaw it), tools, MCP, skills and memory (three tools), "
-           "ReAct (three tool calls give 35 days), many agents (a manager and workers for the study plan), context engineering "
-           "(262 to 358 tokens; files for long jobs), the agent harness (asks before touching the calendar) and evaluation "
-           "(catches an answer of 31 days built on made-up dates).")
-bubble(s, "How many days are left until the final exam? → plan my 5 weeks", w=680)
-s.both(20, 92, "แต่ละส่วนเพิ่มอะไร", "What each part adds", "nt-head")
-s.both(700, 92, "ผู้ช่วยของเราได้อะไร", "What our assistant gets", "nt-head")
-y = 106
-for tth, ten, dth, den, rth, ren in ROWS:
-    bad = "✗" in ren
-    s.box(20, y, W - 40, 46, "sw-warn-box" if bad else "ml-cell", 12)
-    for lang, t, d in (("th", tth, dth), ("en", ten, den)):
-        attr = ' lang="en"' if lang == "en" else ""
-        s.raw(f'<g data-only="{lang}"{attr}>')
-        s.raw(f'<text x="40" y="{y + 30}" class="nt-task">{escape(t)}</text>')
-        s.raw(f'<text x="{40 + tw(t, 19) + 18:g}" y="{y + 30}" class="hk-desc">{escape(d)}</text>')
-        s.raw("</g>")
-    s.both(700, y + 30, rth, ren, "ml-neg" if bad else "ml-ok")
-    y += 54
-s.save("l14-map-lesson.svg", y + 2)
+# ---------------------------------------------------------------- 2. lesson map: inside an agent
+s = Svg(W, "Inside an agent, the map of the lesson. The student's question goes into the harness, the code around the model. "
+           "The harness builds the context (rules, tool descriptions, memory, skills and MCP, the messages so far) and sends it "
+           "to the LLM. The LLM decides: answer, or ask for a tool. A tool call is checked (valid? allowed? does a person have to "
+           "approve?) and run by the harness; the result is added to the messages and the LLM is asked again: 3 rounds give "
+           "35 days. Numbered badges mark the parts of the lesson: 1 from LLM to agent, 2 tool calling, 3 the loop and how it "
+           "thinks, 4 inside the harness, 5 Deep Agents for long jobs, 6 MCP, skills and memory, 7 trace and evaluate.")
+pic(s, "ag-student-ask", 20, 0, 56, 68)
+s.box(82, 10, 498, 46, "nt-bubble", 23)
+s.text(331, 40, Q, "pl-text", "middle")
+s.num(604, 33, 1)
+s.box(780, 10, 316, 46, "nt-out", 23)
+s.both(938, 40, "“35 วัน (จันทร์ 30 พ.ย.)”", "“35 days (Mon 30 Nov)”", "pl-text", "middle")
+pic(s, "ag-student-happy", 1104, 0, 56, 68)
+s.arrow(190, 58, 190, 120)
+s.box(20, 72, 1140, 392, "nt-band-a", 16)
+s.num(234, 96, 4)
+s.both(256, 102, "Harness: โค้ดรอบตัวโมเดล", "Harness: the code around the model", "pl-label")
+# build the context
+s.box(40, 122, 300, 250, "ml-cell", 12)
+s.both(56, 150, "เตรียมสิ่งที่โมเดลอ่าน", "Build what the model reads", "pl-label")
+CTX = [("กฎ (system prompt)", "rules (system prompt)"), ("คำอธิบาย tool", "tool descriptions"),
+       ("memory · skills · MCP", "memory · skills · MCP"), ("ข้อความจนถึงตอนนี้", "the messages so far")]
+for k, (th, en) in enumerate(CTX):
+    s.chip(56, 166 + k * 42, 268, 34, th, en, "ml-cell-b")
+s.num(306, 267, 6)
+s.both(56, 360, "ส่งไปทุกครั้งที่เรียก", "sent with every call", "pl-note")
+s.arrow(342, 240, 408, 240)
+# the LLM
+s.box(410, 170, 150, 140, "ml-cell-b", 12)
+pic(s, "ag-robot-think", 440, 176, 90, 100)
+s.both(485, 298, "LLM ตัดสินใจ", "LLM decides", "pl-label", "middle")
+s.num(400, 154, 3)
+s.arrow(530, 172, 776, 54)
+s.both(694, 140, "ไม่มี tool call → ตอบ", "no tool call → answer", "pl-note")
+s.arrow(562, 240, 648, 240)
+s.both(605, 228, "tool call", "tool call", "pl-note", "middle")
+s.num(605, 266, 2)
+# check and run
+s.box(650, 166, 250, 180, "ml-cell", 12)
+s.both(666, 194, "ตรวจ แล้วจึงรัน", "Check, then run", "pl-label")
+RUN = [("argument ถูกไหม", "valid arguments?"), ("อนุญาตไหม · ถามคนไหม", "allowed? ask a person?"), ("รัน tool", "run the tool")]
+for k, (th, en) in enumerate(RUN):
+    s.chip(666, 208 + k * 42, 218, 34, th, en, "nt-out" if k == 2 else "ml-cell-b")
+s.arrow(902, 256, 928, 256)
+s.box(930, 166, 210, 180, "pl-chip", 12)
+s.both(946, 194, "Tools", "Tools", "pl-label")
+for k, (t, icon) in enumerate([("search_course", "magnifier"), ("get_today", "clock"), ("days_between", "abacus"), ("add_to_calendar", "calendar")]):
+    ic(s, icon, 958, 220 + k * 30, 24)
+    s.code(976, 226 + k * 30, t)
+# result back to the messages
+s.path("M1035 348 L1035 392 L190 392 L190 376")
+s.head(190, 392, 190, 376)
+s.both(620, 384, "ผล → ต่อท้ายข้อความ → ถามใหม่ · 3 รอบ → 35 วัน", "result → added to the messages → ask again · 3 rounds → 35 days", "pl-note", "middle")
+# long jobs and traces
+s.box(40, 408, 540, 40, "ml-cell-b", 10)
+s.num(62, 428, 5)
+s.both(84, 434, "งานยาว: แผน · ไฟล์ · sub-agent · ย่อ context", "Long jobs: plans · files · sub-agents · shrink context", "hk-desc")
+s.box(600, 408, 540, 40, "ml-cell-b", 10)
+s.num(622, 428, 7)
+s.both(644, 434, "trace: บันทึกทุกการเรียก แล้วประเมินผล", "Trace: every call logged, then evaluated", "hk-desc")
+s.save("l14-map-lesson.svg", 476)
 
 # ---------------------------------------------------------------- 3. workflow vs agent
 s = Svg(W, "Left, a workflow: the path is written in code in advance, question → search the facts → build the prompt → the LLM "
@@ -227,6 +276,61 @@ s.both(880, 332, "คำตอบ", "answer", "pl-text", "middle")
 s.both(620, 412, "✓ รับงานที่ไม่มีใครคาดไว้ได้", "✓ handles tasks nobody foresaw", "ml-ok")
 s.both(620, 442, "✗ เรียกมากขึ้น แพงขึ้น ความผิดพลาดสะสม", "✗ more calls, more cost; errors pile up", "ml-neg")
 s.save("l14-workflow-agent.svg", 476)
+
+# ---------------------------------------------------------------- 3b. workflow vs agent on a help chat (an example)
+s = Svg(W, "An example: an online shop's help chat. Left, a workflow: 'Where is my order #4812?' arrives thousands of times a "
+           "day, so the path is written once: 1 classify the message as order status, 2 look the order up in the orders table, "
+           "3 fill the reply template: 'Order #4812 arrives tomorrow.' Fast, cheap, the same every time, easy to test. But "
+           "'It arrived broken and I was charged twice' fits no route, so the bot says it didn't understand and passes it to a "
+           "person. Right, an agent takes that message and decides the steps as it goes: get the order, get the payments (two "
+           "charges), read the refund policy, ask a person to approve a 590-baht refund, refund and create a return, book a "
+           "courier, reply. It handles what nobody planned for, but needs many model calls, is slower and costs more, and a "
+           "wrong refund is real money, so it asks first.")
+s.box(20, 20, 560, 460, "ml-cell", 14)
+s.both(40, 52, "Workflow: เส้นทางเดียวที่เขียนไว้", "Workflow: one path, written once", "pl-label")
+s.both(40, 78, "ตัวอย่าง: แชตช่วยเหลือของร้านออนไลน์ · วันละหลายพันครั้ง", "example: a shop's help chat · thousands a day", "pl-note")
+pic(s, "ag-student-ask", 40, 86, 56, 58)
+s.box(104, 94, 456, 40, "nt-bubble", 20)
+s.both(122, 120, "“ของที่สั่ง #4812 อยู่ไหน”", "“Where is my order #4812?”", "pl-text")
+WF = [("จัดประเภท: สถานะคำสั่งซื้อ (LLM 1 ครั้ง)", "classify: order status (1 LLM call)"),
+      ("ค้น #4812 ในตารางคำสั่งซื้อ (โค้ด)", "look up #4812 in the orders table (code)"),
+      ("เติมแม่แบบคำตอบ", "fill the reply template")]
+for k, (th, en) in enumerate(WF):
+    y = 146 + k * 48
+    s.box(40, y, 520, 38, "ml-cell-b", 8)
+    s.num(62, y + 19, k + 1)
+    s.both(84, y + 25, th, en, "hk-desc")
+s.box(40, 292, 520, 40, "nt-out", 10)
+pic(s, "ai-robot", 50, 294, 30, 36)
+s.both(90, 318, "“#4812 จะถึงพรุ่งนี้”", "“Order #4812 arrives tomorrow.”", "pl-text")
+s.both(40, 360, "✓ เร็ว ถูก เหมือนเดิมทุกครั้ง ทดสอบง่าย", "✓ fast, cheap, the same every time, easy to test", "ml-ok")
+s.box(40, 378, 520, 86, "sw-chip-warn", 10)
+ic(s, "parcel", 70, 400, 30)
+s.both(92, 406, "“ของมาถึงแตก แล้วยังโดนตัดเงินสองครั้ง…”", "“It arrived broken and I was charged twice…”", "pl-text")
+s.both(56, 434, "✗ ไม่มีเส้นทางไหนตรง → “ขออภัย ไม่เข้าใจ”", "✗ no route fits → “Sorry, I didn't get that”", "ml-neg")
+s.both(56, 456, "→ ส่งต่อให้พนักงาน", "→ passed to a person", "pl-note")
+s.box(600, 20, 560, 460, "nt-band-a", 14)
+s.both(620, 52, "Agent: ตัดสินใจขั้นต่อไปเองระหว่างทาง", "Agent: decides the steps as it goes", "pl-label")
+s.both(620, 78, "ข้อความเดียวกันที่ workflow รับไม่ได้", "the same chat, the message no route fits", "pl-note")
+pic(s, "ag-customer-upset", 616, 84, 60, 60)
+s.box(684, 94, 456, 40, "sw-chip-warn", 20)
+s.both(700, 120, "“ของมาถึงแตก แล้วโดนตัดเงินสองครั้ง…”", "“It arrived broken and I was charged twice…”", "pl-text")
+AG = ['get_order("4812") → delivered', 'get_payments("4812") → 2 charges', 'read_policy("refund")',
+      'ask_person("refund 590 baht?") → OK', "refund(...) · create_return(...)", "book_courier(...)", "reply to the customer"]
+for k, c in enumerate(AG):
+    y = 146 + k * 36
+    s.box(620, y, 520, 30, "sw-chip-warn" if k == 3 else "ml-cell", 7)
+    s.text(634, y + 21, str(k + 1), "pl-label")
+    s.code(660, y + 21, c)
+    STEP_PIC = {0: "parcel", 1: "moneybag", 4: "moneybag", 5: "truck", 6: "chat"}
+    if k in STEP_PIC:
+        ic(s, STEP_PIC[k], 1118, y + 15, 26)
+    if k == 3:
+        pic(s, "ag-staff-ok", 1096, y - 4, 40, 34)
+s.both(620, 418, "✓ รับเรื่องที่ไม่มีใครวางแผนไว้ได้", "✓ handles what nobody planned for", "ml-ok")
+s.both(620, 444, "✗ เรียกโมเดลหลายครั้ง: ช้ากว่าและแพงกว่า", "✗ many model calls: slower and costlier", "ml-neg")
+s.both(642, 468, "คืนเงินผิดคือเงินจริง → ต้องถามคนก่อน", "a wrong refund is real money → ask a person first", "pl-note")
+s.save("l14-workflow-jobs.svg", 496)
 
 # ---------------------------------------------------------------- 4. five workflow patterns
 s = Svg(W, "Five workflow patterns applied to the course assistant. 1 Prompt chaining: an LLM drafts the study plan, code checks "
@@ -309,90 +413,21 @@ s.both(20, 540, "ทั้ง 5 แบบเก็บเส้นทางไว
        "All five keep the path in code. Start with the simplest one that works; add steps only when they measurably help.", "pl-text")
 s.save("l14-patterns.svg", 556)
 
-# ---------------------------------------------------------------- 5. LangGraph routing workflow
-s = Svg(W, "The routing workflow as a LangGraph graph: START → route(state) → count_days or search → END. The state is a typed "
-           "dict with question and answer. Real results: 'How many days are left until the final exam?' → count_days → 35 days "
-           "(30 November 2026); 'How many days until the NER class?' → count_days → 7 days (2 November 2026); 'When is the NER "
-           "class?' → search → fact 6; 'How long until the final exam?' means the same as the first question but has no 'how "
-           "many days', so it goes to search and returns fact 7 as text, not a count.")
-s.box(20, 20, 700, 196, "ml-cell", 14)
-s.box(36, 96, 76, 40, "ml-model", 20)
-s.text(74, 122, "START", "ml-model-text", "middle")
-s.arrow(114, 116, 146, 116)
-s.box(148, 92, 150, 48, "nt-out", 10)
-s.code(223, 121, "route(state)", "middle")
-s.both(223, 164, "โค้ด 1 บรรทัด:", "one line of code:", "pl-note", "middle")
-s.both(223, 188, "มี “how many days” ไหม", "“how many days” in it?", "pl-note", "middle")
-s.arrow(300, 106, 386, 66)
-s.both(330, 70, "ใช่", "yes", "pl-note")
-s.arrow(300, 126, 386, 166)
-s.both(348, 132, "ไม่", "no", "pl-note")
-s.box(388, 44, 150, 44, "ml-cell-b", 10)
-s.code(463, 71, "count_days", "middle")
-s.box(388, 144, 150, 44, "ml-cell-b", 10)
-s.code(463, 171, "search", "middle")
-s.arrow(540, 66, 614, 106)
-s.arrow(540, 166, 614, 126)
-s.box(616, 96, 76, 40, "ml-model", 20)
-s.text(654, 122, "END", "ml-model-text", "middle")
-s.box(740, 20, 420, 196, "nt-band-a", 14)
-s.both(760, 52, "state (TypedDict) ที่ส่งต่อกัน", "the state passed along (TypedDict)", "pl-label")
-s.code(760, 88, "class State(TypedDict):")
-s.code(780, 112, "question: str")
-s.code(780, 136, "answer: str")
-s.both(760, 172, "node คืนเฉพาะ key ที่เปลี่ยน", "a node returns only what it changes,", "pl-note")
-s.code(760, 198, '{"answer": "35 days (30 November 2026)"}')
-s.both(20, 252, "ผลจริงของ 4 คำถาม", "Real results for 4 questions", "nt-head")
-RES = [("How many days are left until the final exam?", "count_days", "35 วัน (30 พ.ย. 2026) ✓", "35 days (30 Nov 2026) ✓", True),
-       ("How many days until the NER class?", "count_days", "7 วัน (2 พ.ย. 2026) ✓", "7 days (2 Nov 2026) ✓", True),
-       ("When is the NER class?", "search", "fact 6 ✓", "fact 6 ✓", True),
-       ("How long until the final exam?", "search", "ได้ fact 7 เป็นข้อความ ไม่นับวัน ✗", "fact 7 as text, no count ✗", False)]
-for k, (q, node, rth, ren, ok) in enumerate(RES):
-    y = 266 + k * 50
-    s.box(20, y, W - 40, 42, "ml-cell" if ok else "sw-warn-box", 10)
-    s.text(36, y + 28, q, "pl-text")
-    s.box(560, y + 6, 130, 30, "ml-cell-b", 8)
-    s.code(625, y + 26, node, "middle")
-    s.both(710, y + 28, rth, ren, "ml-ok" if ok else "ml-neg")
-s.save("l14-langgraph.svg", 474)
-
-# ---------------------------------------------------------------- 6. agent components
-s = Svg(W, "What an agent is made of: an LLM core that reasons and plans, in a loop of perceive, plan, act, reflect; around it "
-           "tools (search_course, get_today, days_between), MCP connections (Google Calendar, GitHub), memory (short-term: this "
-           "chat; long-term: saved files, such as 'prefers Thai answers') and skills (exam-study-plan/SKILL.md).")
-PARTS = [(20, 20, "Tools", "Tools", "ฟังก์ชันที่ agent เรียกได้", "functions the agent can call", "search_course · get_today · days_between"),
-         (760, 20, "MCP connections", "MCP connections", "ปลั๊กมาตรฐานสู่บริการภายนอก", "a standard plug to outside services", "Google Calendar · GitHub"),
-         (20, 286, "Memory", "Memory", "สั้น: แชตนี้ · ยาว: เก็บไว้ข้างนอก", "short: this chat · long: saved outside", "“prefers Thai answers”"),
-         (760, 286, "Skills", "Skills", "วิธีทำงาน โหลดเมื่อจำเป็น", "know-how, loaded when needed", "exam-study-plan/SKILL.md")]
-for x, y, th, en, dth, den, ex in PARTS:
-    s.box(x, y, 400, 150, "nt-band-a", 14)
-    s.both(x + 20, y + 34, th, en, "pl-label")
-    s.both(x + 20, y + 68, dth, den, "pl-text")
-    s.box(x + 20, y + 88, 360, 40, "ml-cell", 8)
-    s.code(x + 34, y + 113, ex)
-s.llm(470, 150, 240, 96, "LLM แกนกลาง", "LLM core", ("ให้เหตุผลและวางแผน", "reasons and plans"))
-for x1, y1, x2, y2 in ((470, 170, 420, 130), (710, 170, 760, 130), (470, 226, 420, 296), (710, 226, 760, 296)):
-    s.line(x1, y1, x2, y2)
-s.box(462, 262, 256, 96, "ml-cell", 14)
-s.both(590, 292, "ลูปของทุก agent", "the loop of every agent", "pl-note", "middle")
-s.both(590, 318, "1 รับรู้ → 2 วางแผน →", "1 perceive → 2 plan →", "pl-text", "middle")
-s.both(590, 344, "3 ลงมือ → 4 ทบทวน ↺", "3 act → 4 reflect ↺", "pl-text", "middle")
-s.both(590, 64, "agent = LLM + ส่วนประกอบรอบตัว", "agent = an LLM + the parts around it", "pl-label", "middle")
-s.save("l14-components.svg", 456)
-
 # ---------------------------------------------------------------- 7. why tools
 s = Svg(W, "Four limits of an LLM alone and the tool that fixes each. No clock: it guesses today's date; get_today() → 2026-10-26. "
            "No exact arithmetic: it writes numbers token by token; a calculator gives sqrt(1764) × 7 = 294. No private or new "
-           "data: it never saw our 7 facts; search_course → fact 7. No hands: it can only write text; add_calendar_event adds the "
+           "data: it never saw our 7 facts; search_course → fact 7. No hands: it can only write text; add_to_calendar adds the "
            "event. The first three fetch data; the last takes an action, so ask first.")
+TILE_ICON = ["clock", "abacus", "books", "calendar"]
 TILES = [("1 · ไม่มีนาฬิกา", "1 · No clock", ("เดาวันที่ของวันนี้", "", "guesses today's date", ""), "get_today()", "2026-10-26", False),
          ("2 · คำนวณไม่แม่น", "2 · No exact maths", ("เขียนตัวเลขทีละ token", "จึงพลาดได้", "writes numbers token by", "token, so it can slip"), "calculator(...)", "√1764 × 7 = 294", False),
          ("3 · ไม่มีข้อมูลใหม่", "3 · No new data", ("ไม่เคยเห็นข้อเท็จจริง", "7 ข้อของเรา", "never saw our", "7 course facts"), "search_course(...)", "fact 7", False),
-         ("4 · ลงมือไม่ได้", "4 · No hands", ("เขียนได้แค่ข้อความ", "", "can only write text", ""), "add_calendar_event(...)", "event added", True)]
+         ("4 · ลงมือไม่ได้", "4 · No hands", ("เขียนได้แค่ข้อความ", "", "can only write text", ""), "add_to_calendar(...)", "event added", True)]
 for k, (tth, ten, (n1t, n2t, n1e, n2e), call, res, act) in enumerate(TILES):
     x = 20 + k * 290
     s.box(x, 20, 280, 330, "sw-warn-box" if False else "ml-cell", 14)
     s.both(x + 18, 54, tth, ten, "pl-label")
+    ic(s, TILE_ICON[k], x + 244, 76, 44)
     s.both(x + 18, 90, "LLM อย่างเดียว", "LLM alone", "pl-note")
     s.both(x + 18, 118, "✗ " + n1t, "✗ " + n1e, "ml-neg")
     if n1e and (n2t or n2e):
@@ -447,98 +482,56 @@ s.both(700, 366, "✗ คณิตแบบไหน กับอะไร เ�
 s.both(700, 396, "โมเดลเลือกระหว่างมันกับเครื่องคิดเลขไม่ได้", "the model can't tell it from a calculator", "pl-note")
 s.save("l14-tool-schema.svg", 448)
 
-# ---------------------------------------------------------------- 9. function call
-s = Svg(W, "How a model calls a tool. 1 The model reads the system part with the three tool schemas (220 tokens) and the user's "
-           "question. 2 At the start of its reply it can write text ('The final exam is in about...') or a function call as JSON: "
-           "name search_course, args query 'final exam date'. 3 Our code runs search_course and gets fact 7. 4 The result goes "
-           "back as a function response and the model continues: get_today, days_between, then the answer.")
+# ---------------------------------------------------------------- 9. function call (real Gemini run)
+s = Svg(W, "How Gemini asks for a tool, from a real run. 1 The request has the question in contents and our three functions in "
+           "their own field, tools; the API turns them into schemas the model reads: 256 input tokens. 2 Gemini's reply is a list "
+           "of parts: two function_call parts in the same turn, get_today with no arguments and search_course with query "
+           "'final exam' and k 7, and no text at all (text: None). 3 Our code runs both: 2026-10-26 and the facts, fact 7 first. "
+           "4 The results go back as function_response parts and Gemini is called again.")
 s.box(20, 20, 340, 340, "ml-cell", 14)
 s.num(44, 50, 1)
-s.both(66, 56, "สิ่งที่โมเดลอ่าน", "What the model reads", "pl-label")
-s.box(36, 76, 308, 150, "nt-band-a", 10)
-s.code(50, 100, "system: tools =")
-for k, t in enumerate(["search_course(query)", "get_today()", "days_between(start, end)"]):
-    s.code(70, 126 + k * 24, t)
-s.both(50, 210, "schema JSON 220 token", "220 tokens of JSON schema", "pl-note")
-s.box(36, 238, 308, 104, "ml-cell", 10)
-s.code(50, 262, "user:")
-s.text(50, 290, "How many days are left", "pl-text")
-s.text(50, 316, "until the final exam?", "pl-text")
+s.both(66, 56, "สิ่งที่เราส่งไป", "What we send", "pl-label")
+s.box(36, 76, 308, 92, "ml-cell", 10)
+s.code(50, 100, "contents:")
+s.text(50, 126, "How many days are left", "pl-text")
+s.text(50, 152, "until the final exam?", "pl-text")
+s.box(36, 180, 308, 126, "nt-band-a", 10)
+s.code(50, 204, "tools:")
+for k, t in enumerate(["search_course(query, k)", "get_today()", "days_between(start, end)"]):
+    s.code(70, 230 + k * 24, t)
+s.both(50, 334, "อ่านรวม 256 input token", "256 input tokens in all", "pl-note")
 s.arrow(362, 190, 392, 190)
-s.box(396, 20, 400, 340, "ml-cell", 14)
+s.box(396, 20, 400, 340, "nt-out", 14)
 s.num(420, 50, 2)
-s.both(442, 56, "โมเดลเขียนต่อ: แบบไหน", "The model continues: which?", "pl-label")
-s.box(412, 76, 368, 84, "ml-cell", 10)
-s.both(428, 102, "ทาง A: ข้อความ", "Option A: text", "pl-note")
-s.text(428, 134, "“The final exam is in about…”", "pl-text")
-s.text(762, 134, "✗", "ml-neg", "end")
-s.box(412, 176, 368, 166, "nt-out", 10)
-s.both(428, 202, "ทาง B: function call (JSON)", "Option B: a function call (JSON)", "pl-note")
-s.code(428, 232, '{"name": "search_course",')
-s.code(428, 256, ' "args": {"query":')
-s.code(428, 280, '          "final exam date"}}')
-s.both(428, 320, "✓ ต้องใช้ข้อมูลที่มันไม่มี", "✓ it needs data it doesn't have", "ml-ok")
-s.arrow(798, 260, 828, 260)
+s.both(442, 56, "คำตอบของ Gemini: list ของ part", "Gemini's reply: a list of parts", "pl-label")
+s.box(412, 76, 368, 62, "ml-cell", 10)
+s.code(428, 100, "function_call")
+s.code(428, 124, "  get_today  {}")
+s.box(412, 148, 368, 86, "ml-cell", 10)
+s.code(428, 172, "function_call")
+s.code(428, 196, "  search_course")
+s.code(428, 220, "  {query: 'final exam', k: 7}")
+s.box(412, 244, 368, 40, "sw-chip-warn", 10)
+s.code(428, 270, "text: None")
+s.both(412, 312, "✓ 2 คำขอในรอบเดียว (parallel)", "✓ two requests in one turn (parallel)", "ml-ok")
+s.both(412, 340, "ไม่ใช่ JSON ในข้อความ: เป็น part มีชนิด", "not JSON in text: typed parts", "pl-note")
+s.arrow(798, 190, 828, 190)
 s.box(832, 20, 328, 340, "nt-band-a", 14)
 s.num(856, 50, 3)
-s.both(878, 56, "โค้ดของเรารัน", "Our code runs it", "pl-label")
+s.both(878, 56, "โค้ดของเรารันทั้งสอง", "Our code runs both", "pl-label")
 s.box(848, 76, 296, 40, "pl-chip", 8)
-s.code(860, 101, 'search_course("final exam date")')
-s.arrow(996, 118, 996, 138)
-s.box(848, 140, 296, 64, "ml-cell", 8)
-s.code(860, 166, "[fact 7] The final exam is")
-s.code(860, 190, "on Monday 30 November 2026 …")
-s.num(856, 236, 4)
-s.both(878, 242, "ส่งผลกลับเป็น", "Sent back as a", "pl-text")
-s.both(878, 268, "function response", "function response", "pl-text")
-s.both(856, 304, "แล้วโมเดลเรียก get_today,", "then it calls get_today,", "pl-note")
-s.both(856, 330, "days_between แล้วจึงตอบ", "days_between, then answers", "pl-note")
-s.both(20, 394, "โมเดลไม่ได้รันอะไรเอง: มันเขียน JSON แล้ว harness (โค้ดของเรา) เป็นคนรัน",
-       "The model runs nothing: it writes the JSON, and the harness (our code) runs it.", "pl-text")
+s.code(860, 101, "get_today() → 2026-10-26")
+s.box(848, 126, 296, 64, "pl-chip", 8)
+s.code(860, 151, "search_course(...) →")
+s.code(860, 175, "[fact 7] final exam 30 Nov …")
+s.num(856, 222, 4)
+s.both(878, 228, "ส่งผลกลับเป็น", "Sent back as", "pl-text")
+s.code(878, 254, "function_response")
+s.both(856, 300, "แล้วเรียก Gemini อีกครั้ง:", "then Gemini is called again:", "pl-note")
+s.both(856, 326, "days_between แล้วจึงตอบ", "days_between, then the answer", "pl-note")
+s.both(20, 394, "โมเดลไม่ได้รันอะไรเอง: มันคืนคำขอ แล้ว harness (โค้ดของเรา) เป็นคนรัน",
+       "The model runs nothing: it returns requests, and the harness (our code) runs them.", "pl-text")
 s.save("l14-function-call.svg", 410)
-
-# ---------------------------------------------------------------- 10. tool loop in LangGraph + message trace
-s = Svg(W, "Left: the agent graph, START → agent ⇄ tools → END; tools_condition sends a reply with tool calls to the tools node "
-           "and a reply without one to END. Right: the messages one run adds to the state for our question: the question; a call "
-           "to search_course('final exam date') and its result, fact 7; get_today() → 2026-10-26; days_between('2026-10-26', "
-           "'2026-11-30') → 35; and the answer, 35 days. The tool results are real outputs of our tools.")
-s.box(20, 20, 380, 420, "ml-cell", 14)
-s.both(40, 52, "กราฟ (LangGraph)", "The graph (LangGraph)", "pl-label")
-s.box(150, 72, 100, 36, "ml-model", 18)
-s.text(200, 96, "START", "ml-model-text", "middle")
-s.arrow(200, 110, 200, 140)
-s.llm(130, 144, 140, 56, "agent", "agent", ("เรียก LLM", "calls the LLM"))
-s.box(130, 276, 140, 50, "pl-chip", 10)
-s.text(200, 307, "tools", "pl-chip-text", "middle")
-s.path("M150 202 L150 274")
-s.head(150, 240, 150, 274)
-s.path("M250 274 L250 202")
-s.head(250, 236, 250, 202)
-s.both(40, 236, "มี tool call", "tool call?", "pl-note")
-s.both(40, 260, "→ tools", "→ tools", "pl-note")
-s.both(262, 246, "ผล → agent", "result → agent", "pl-note")
-s.arrow(272, 172, 330, 172)
-s.box(316, 154, 72, 36, "ml-model", 18)
-s.text(352, 178, "END", "ml-model-text", "middle")
-s.both(40, 360, "ไม่มี tool call → END", "no tool call → END", "pl-note")
-s.code(40, 392, "tools_condition")
-s.both(40, 420, "ตัดสินทางแยกให้", "decides the branch", "pl-note")
-s.box(420, 20, 740, 420, "nt-band-a", 14)
-s.both(440, 52, "state[\"messages\"] หลังรัน 1 ครั้ง (add_messages ต่อท้าย)", "state[\"messages\"] after one run (add_messages appends)", "pl-label")
-MSGS = [("human", Q), ("ai", 'tool call: search_course(query="final exam date")'),
-        ("tool", "[fact 7] The final exam is on Monday 30 November 2026, 13:00-16:00."),
-        ("ai", "tool call: get_today()"), ("tool", "2026-10-26"),
-        ("ai", 'tool call: days_between(start="2026-10-26", end="2026-11-30")'), ("tool", "35"),
-        ("ai", "There are 35 days left until the final exam (Mon 30 Nov) [fact 7].")]
-for k, (role, txt) in enumerate(MSGS):
-    y = 70 + k * 42
-    cls = {"human": "nt-bubble", "ai": "ml-cell", "tool": "pl-chip"}[role]
-    s.box(436, y, 64, 32, cls, 8)
-    s.text(468, y + 21, role, "hk-desc", "middle")
-    s.box(508, y, 636, 32, "nt-out" if k == 7 else "ml-cell", 8)
-    s.code(520, y + 21, txt, bold=(role == "tool"))
-s.both(440, 428, "ผลของ tool เป็นผลจริงจาก tool ของเรา · LLM ถูกเรียก 4 ครั้ง", "tool results: real outputs of our tools · the LLM is called 4 times", "pl-note")
-s.save("l14-tool-loop.svg", 456)
 
 # ---------------------------------------------------------------- 11. MCP
 s = Svg(W, "Before MCP: three apps (Claude Desktop, Cursor, Gemini CLI) each build their own connector to three services "
@@ -559,6 +552,7 @@ for i in range(3):
 s.both(40, 372, "✗ 3 × 3 = ตัวเชื่อมต่อ 9 ตัวที่ต้องสร้างและดูแล", "✗ 3 × 3 = 9 connectors to build and maintain", "ml-neg")
 s.box(600, 20, 560, 380, "nt-band-a", 14)
 s.both(620, 52, "✓ มี MCP: ปลั๊กมาตรฐานเดียว", "✓ With MCP: one standard plug", "pl-label")
+ic(s, "plug", 1112, 46, 44)
 for k, a in enumerate(APPS):
     y = 90 + k * 90
     s.box(616, y, 152, 44, "ml-cell", 8)
@@ -580,15 +574,16 @@ s.both(620, 372, "✓ แอปไหนก็ใช้ server ไหนก็�
 s.save("l14-mcp.svg", 416)
 
 # ---------------------------------------------------------------- 12. memory
-s = Svg(W, "Short-term memory: the model remembers nothing between calls, so the app sends the whole message list with every "
-           "call: 'Hello! My name is Alex.', the reply, and 'Do you remember my name?' → 'Yes, I do! Your name is Alex.' It ends "
-           "with the session and is limited by the context window. Long-term memory: facts worth keeping are written to a store "
-           "(a vector database, a key-value store or a file), such as 'prefers Thai answers' and 'exam reminders added', and "
+s = Svg(W, "Short-term memory: the model remembers nothing between calls, so the harness sends the whole thread with every "
+           "call: 'When is the NER class?', the reply (November 2, 2026), and 'How many days until then?' → 'There are 7 days "
+           "until the NER class.' A new thread starts empty, and it is limited by the context window. Long-term memory: facts worth keeping are written to a store "
+           "(a file, a database or a vector index), such as 'prefers Thai answers' and 'exam reminders added', and "
            "loaded into the prompt of a session next week.")
 s.box(20, 20, 560, 420, "nt-band-a", 14)
-s.both(40, 52, "ความจำระยะสั้น = context", "Short-term memory = the context", "pl-label")
+s.both(40, 52, "ความจำระยะสั้น = state ของ thread", "Short-term memory = the thread's state", "pl-label")
 s.both(40, 80, "ส่ง list ข้อความทั้งหมดไปทุกครั้ง", "the whole message list goes with every call", "pl-note")
-CH = [("human", "Hello! My name is Alex. What's yours?"), ("ai", "Hello, Alex! It's a pleasure to meet you…"), ("human", "Do you remember my name?")]
+ic(s, "save", 536, 46, 34)
+CH = [("human", "When is the NER class?"), ("ai", "…(NER) is on November 2, 2026."), ("human", "How many days until then?")]
 for k, (r, t) in enumerate(CH):
     y = 100 + k * 46
     s.box(40, y, 78, 34, "nt-bubble" if r == "human" else "ml-cell", 8)
@@ -597,20 +592,21 @@ for k, (r, t) in enumerate(CH):
     s.code(138, y + 22, t)
 s.path("M300 240 L300 270")
 s.head(300, 250, 300, 270)
-s.both(316, 262, "ส่งทั้ง 3 ข้อความ", "all 3 messages sent", "pl-note")
+s.both(316, 262, "ส่งทั้ง thread", "the whole thread sent", "pl-note")
 s.llm(220, 274, 160, 48, "LLM", "LLM")
 s.arrow(300, 324, 300, 344)
 s.box(40, 348, 520, 34, "nt-out", 8)
-s.code(56, 370, "ai: Yes, I do! Your name is Alex.")
-s.both(40, 418, "หายเมื่อจบรอบ · จำกัดด้วย context window", "ends with the session · limited by the window", "ml-neg")
+s.code(56, 370, "ai: There are 7 days until the NER class.")
+s.both(40, 418, "thread ใหม่เริ่มว่าง · จำกัดด้วย context window", "a new thread starts empty · limited by the window", "ml-neg")
 s.box(600, 20, 560, 420, "ml-cell", 14)
 s.both(620, 52, "ความจำระยะยาว = เก็บไว้ข้างนอก", "Long-term memory = saved outside", "pl-label")
+ic(s, "brain", 1118, 44, 40)
 s.chip(620, 84, 196, 44, "รอบที่ 1 (26 ต.ค.)", "session 1 (26 Oct)", "nt-bubble", "hk-desc")
 s.arrow(818, 106, 846, 106)
 s.both(832, 80, "เขียน", "write", "pl-note", "middle")
 s.box(850, 72, 290, 180, "nt-band-a", 12)
-s.both(864, 100, "ที่เก็บ: vector DB, ไฟล์", "store: vector DB, a file", "pl-note")
-for k, t in enumerate(["prefers Thai answers", "exam reminders added", "weak topic: HMMs"]):
+s.both(864, 100, "ที่เก็บ: ไฟล์ · ฐานข้อมูล · vector", "store: file · database · vectors", "pl-note")
+for k, t in enumerate(["prefers Thai answers", "exam reminders added", "weak topic: NER"]):
     s.box(864, 116 + k * 42, 262, 34, "ml-cell", 8)
     s.code(876, 138 + k * 42, t)
 s.chip(620, 380 - 76, 196, 44, "รอบที่ 2 (สัปดาห์หน้า)", "session 2 (next week)", "nt-bubble", "hk-desc")
@@ -697,7 +693,7 @@ s.save("l14-behaviour.svg", 456)
 # ---------------------------------------------------------------- 15. planning
 s = Svg(W, "Planning the study-plan job: the goal 'a 5-week study plan + review sessions in my calendar' breaks into four "
            "subtasks: 1 find the topics with search_course for each class date (facts 4, 5 and 6); 2 count the weeks with "
-           "days_between (35 days = 5 weeks); 3 write the plan as a table; 4 add 5 review sessions with add_calendar_event, "
+           "days_between (35 days = 5 weeks); 3 write the plan as a table; 4 add 5 review sessions with add_to_calendar, "
            "after asking. Below, chain-of-thought is one straight line of steps; tree of thoughts tries several branches, "
            "drops a bad one and keeps the best.")
 s.box(310, 16, 560, 50, "ml-model", 25)
@@ -705,7 +701,7 @@ s.both(590, 48, "เป้าหมาย: แผนอ่าน 5 สัปด�
 SUB = [("1 หาหัวข้อ", "1 Find the topics", "search_course ×3", "→ fact 4, 5, 6", "→ facts 4, 5, 6"),
        ("2 นับสัปดาห์", "2 Count the weeks", "days_between", "→ 35 วัน = 5 สัปดาห์", "→ 35 days = 5 weeks"),
        ("3 เขียนแผน", "3 Write the plan", "(LLM writes)", "ตาราง: สัปดาห์ หัวข้อ งาน", "table: week, topics, task"),
-       ("4 เพิ่ม 5 รอบทบทวน", "4 Add 5 reviews", "add_calendar_event ×5", "ถามนิสิตก่อน", "ask the student first")]
+       ("4 เพิ่ม 5 รอบทบทวน", "4 Add 5 reviews", "add_to_calendar ×5", "ถามนิสิตก่อน", "ask the student first")]
 for k, (th, en, c, rth, ren) in enumerate(SUB):
     x = 20 + k * 290
     s.arrow(590, 68, x + 140, 100)
@@ -774,6 +770,52 @@ s.box(460, 386, 680, 40, "nt-out", 8)
 s.both(476, 412, "คำตอบ: 35 วัน (จันทร์ 30 พ.ย.) ✓ อิงข้อมูลจริงทุกขั้น", "Answer: 35 days (Mon 30 Nov) ✓ every step grounded in real data", "ml-ok")
 s.save("l14-react.svg", 456)
 
+# ---------------------------------------------------------------- 16b. ReAct 2022 vs a 2026 agent
+s = Svg(W, "Left, ReAct as written in 2022: the model writes Thought, Action and Observation lines as text, one action per "
+           "step, and code parses the text: Thought 'I need the exam date', Action search_course, Observation fact 7, then "
+           "get_today, then days_between, then the answer 35 days. Right, a 2026 agent: the same core loop (think, act, "
+           "observe), but the thinking is hidden, the actions are typed function calls, several at once, and a harness "
+           "around the loop adds a plan (write_todos), files (/study_plan.md), checkpoints (thread_id), a check before done "
+           "(read_file), sub-agents (task), permission (approve before add_to_calendar), context management (summarise at "
+           "85%) and a trace (LangSmith).")
+s.box(20, 20, 470, 420, "ml-cell", 14)
+s.both(40, 52, "ReAct ปี 2022: ไอเดียต้นแบบ", "ReAct, 2022: the idea", "pl-label")
+s.both(40, 78, "โมเดลเขียนทุกบรรทัดเป็นข้อความ", "the model writes every line as text", "pl-note")
+TR = [("Thought:", "I need the exam date."), ("Action:", "search_course[final exam]"), ("Observation:", "[fact 7] … 30 Nov 2026"),
+      ("Thought:", "Now today's date."), ("Action:", "get_today[]"), ("Observation:", "2026-10-26"),
+      ("Thought:", "Count the days."), ("Action:", "days_between[…]"), ("Observation:", "35"), ("Answer:", "35 days")]
+for k, (a, b) in enumerate(TR):
+    y = 104 + k * 26
+    s.code(40, y, a, bold=True)
+    s.code(160, y, b)
+s.both(40, 386, "✓ ลูปนี้ยังเป็นแกนของ agent ทุกตัว", "✓ this loop is still the core of every agent", "ml-ok")
+s.both(40, 414, "✗ thought เป็นข้อความ · ครั้งละ 1 action", "✗ thoughts as text · one action per step", "ml-neg")
+s.box(510, 20, 650, 420, "nt-band-a", 14)
+s.both(530, 52, "agent ปี 2026: ลูปเดิม อยู่ใน harness", "A 2026 agent: the same loop inside a harness", "pl-label")
+s.box(704, 74, 244, 300, "ml-cell", 12)
+s.both(826, 100, "ลูปแกน (ReAct)", "core loop (ReAct)", "pl-label", "middle")
+pic(s, "ag-robot-think", 781, 108, 90, 100)
+LOOP = [("คิด (ซ่อนอยู่)", "think (hidden)"), ("ลงมือ: เรียกหลาย tool", "act: several calls"), ("สังเกตผล", "observe results")]
+for k, (th, en) in enumerate(LOOP):
+    s.chip(716, 220 + k * 48, 200, 36, th, en, "nt-out" if k == 1 else "ml-cell-b")
+    if k < 2:
+        s.arrow(816, 258 + k * 48, 816, 266 + k * 48)
+s.path("M918 334 L934 334 L934 238 L920 238")
+s.head(934, 238, 920, 238)
+TILES14 = [("แผน", "Plan", "write_todos", "icon-clipboard"), ("ไฟล์", "Files", "study_plan.md", "icon-folder"),
+           ("checkpoint", "Checkpoints", "thread_id", "icon-save"), ("ตรวจก่อนจบ", "Check first", "read_file", "icon-magnifier"),
+           ("sub-agent", "Sub-agents", "task(...)", "ag-robot-mini"), ("ขออนุญาต", "Permission", "approve?", "ag-staff-ok"),
+           ("ย่อ context", "Context", "summarise", "icon-scissors"), ("trace", "Trace", "LangSmith", "icon-notepad")]
+for k, (th, en, c, picname) in enumerate(TILES14):
+    x = 524 if k < 4 else 960
+    y = 74 + (k % 4) * 76
+    s.box(x, y, 172 if k < 4 else 186, 64, "ml-cell", 10)
+    pic(s, picname, x + 8, y + 12, 40, 40, "xMidYMid")
+    s.both(x + 56, y + 28, th, en, "hk-desc")
+    s.code(x + 56, y + 50, c)
+s.both(530, 404, "✓ ลูปเหมือนเดิม สิ่งที่ใหม่คือ harness รอบลูป", "✓ the loop is the same; the harness around it is new", "ml-ok")
+s.save("l14-react-2026.svg", 456)
+
 # ---------------------------------------------------------------- 17. Reflexion + thinking models
 s = Svg(W, "Left, Reflexion: the actor writes a study plan with 6 weeks; the evaluator says only 35 days are left; "
            "self-reflection writes a lesson, 'I counted from 19 October; call get_today first', which is kept in memory and added "
@@ -836,11 +878,13 @@ for k in range(10):
     s.code(130, 103 + k * 30, f"paper {k + 1}" if k < 8 else "notes", "middle")
 s.both(220, 120, "ทุกบทความ ทุกโน้ต", "every paper, every note", "pl-text")
 s.both(220, 146, "อยู่ใน context เดียว", "in one context", "pl-text")
+pic(s, "ag-robot-think", 260, 168, 150, 140)
 s.both(220, 330, "✗ window เต็ม", "✗ the window fills;", "ml-neg")
 s.both(220, 358, "สิ่งสำคัญจมหาย", "what matters gets lost", "ml-neg")
 s.box(480, 20, 680, 420, "nt-band-a", 14)
 s.both(500, 52, "✓ ผู้จัดการ + worker แต่ละตัวมี window ของตัวเอง", "✓ A manager + workers, each with its own window", "pl-label")
 s.llm(730, 72, 180, 56, "Manager", "Manager", ("แบ่งงาน รวมผล", "splits, merges"))
+pic(s, "ag-robot-plan", 918, 64, 60, 76)
 WK = [("Research", "ค้นและรวบรวม", "search, collect"), ("Analysis", "ดึงผล เปรียบเทียบ", "extract, compare"), ("Writer", "เขียนรายงาน", "write the report")]
 for k, (t, th, en) in enumerate(WK):
     x = 500 + k * 220
@@ -850,87 +894,41 @@ for k, (t, th, en) in enumerate(WK):
     for j in range(3):
         s.box(x + 40, 250 + j * 26, 120, 20, "ml-cell-b", 4)
     s.both(x + 100, 352, th, en, "pl-note", "middle")
+    pic(s, "ag-robot-mini", x + 160, 268, 40, 62)
 s.both(500, 392, "แต่ละตัวส่งสรุปกลับ ≈ 1,000–2,000 token", "each returns a summary of ≈ 1,000–2,000 tokens", "pl-text")
 s.both(500, 422, "✓ +90.2% เทียบ agent ตัวเดียว", "✓ +90.2% vs one agent", "ml-ok")
 s.both(830, 422, "✗ token ≈ 15 เท่าของแชต", "✗ ≈ 15× a chat's tokens", "ml-neg")
 s.save("l14-multi-agent.svg", 456)
 
-# ---------------------------------------------------------------- 19. Generative Agents and ChatDev
-s = Svg(W, "Left, Generative Agents (Stanford and Google, 2023): 25 agents in the town of Smallville. Each keeps a memory stream "
-           "of observations; for each next step memories are scored on recency, importance and relevance and the top ones go "
-           "into the prompt; reflections and day plans are stored as memories too. A Valentine's Day party spread from one "
-           "agent and five came. Right, ChatDev (2023): agents play CEO, CTO, programmer, reviewer and tester along a chain of "
-           "design, coding, testing and documentation.")
-s.box(20, 20, 680, 420, "nt-band-a", 14)
-s.both(40, 52, "Generative Agents: 25 ตัวใน Smallville", "Generative Agents: 25 agents in Smallville", "pl-label")
-s.both(40, 80, "memory stream (ตัวอย่างความจำในแบบของงานวิจัย)", "memory stream (example memories in the paper's style)", "pl-note")
-MEM = [("07:02", "Isabella plans a Valentine's Day party", True), ("08:15", "Klaus is reading about gentrification", False),
-       ("09:30", "the cafe's coffee machine is broken", False), ("10:04", "Maria asked about the party at Hobbs Cafe", True),
-       ("12:40", "Isabella invited Klaus to the party", True)]
-for k, (t, m, hi) in enumerate(MEM):
-    y = 94 + k * 38
-    s.box(40, y, 420, 30, "sw-chip-warn" if hi else "ml-cell", 6)
-    s.code(52, y + 20, t)
-    s.code(110, y + 20, m)
-s.box(476, 94, 208, 182, "ml-cell", 10)
-s.both(490, 120, "ดึงความจำด้วยคะแนน", "retrieval score", "pl-label")
-for k, (th, en) in enumerate([("ความใหม่", "recency"), ("+ ความสำคัญ", "+ importance"), ("+ ความเกี่ยวข้อง", "+ relevance")]):
-    s.both(490, 150 + k * 28, th, en, "pl-text")
-s.both(490, 250, "สูงสุด → เข้า prompt", "top ones → prompt", "ml-ok")
-s.arrow(462, 180, 474, 180)
-s.box(40, 296, 300, 70, "ml-cell", 10)
-s.both(56, 324, "Reflection", "Reflection", "pl-label")
-s.both(56, 352, "สรุประดับสูงจากความจำ", "higher-level conclusions", "pl-note")
-s.box(360, 296, 324, 70, "ml-cell", 10)
-s.both(376, 324, "Planning", "Planning", "pl-label")
-s.both(376, 352, "แผนของวัน → รายชั่วโมง", "a day plan → hourly steps", "pl-note")
-s.both(40, 414, "ข่าวปาร์ตี้แพร่จาก agent สู่ agent: มาตรงเวลา 5 ตัว", "the party news spread agent to agent: 5 came on time", "ml-ok")
-s.box(720, 20, 440, 420, "ml-cell", 14)
-s.both(740, 52, "ChatDev: บริษัทซอฟต์แวร์ของ agent", "ChatDev: a software company of agents", "pl-label")
-ORG = [("CEO", 880, 76), ("CTO", 880, 144), ("Programmer", 750, 216), ("Reviewer", 1010, 216), ("Tester", 880, 288)]
-for t, x, y in ORG:
-    s.llm(x, y, 140, 44, t, t)
-s.line(950, 120, 950, 144)
-s.line(950, 188, 820, 216)
-s.line(950, 188, 1080, 216)
-s.path("M892 238 L1008 238", dashed=True)
-s.line(820, 260, 950, 288)
-s.line(1080, 260, 950, 288)
-s.both(740, 362, "ออกแบบ → เขียนโค้ด → ทดสอบ → เอกสาร", "design → coding → testing → docs", "pl-text")
-s.both(740, 394, "บทบาทตายตัว ลำดับตายตัว", "fixed roles, a fixed chain", "pl-note")
-s.save("l14-generative.svg", 456)
-
-# ---------------------------------------------------------------- 20. context growth
-s = Svg(W, "Left, our question with real token counts per call (GPT tokenizer): call 1 sends 262 tokens (system prompt 32, the "
-           "three tool schemas 220, question 10), call 2 307, call 3 325, call 4 358; 1,252 tokens read to write 94. Right, a "
-           "long research job with example sizes: each web page the agent reads stays in the context, so after 10, 20, 30 and 40 "
-           "steps the context holds about 50,000, 100,000, 150,000 and 200,000 tokens. Chroma found 18 models do worse as input "
-           "grows: a focused input of about 300 tokens beat the full 113,000-token input that held the same answer.")
+# ---------------------------------------------------------------- 20. context growth (real Gemini counts)
+s = Svg(W, "Left, our question with Gemini's real input-token counts per call (gemini-3.5-flash-lite): call 1 reads 256 tokens "
+           "(the tool schemas, about 245, and the question, 11), call 2 538, call 3 591, as each call and result is added; "
+           "1,385 tokens read to write 102. Right, a long research job with example sizes: each web page the agent reads stays "
+           "in the context, so after 10, 20, 30 and 40 steps it holds about 50,000 to 200,000 tokens. Our study-plan job as a "
+           "Deep Agent: 12 calls read 97,743 tokens. Chroma found 18 models do worse as input grows.")
 s.box(20, 20, 560, 420, "ml-cell", 14)
-s.both(40, 52, "คำถามของเรา: token จริงต่อครั้งที่เรียก", "Our question: real tokens per call", "pl-label")
-SEG = [(32, "nt-hub"), (220, "ml-bar"), (10, "ml-model")]
-CALLSZ = [262, 307, 325, 358]
-sc = 400 / 360
+s.both(40, 52, "คำถามของเรา: input token จริงต่อครั้ง", "Our question: real input tokens per call", "pl-label")
+SEG = [(245, "ml-bar"), (11, "ml-model")]
+CALLSZ = [256, 538, 591]
+sc = 380 / 600
 for k, tot in enumerate(CALLSZ):
-    y = 84 + k * 56
+    y = 84 + k * 64
     s.both(40, y + 24, f"ครั้งที่ {k + 1}", f"call {k + 1}", "pl-text")
     x = 120
     for v, cls in SEG:
         s.box(x, y + 4, v * sc, 30, cls, 2)
         x += v * sc
-    if tot > 262:
-        s.box(x, y + 4, (tot - 262) * sc, 30, "sw-chip-warn", 2)
+    if tot > 256:
+        s.box(x, y + 4, (tot - 256) * sc, 30, "sw-chip-warn", 2)
     s.text(120 + tot * sc + 8, y + 26, str(tot), "pl-label")
-s.box(40, 312, 16, 16, "nt-hub", 2)
-s.both(62, 326, "system 32", "system 32", "pl-note")
-s.box(160, 312, 16, 16, "ml-bar", 2)
-s.both(182, 326, "tools 220", "tools 220", "pl-note")
-s.box(300, 312, 16, 16, "ml-model", 2)
-s.both(322, 326, "คำถาม 10", "question 10", "pl-note")
-s.box(430, 312, 16, 16, "sw-chip-warn", 2)
-s.both(452, 326, "call + ผล", "calls + results", "pl-note")
-s.both(40, 380, "รวม: อ่าน 1,252 token เพื่อเขียน 94", "In total: 1,252 tokens read to write 94", "pl-text")
-s.both(40, 410, "ทุกครั้งที่เรียก ส่งทุกอย่างไปใหม่", "every call resends everything", "pl-note")
+s.box(40, 290, 16, 16, "ml-bar", 2)
+s.both(62, 304, "tool schema ≈ 245", "tool schemas ≈ 245", "pl-note")
+s.box(240, 290, 16, 16, "ml-model", 2)
+s.both(262, 304, "คำถาม 11", "question 11", "pl-note")
+s.box(390, 290, 16, 16, "sw-chip-warn", 2)
+s.both(412, 304, "call + ผล", "calls + results", "pl-note")
+s.both(40, 370, "รวม: อ่าน 1,385 token เพื่อเขียน 102", "In total: 1,385 tokens read to write 102", "pl-text")
+s.both(40, 404, "ทุกครั้งที่เรียก ส่งทุกอย่างไปใหม่", "every call resends everything", "pl-note")
 s.box(600, 20, 560, 420, "sw-warn-box", 14)
 s.both(620, 52, "งาน research ยาว ๆ (ขนาดสมมติ)", "A long research job (example sizes)", "pl-label")
 s.line(660, 330, 1130, 330)
@@ -942,10 +940,9 @@ for k, v in enumerate([3, 50, 100, 150, 200]):
     s.text(x + 28, 322 - h, f"{v}k", "hk-desc", "middle")
     s.both(x + 28, 354, f"ขั้น {k * 10 or 1}", f"step {k * 10 or 1}", "pl-note", "middle")
 s.both(680, 104, "ทุกหน้าเว็บค้างอยู่ใน context", "every web page stays in the context", "pl-note")
-s.both(620, 392, "✗ Chroma: 18 โมเดลแย่ลงเมื่อ input ยาวขึ้น", "✗ Chroma: 18 models do worse as input grows", "ml-neg")
-s.both(620, 420, "คัดแล้ว ≈ 300 token ชนะ ทั้งหมด ≈ 113,000", "focused ≈ 300 tokens beat the full ≈ 113,000", "pl-note")
+s.both(620, 392, "แผนอ่านหนังสือของเรา: 12 ครั้ง อ่าน 97,743 token", "our study plan: 12 calls read 97,743 tokens", "pl-text")
+s.both(620, 420, "✗ Chroma: 18 โมเดลแย่ลงเมื่อ input ยาวขึ้น", "✗ Chroma: 18 models do worse as input grows", "ml-neg")
 s.save("l14-context-grow.svg", 456)
-
 # ---------------------------------------------------------------- 21. types of context
 s = Svg(W, "Five kinds of context compete for one limited window: prompt context (what the student typed now: How many days are "
            "left until the final exam?), conversation context (earlier messages, tool calls and results), document context "
@@ -1081,47 +1078,6 @@ for k, (pth, pen, dth, den, eth, een) in enumerate(HP):
     s.both(790, y + 30, eth, een, "ml-ok")
 s.save("l14-harness-parts.svg", 40 + 7 * 56 + 4)
 
-# ---------------------------------------------------------------- 25. long-running agents
-s = Svg(W, "Top: a long job runs as many sessions, each starting with an empty window. Session 1, the initializer, writes "
-           "feature_list.json (over 200 features, all 'passes: false'), claude-progress.txt, init.sh and a first git commit. "
-           "Every later session reads the notes and git log, runs init.sh and a basic test, builds one feature, tests it end to "
-           "end like a user, commits and updates the notes. Bottom: a separate evaluator. Building a retro game maker alone took "
-           "20 minutes and $9 and the core mechanic did not work; planner, generator and evaluator took 6 hours and $200 and the "
-           "game was playable.")
-s.box(20, 20, 1140, 250, "nt-band-a", 14)
-s.both(40, 52, "รอบการทำงานหลายรอบ แต่ละรอบเริ่มด้วย window ว่าง", "Many sessions, each starting with an empty window", "pl-label")
-s.box(40, 72, 300, 180, "ml-cell", 10)
-s.both(56, 98, "รอบที่ 1: initializer เขียน", "Session 1: the initializer writes", "pl-text")
-for k, f in enumerate(['feature_list.json', '  200+ features, "passes": false', "claude-progress.txt", "init.sh · first git commit"]):
-    s.code(56, 128 + k * 28, f, bold=(k != 1))
-s.arrow(342, 162, 380, 162)
-STEPS2 = [("1 อ่านโน้ต + git log", "1 read the notes + git log"), ("2 รัน init.sh + ทดสอบพื้นฐาน", "2 run init.sh + a basic test"),
-          ("3 สร้าง feature เดียว", "3 build ONE feature"), ("4 ทดสอบเหมือนผู้ใช้ (browser)", "4 test it like a user (browser)"),
-          ("5 commit + อัปเดตโน้ต", "5 commit + update the notes")]
-s.box(384, 72, 420, 180, "ml-cell", 10)
-s.both(400, 98, "รอบที่ 2, 3, … n: coding session", "Sessions 2, 3, … n: coding", "pl-text")
-for k, (th, en) in enumerate(STEPS2):
-    s.both(416, 126 + k * 26, th, en, "hk-desc")
-s.path("M806 162 Q840 162 840 120 Q840 84 806 84")
-s.head(822, 84, 806, 84)
-s.both(850, 128, "วนซ้ำจน feature", "repeat until every", "pl-note")
-s.both(850, 154, "ผ่านครบ", "feature passes", "pl-note")
-s.box(850, 176, 290, 60, "sw-warn-box", 10)
-s.both(864, 202, "แก้ได้แค่ช่อง passes", "may only change passes", "pl-text")
-s.both(864, 226, "ห้ามลบหรือแก้การทดสอบ", "never edit the tests", "pl-note")
-s.box(20, 286, 1140, 170, "ml-cell", 14)
-s.both(40, 318, "ผู้ประเมินแยก: agent มักชมงานของตัวเอง", "A separate evaluator: agents praise their own work", "pl-label")
-s.both(40, 350, "สร้างโปรแกรมทำเกมแนวเรโทร", "Building a retro game maker", "pl-note")
-for k, (lab, mins, cost, sc_, ok, th, en) in enumerate([("solo", 20, 9, 60, False, "เกมใช้ไม่ได้ ✗", "core mechanic broken ✗"),
-                                                       ("planner → generator → evaluator", 360, 200, 0, True, "เล่นได้ ✓", "playable ✓")]):
-    y = 366 + k * 42
-    s.text(40, y + 24, lab, "hk-desc")
-    bw = mins / 360 * 420
-    s.box(370, y + 4, max(bw, 8), 28, "ml-bar-top" if ok else "ml-bar", 4)
-    s.text(370 + max(bw, 8) + 10, y + 25, f"{mins // 60} h, ${cost}" if mins >= 60 else f"{mins} min, ${cost}", "pl-label")
-    s.both(940, y + 25, th, en, "ml-ok" if ok else "ml-neg")
-s.save("l14-long-running.svg", 472)
-
 # ---------------------------------------------------------------- 26. harness engineering in 2026
 s = Svg(W, "Four lessons from 2026. OpenAI, February: about 1,000,000 lines of code and about 1,500 pull requests written by "
            "Codex in five months with three engineers, who built the harness instead. LangChain, February: a check before 'done' "
@@ -1179,3 +1135,293 @@ s.box(20, 386, W - 40, 82, "nt-band-a", 12)
 s.both(36, 416, "ถูก 90% ของเวลา (p = 0.9) รัน 5 ครั้ง:", "Right 90% of the time (p = 0.9), run 5 times:", "pl-text")
 s.both(36, 448, "pass@5 = อย่างน้อย 1 ครั้งถูก ≈ 1.00 · pass^5 = ถูกทั้ง 5 ครั้ง = 0.9⁵ = 0.59", "pass@5 = at least one right ≈ 1.00 · pass^5 = all five right = 0.9⁵ = 0.59", "pl-label")
 s.save("l14-eval.svg", 484)
+# ---------------------------------------------------------------- 10. the agent loop by hand (real Gemini run)
+s = Svg(W, "Left: run_agent in four steps: 1 ask the model with the messages and tools; 2 no function call means done, return "
+           "the text; 3 run each requested function in our code; 4 append the results to the messages and loop, at most "
+           "MAX_STEPS = 10 times. Right: the real run with gemini-3.5-flash-lite. Round 1: get_today() → 2026-10-26 and "
+           "search_course('final exam') → fact 7, in the same turn. Round 2: days_between('2026-10-26', '2026-11-30') → 35. "
+           "Round 3: the answer, 35 days. The message list grows from 1 to 6.")
+s.box(20, 20, 430, 440, "ml-cell", 14)
+s.both(40, 52, "ลูปของ run_agent", "The loop in run_agent", "pl-label")
+STEPS = [("ถามโมเดล", "Ask the model", "messages + tools"),
+         ("ไม่มี call → จบ", "No call → done", "return response.text"),
+         ("รันทุก call", "Run each call", "TOOLS[call.name](**args)"),
+         ("ส่งผลกลับ", "Send results back", "messages.append(results)")]
+for k, (th, en, c) in enumerate(STEPS):
+    y = 72 + k * 84
+    s.box(40, y, 390, 68, "nt-out" if k == 1 else "ml-cell-b", 10)
+    s.num(62, y + 22, k + 1)
+    s.both(84, y + 28, th, en, "pl-text")
+    s.code(84, y + 54, c)
+    if k < 3:
+        s.arrow(235, y + 70, 235, y + 82)
+s.path("M430 344 L444 344 L444 106 L432 106")
+s.head(444, 106, 432, 106)
+s.both(40, 420, "วนไม่เกิน MAX_STEPS = 10 รอบ", "at most MAX_STEPS = 10 rounds", "pl-note")
+s.box(470, 20, 690, 440, "nt-band-a", 14)
+s.both(490, 52, "การรันจริง: messages โตขึ้นทีละรอบ", "The real run: messages grow each round", "pl-label")
+ROWS = [("user", "How many days are left until the final exam?", None, 1),
+        ("model", "get_today()  +  search_course('final exam')", "รอบ 1|round 1", 2),
+        ("user", "2026-10-26  ·  [fact 7] final exam, Mon 30 Nov", None, 3),
+        ("model", "days_between('2026-10-26', '2026-11-30')", "รอบ 2|round 2", 4),
+        ("user", "35", None, 5),
+        ("model", "There are 35 days left until the final exam.", "รอบ 3|round 3", 6)]
+for k, (role, txt, rnd, n) in enumerate(ROWS):
+    y = 72 + k * 58
+    s.box(486, y, 74, 40, "nt-bubble" if role == "user" else "ml-model", 8)
+    s.text(523, y + 26, role, "hk-desc" if role == "user" else "ml-model-sub", "middle")
+    s.box(568, y, 470, 40, "nt-out" if k == 5 else ("pl-chip" if role == "user" and k else "ml-cell"), 8)
+    s.code(580, y + 26, txt, bold=(role == "user" and k > 0))
+    s.text(1144, y + 26, f"{n}", "pl-label", "end")
+    if rnd:
+        th, en = rnd.split("|")
+        s.both(1056, y + 26, th, en, "pl-note")
+s.both(1144, 64, "len", "len", "pl-note", "end")
+s.both(490, 430, "โมเดลเลือกแต่ละขั้น ลูปของเราเป็นคนรัน", "the model chose each step; our loop ran it", "ml-ok")
+s.save("l14-loop.svg", 476)
+
+
+# ---------------------------------------------------------------- 15b. the library stack
+s = Svg(W, "Left: what create_agent does for each line of run_agent: keeps the message list, sends it with the tool schemas, "
+           "runs the requested tools and sends the results back, stops when a reply has no tool call; the model is a string such "
+           "as google_genai:gemini-3.5-flash-lite. Right: the stack. LangGraph at the bottom runs the graph (state, checkpoints, "
+           "pausing); LangChain's create_agent builds the agent and takes middleware; Deep Agents' create_deep_agent adds plans, "
+           "files, sub-agents and context management; LangSmith, beside all three, records traces and scores runs.")
+s.box(20, 20, 540, 420, "ml-cell", 14)
+s.both(40, 52, "run_agent ของเรา → create_agent", "our run_agent → create_agent", "pl-label")
+MAP = [("messages = [...]", "เก็บ list ข้อความให้", "keeps the message list"),
+       ("generate_content(tools=...)", "ส่ง schema ไปทุกครั้ง", "sends the schemas every call"),
+       ("TOOLS[call.name](**args)", "รัน tool ที่ขอ", "runs the requested tools"),
+       ("if not function_calls: return", "หยุดเมื่อไม่มี tool call", "stops when there is no call"),
+       ('model="gemini-..." (Gemini only)', "โมเดลเป็นข้อความ เปลี่ยนเจ้าได้", "the model is a string: any provider")]
+for k, (c, th, en) in enumerate(MAP):
+    y = 70 + k * 72
+    s.box(40, y, 500, 60, "ml-cell-b", 10)
+    s.code(56, y + 24, c)
+    s.both(56, y + 48, "→ " + th, "→ " + en, "ml-ok")
+s.box(580, 20, 580, 420, "nt-band-a", 14)
+s.both(600, 52, "ชั้นของไลบรารี", "The stack", "pl-label")
+LAYERS = [("Deep Agents", "create_deep_agent", "แผน · ไฟล์ · sub-agent · ย่อ context", "plans · files · sub-agents · context", "nt-out"),
+          ("LangChain", "create_agent + middleware", "สร้าง agent · เสียบ guardrail และขีดจำกัด", "builds the agent · guardrails, limits", "ml-cell"),
+          ("LangGraph", "StateGraph · checkpointer", "ตัวรัน: state · checkpoint · หยุดรอ", "runtime: state · checkpoints · pause", "ml-cell-b")]
+for k, (name, api, th, en, cls) in enumerate(LAYERS):
+    y = 72 + k * 112
+    s.box(600, y, 420, 100, cls, 12)
+    s.text(620, y + 32, name, "pl-label")
+    s.code(620, y + 58, api)
+    s.both(620, y + 86, th, en, "pl-note")
+    ic(s, ["clipboard", "puzzle", "loop"][k], 982, y + 34, 44)
+s.box(1036, 72, 108, 324, "pl-chip", 12)
+ic(s, "magnifier", 1090, 150, 50)
+s.text(1090, 210, "Lang", "pl-label", "middle")
+s.text(1090, 236, "Smith", "pl-label", "middle")
+s.both(1090, 270, "trace", "traces", "pl-note", "middle")
+s.both(1090, 294, "ประเมิน", "& evals", "pl-note", "middle")
+s.both(600, 424, "ชั้นบนใช้ชั้นล่าง: เลือกใช้ชั้นที่พอกับงาน", "each layer uses the one below: pick what the job needs", "pl-note")
+s.save("l14-stack.svg", 456)
+
+
+# ---------------------------------------------------------------- 16b. middleware hooks
+s = Svg(W, "The agent loop with its middleware hook points: before_model and after_model run just before and after each LLM "
+           "call, wrap_model_call wraps the call itself, wrap_tool_call wraps each tool run. Our log_and_check is a "
+           "wrap_tool_call: in the real run it let search_course and days_between through, rejected add_to_calendar on "
+           "2026-10-20 because it is before today (2026-10-26), and let 2026-11-23 through, so the calendar ended with one event. "
+           "Below, LangChain's built-in middleware by job: context, retries, budgets, safety, planning.")
+s.box(20, 20, 700, 300, "ml-cell", 14)
+s.both(40, 52, "จุดเสียบรอบลูป", "Hook points around the loop", "pl-label")
+s.box(60, 112, 190, 40, "pl-chip", 8)
+s.code(74, 138, "before_model")
+s.arrow(252, 132, 286, 132)
+s.box(290, 82, 180, 110, "sw-chip-warn", 12)
+s.code(302, 104, "wrap_model_call")
+s.llm(310, 114, 140, 64, "LLM", "LLM")
+s.arrow(472, 132, 506, 132)
+s.box(510, 112, 190, 40, "pl-chip", 8)
+s.code(524, 138, "after_model")
+s.box(290, 222, 180, 82, "sw-chip-warn", 12)
+s.code(302, 244, "wrap_tool_call")
+s.chip(310, 256, 140, 36, "tools", "tools", "ml-cell-b")
+s.arrow(380, 194, 380, 220)
+s.path("M290 262 L200 262 L200 154")
+s.head(200, 262, 200, 154)
+s.both(392, 214, "tool call", "tool call", "pl-note")
+s.both(40, 300, "ผล → กลับไปที่โมเดล", "result → back to the model", "pl-note")
+s.box(740, 20, 420, 300, "nt-band-a", 14)
+s.both(760, 52, "log_and_check (การรันจริง)", "log_and_check (real run)", "pl-label")
+ic(s, "shield", 1124, 44, 32)
+LOG = [("search_course", "final exam", True), ("days_between", "11-23 → 11-30", True),
+       ("add_to_calendar", "2026-10-20", False), ("add_to_calendar", "2026-11-23", True)]
+for k, (t, a, ok) in enumerate(LOG):
+    y = 70 + k * 50
+    s.box(756, y, 388, 40, "ml-cell-b" if ok else "sw-chip-warn", 8)
+    s.code(770, y + 26, t)
+    s.code(940, y + 26, a)
+    s.text(1132, y + 27, "✓" if ok else "✗", "ml-ok" if ok else "ml-neg", "end")
+s.both(760, 296, "✗ วันที่ผ่านไปแล้ว: tool ไม่ถูกรัน", "✗ in the past: the tool never ran", "ml-neg")
+GROUPS = [("Context", "Summarization"), ("Retries", "ModelRetry · ToolRetry · ModelFallback"),
+          ("Budgets", "ModelCallLimit · ToolCallLimit"), ("Safety", "PII · HumanInTheLoop"), ("Planning", "TodoList")]
+s.both(20, 356, "middleware สำเร็จรูปของ LangChain", "LangChain's built-in middleware", "pl-label")
+for k, (g, items) in enumerate(GROUPS):
+    x, y = 20 + (k % 2) * 575, 372 + (k // 2) * 52
+    s.box(x, y, 565, 44, "ml-cell", 10)
+    s.text(x + 14, y + 28, g, "pl-label")
+    s.code(x + 110, y + 28, items)
+s.save("l14-middleware.svg", 532)
+
+
+# ---------------------------------------------------------------- 17b. graph + checkpoints (real run)
+s = Svg(W, "Left: the graph create_agent builds, as printed by the real run: __start__ → model; model → tools when the reply "
+           "has tool calls, model → __end__ when it has none; tools → model. Right: thread student-1 with InMemorySaver. "
+           "Question 1, 'When is the NER class?', answered 2 November 2026; a checkpoint is saved after every step. Question 2, "
+           "'How many days until then?', starts from the saved messages, so 'then' means 2 November: 7 days. The thread now "
+           "holds 11 messages; a new thread_id would start empty.")
+s.box(20, 20, 380, 420, "ml-cell", 14)
+s.both(40, 52, "กราฟที่ create_agent สร้าง", "The graph create_agent builds", "pl-label")
+s.box(140, 74, 120, 36, "ml-model", 18)
+s.text(200, 98, "__start__", "ml-model-text", "middle")
+s.arrow(200, 112, 200, 146)
+s.llm(130, 150, 140, 60, "model", "model")
+s.box(130, 286, 140, 50, "pl-chip", 10)
+s.text(200, 317, "tools", "pl-chip-text", "middle")
+s.path("M150 212 L150 284")
+s.head(150, 250, 150, 284)
+s.path("M250 284 L250 212")
+s.head(250, 246, 250, 212)
+s.both(40, 246, "มี tool call", "tool call?", "pl-note")
+s.both(262, 256, "ผล", "result", "pl-note")
+s.arrow(272, 180, 300, 180)
+s.box(304, 162, 86, 36, "ml-model", 18)
+s.text(347, 186, "__end__", "ml-model-text", "middle")
+s.both(40, 380, "state = list ข้อความ (add_messages)", "state = the messages (add_messages)", "pl-note")
+s.both(40, 412, "checkpoint หลังทุกขั้น", "a checkpoint after every step", "pl-note")
+s.box(420, 20, 740, 420, "nt-band-a", 14)
+s.both(440, 52, "thread_id = \"student-1\" (InMemorySaver)", "thread_id = \"student-1\" (InMemorySaver)", "pl-label")
+TURNS = [("When is the NER class?", "“…named entity recognition (NER) is on November 2, 2026.”", "4"),
+         ("How many days until then?", "“There are 7 days until the NER class…”", "11")]
+for k, (q, a, n) in enumerate(TURNS):
+    y = 74 + k * 170
+    s.box(436, y, 708, 44, "nt-bubble", 22)
+    pic(s, "ag-student-ask", 446, y + 3, 32, 40)
+    s.text(486, y + 29, q, "pl-text")
+    s.box(436, y + 54, 708, 44, "nt-out" if k else "ml-cell", 10)
+    pic(s, "ai-robot", 446, y + 57, 32, 38)
+    s.text(486, y + 83, a, "pl-text")
+    s.box(436, y + 108, 300, 32, "ml-cell-b", 16)
+    ic(s, "save", 460, y + 124, 22)
+    s.both(478, y + 130, "checkpoint บันทึกแล้ว", "checkpoint saved", "hk-desc")
+    if k == 0:
+        s.arrow(590, y + 142, 590, y + 166)
+        s.both(610, y + 160, "คำถามที่ 2 เริ่มจากข้อความที่บันทึกไว้", "question 2 starts from the saved messages", "pl-note")
+s.both(760, 374, "ใน thread: 11 ข้อความ", "in the thread: 11 messages", "pl-label")
+s.both(440, 420, "✓ “วันนั้น” = 2 พ.ย. → 7 วัน · thread ใหม่จะเริ่มว่าง", "✓ “then” = 2 Nov → 7 days · a new thread starts empty", "ml-ok")
+s.save("l14-checkpoint.svg", 456)
+
+# ---------------------------------------------------------------- 18b. human in the loop (real run)
+s = Svg(W, "Human in the loop, from the real run. 1 The student asks for a review session one week before the final exam. "
+           "2 Gemini asks for add_to_calendar(day 2026-11-23, title 'Review session for the final exam'). 3 The middleware "
+           "interrupts: the state is saved in the checkpoint and invoke returns the request; the calendar is still empty. "
+           "4 A person chooses approve, edit, reject or respond. 5 Command(resume=approve) continues at the same step: the tool "
+           "runs and the calendar has one event.")
+STAGE_PIC = [("pic", "ag-student-ask"), ("pic", "ag-robot-tools"), ("icon", "pause"), ("pic", "ag-staff-ok"), ("pic", "ag-student-happy")]
+STAGES = [("ขอ", "Ask", ["“review session one", "week before the", "final exam”"], "nt-bubble"),
+          ("Gemini ขอ", "Gemini asks", ["add_to_calendar(", " '2026-11-23',", " 'Review session…')"], "ml-cell"),
+          ("หยุด", "Pause", ["state → checkpoint", "__interrupt__", "calendar = []"], "sw-warn-box"),
+          ("คนตัดสินใจ", "A person decides", ["approve · edit", "reject · respond", "(maybe hours later)"], "ml-cell"),
+          ("ทำต่อ", "Resume", ["tool runs", "calendar = 1 event", "Gemini answers"], "nt-out")]
+for k, (th, en, lines, cls) in enumerate(STAGES):
+    x = 20 + k * 230
+    s.box(x, 20, 216, 300, cls, 14)
+    s.num(x + 26, 50, k + 1)
+    s.both(x + 48, 56, th, en, "pl-label")
+    kind, name = STAGE_PIC[k]
+    if kind == "pic":
+        pic(s, name, x + 48, 70, 120, 112)
+    else:
+        ic(s, name, x + 108, 124, 84)
+    if k == 4:
+        ic(s, "calendar", x + 176, 160, 40)
+    for j, t in enumerate(lines):
+        s.code(x + 16, 214 + j * 32, t) if k in (1, 2) else s.text(x + 16, 214 + j * 32, t, "pl-text")
+    if k < 4:
+        s.arrow(x + 218, 170, x + 228, 170)
+s.box(20, 340, 1140, 120, "ml-cell", 14)
+s.code(40, 372, "HumanInTheLoopMiddleware(interrupt_on={\"add_to_calendar\": True})   # which tools stop first")
+s.code(40, 406, "careful.invoke(Command(resume={\"decisions\": [{\"type\": \"approve\"}]}), thread)")
+s.both(40, 442, "ต้องมี checkpointer: การรันหยุด แล้วกลับมาทำต่อจาก state ที่บันทึกไว้", "needs a checkpointer: the run stops, then continues from the saved state", "pl-note")
+s.save("l14-hitl.svg", 476)
+
+# ---------------------------------------------------------------- 21b. Deep Agents (real run)
+DEEP = [("gather", "รวบรวม", ["1 get_today()", "2 search_course(k=7) → all 7 facts", "3 days_between → 35"]),
+        ("plan", "วางแผน", ["4 write_todos([...steps])"]),
+        ("look", "ดูรอบ ๆ", ["5 ls('/')", "6 ls('/workspace')"]),
+        ("act", "ลงมือ", ["8–12 add_to_calendar ×5: Sun 1 … 29 Nov"]),
+        ("write", "เขียน", ["14 write_file('/study_plan.md')"]),
+        ("check", "ตรวจ", ["15 read_file('/study_plan.md')"]),
+        ("tick", "ติ๊ก", ["7, 13, 16 write_todos: tick items off"])]
+s = Svg(W, "Left: what create_deep_agent adds to create_agent: planning (write_todos), a file system (ls, read_file, write_file, "
+           "edit_file, glob, grep), sub-agents (task) and context management (big results to files, summarise old messages). "
+           "Right: the real run of the study-plan job with gemini-3.8-flash, 16 tool calls in 12 model calls: gather (get_today, "
+           "one search_course with k 7, days_between 35), plan (write_todos), look around (ls twice), act (five add_to_calendar, "
+           "Sundays 1 to 29 November), write the plan file, read it back, and tick off the to-do list. Input: 97,743 tokens.")
+s.box(20, 20, 420, 450, "ml-cell", 14)
+s.both(40, 52, "create_deep_agent เพิ่มอะไร", "What create_deep_agent adds", "pl-label")
+ADD = [("วางแผน", "Planning", "write_todos"), ("ระบบไฟล์", "Files", "ls · read/write/edit_file · grep"),
+       ("sub-agent", "Sub-agents", "task(description, subagent_type)"), ("จัดการ context", "Context", "big results → files · summarise")]
+ADD_PIC = ["ag-robot-plan", "icon-folder", "ag-robot-mini", "icon-scissors"]
+for k, (th, en, c) in enumerate(ADD):
+    y = 70 + k * 92
+    s.box(40, y, 380, 80, "nt-band-a", 10)
+    s.both(56, y + 30, th, en, "pl-label")
+    s.code(56, y + 60, c)
+    pic(s, ADD_PIC[k], 362, y + 6, 52, 52, "xMidYMid")
+s.both(40, 450, "+ tool ของเรา 4 ตัว", "+ our 4 tools", "pl-note")
+s.box(460, 20, 700, 450, "nt-band-a", 14)
+s.both(480, 52, "การรันจริง: 16 การเรียก tool", "The real run: 16 tool calls", "pl-label")
+y = 66
+n = 1
+for name, th, calls in DEEP:
+    h = 26 * len(calls) + 10
+    s.box(476, y, 668, h, "nt-out" if name in ("write", "check") else ("sw-chip-warn" if name == "act" else "ml-cell"), 8)
+    s.both(490, y + 23, th, name, "hk-desc")
+    for j, c in enumerate(calls):
+        s.code(596, y + 23 + j * 26, c)
+    y += h + 6
+s.both(480, 456, "12 ครั้งที่เรียกโมเดล · input 97,743 token", "12 model calls · 97,743 input tokens", "pl-note")
+s.save("l14-deep.svg", 486)
+
+# ---------------------------------------------------------------- 30b. reading a trace: two real runs
+RUN1 = "pgssssssssssssssssssssssssssssssssssffssssdssssssssssssssssfpdddd"
+RUN2 = "gsdpffpaaaaapwrp"
+KIND = {"s": "nt-hub", "p": "ml-model", "g": "ml-bar", "d": "ml-bar", "f": "dg-hl-col",
+        "a": "nt-out", "w": "nt-out", "r": "nt-out"}
+s = Svg(W, "Two real runs of the study-plan job with gemini-3.8-flash, one square per tool call. Top, before search_course had "
+           "k: 65 tool calls, 54 of them searches with queries such as 'November 9', 'fact 8', 'fact 9', 'fact 10' and "
+           "'professor'; after 22 model calls and 167,828 input tokens it stopped with an empty reply, no plan and no events. "
+           "Middle, the fix in the tool: a k parameter whose docstring says there are 7 facts in all. Bottom, after: 16 tool "
+           "calls, one search with k 7, 12 model calls, 97,743 input tokens, the plan file and 5 calendar events.")
+s.box(20, 20, 1140, 196, "sw-warn-box", 14)
+s.both(40, 52, "✗ ก่อน: search_course คืนครั้งละ 1 fact", "✗ Before: search_course returns 1 fact per call", "pl-label")
+for k, c in enumerate(RUN1):
+    x, y = 40 + (k % 33) * 33, 70 + (k // 33) * 34
+    s.box(x, y, 28, 28, KIND[c], 4)
+for k, q in enumerate(["“November 9”", "“fact 8”", "“fact 9”", "“fact 10”", "“professor”"]):
+    s.box(40 + k * 150, 146, 140, 30, "ml-cell", 8)
+    s.text(110 + k * 150, 167, q, "hk-desc", "middle")
+s.both(800, 168, "65 tool calls · ค้น 54 ครั้ง", "65 tool calls · 54 searches", "pl-text")
+pic(s, "ag-robot-think", 1068, 136, 80, 76)
+s.both(40, 204, "เรียกโมเดล 22 ครั้ง · 167,828 token → คำตอบว่าง ไม่มีแผน ไม่มีนัด", "22 model calls · 167,828 tokens → an empty reply, no plan, no events", "ml-neg")
+s.box(20, 228, 1140, 86, "ml-cell", 14)
+s.both(40, 258, "แก้ที่ tool ไม่ใช่ที่ prompt", "Fix the tool, not the prompt", "pl-label")
+s.code(40, 292, 'def search_course(query: str, k: int = 1):  # k: how many facts to return, best first (there are 7 in all)')
+s.box(20, 326, 1140, 140, "nt-band-a", 14)
+s.both(40, 358, "✓ หลัง: ค้นครั้งเดียวด้วย k=7", "✓ After: one search with k=7", "pl-label")
+for k, c in enumerate(RUN2):
+    s.box(40 + k * 33, 376, 28, 28, KIND[c], 4)
+s.both(600, 398, "16 tool calls · ค้น 1 ครั้ง", "16 tool calls · 1 search", "pl-text")
+pic(s, "ag-robot-plan", 1062, 334, 86, 128)
+s.both(40, 448, "เรียกโมเดล 12 ครั้ง · 97,743 token → ไฟล์แผน + นัด 5 รายการ", "12 model calls · 97,743 tokens → the plan file + 5 events", "ml-ok")
+LEG = [("nt-hub", "search_course"), ("ml-model", "write_todos"), ("ml-bar", "today / days"), ("dg-hl-col", "ls / glob"), ("nt-out", "calendar / file")]
+for k, (cls, t) in enumerate(LEG):
+    s.box(40 + k * 226, 484, 18, 18, cls, 3)
+    s.code(66 + k * 226, 499, t)
+s.save("l14-trace.svg", 514)

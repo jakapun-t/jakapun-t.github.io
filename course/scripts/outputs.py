@@ -11,6 +11,10 @@ Rules
 - {run=false} on a cell skips it. {output=false} runs it but writes no output block.
   Lines starting with ! or % (pip installs, magics) are skipped.
 - Top-level `await` works, as in Colab (MCP cells): a cell with await runs on one shared event loop.
+- `from google.colab import userdata` works: userdata.get(NAME) reads NAME from course/.env, so
+  Gemini cells run here exactly as students write them in Colab. Keys are never printed.
+- {keep=true} runs the cell (later cells need what it defines) but keeps its existing output block:
+  an LLM words its answer differently every run, and the page text quotes the run we kept.
 - {plot="images/l11-name.png"} on a cell saves the figure it draws (matplotlib/seaborn) to that
   file and writes ```output {plot="..."}, which the page shows as the chart. End such cells with
   plt.show(), as students do.
@@ -52,6 +56,28 @@ def run_code(code, ns):
     if code.co_flags & 0x80:  # CO_COROUTINE
         value = LOOP.run_until_complete(value)
     return value
+
+
+def install_colab_userdata(env_file):
+    """A stand-in for google.colab.userdata that reads course/.env (never prints a value)."""
+    import types
+
+    values = {}
+    if os.path.exists(env_file):
+        for line in open(env_file, encoding="utf-8"):
+            if "=" in line and not line.lstrip().startswith("#"):
+                k, v = line.rstrip("\n").split("=", 1)
+                values[k.strip()] = v.strip().strip('"').strip("'")
+
+    def get(name):
+        if not values.get(name):
+            raise KeyError(f"{name} is not set in course/.env")
+        return values[name]
+
+    colab = types.ModuleType("google.colab")
+    colab.userdata = types.SimpleNamespace(get=get)
+    sys.modules["google.colab"] = colab
+    sys.modules["google.colab.userdata"] = colab.userdata
 
 
 def parse_attrs(src):
@@ -146,6 +172,7 @@ def main():
     cells = find_cells(lines)
 
     ns = {"__name__": "__main__"}
+    install_colab_userdata(os.path.join(os.path.dirname(os.path.dirname(course_dir)), ".env"))
     # like Colab, `python` on the PATH is the notebook's own Python (MCP servers start with command="python")
     os.environ["PATH"] = os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", "")
     data_dir = os.path.join(course_dir, "data")
@@ -181,6 +208,8 @@ def main():
     # rewrite from the bottom up so earlier line numbers stay valid
     for cell, res in reversed(list(zip(cells, results))):
         if res is None or cell["attrs"].get("output") == "false":
+            continue
+        if cell["attrs"].get("keep") == "true" and cell["out"] and res[0] != "error":
             continue
         kind, text, note = res
         ind = cell["indent"]
