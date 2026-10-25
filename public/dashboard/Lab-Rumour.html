@@ -6,42 +6,51 @@
 <title>How far does a rumour spread? · Monte Carlo lab</title>
 <meta name="description" content="An interactive Monte Carlo simulation: release rumours in a friends' group chat and watch how many go viral. Part of Statistics for Digital Humanities by Jakapun Tachaiya.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
 <style>
+/* SynthID lab theme */
 :root{
-  --bg:#F4F6FA; --panel:#FFFFFF; --border:#E2E7EF; --line:#C5CEDB; --soft:#EEF2F7;
-  --ink:#0F172A; --muted:#5B6577; --blue:#2563EB; --blue-d:#1D4ED8; --blue-dd:#1E40AF; --blue-bg:#EAF1FF;
-  --orange:#EA580C; --orange-t:#C2410C;
-  --mono:'IBM Plex Mono', ui-monospace, monospace;
+  --page:#f7f5ef; --bg:#f7f5ef; --panel:#FFFFFF; --border:#e4e4e9; --line:#d4d5db; --soft:#f3f3f5; --panel-in:#fafafa;
+  --ink:#0c0d10; --text:#15171b; --dim:#3d3f47; --muted:#6d707a;
+  --blue:#2f4fd6; --blue-d:#2440b8; --blue-dd:#1f379e; --blue-bg:#eef1fd;
+  --orange:#b0730f; --orange-t:#b0730f;
+  --gold:#b0730f; --gold-bg:#fdf3e1; --gold-line:#e7c07f;
+  --green:#1c8f5c; --green-bg:#e9f8f0;
+  --shadow:0 1px 2px rgba(20,20,30,.04),0 8px 24px rgba(20,20,30,.05);
+  --sans:'Inter','IBM Plex Sans Thai',system-ui,sans-serif;
+  --disp:'Space Grotesk','IBM Plex Sans Thai',system-ui,sans-serif;
+  --mono:'IBM Plex Mono','IBM Plex Sans Thai',ui-monospace,monospace;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg)}
+html{scroll-behavior:smooth}
+html,body{margin:0;background:var(--page)}
 html.embed,html.embed body{height:100%;overflow:hidden}
-body{font-family:'IBM Plex Sans Thai', system-ui, sans-serif;color:var(--ink)}
+body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiased}
 #wrap{position:fixed;inset:0;overflow:hidden;background:var(--bg)}
-html.page #wrap{position:relative;inset:auto;width:100%;max-width:1184px;margin:0 auto;aspect-ratio:16/9;border:1px solid var(--border);border-radius:20px;box-shadow:0 10px 40px rgba(15,23,42,.08)}
+html.page #wrap{position:relative;inset:auto;width:100%;max-width:1184px;margin:0 auto;aspect-ratio:16/9;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
 html.page #wrap:fullscreen{max-width:none;border:0;border-radius:0;aspect-ratio:auto}
 #app{position:absolute;left:0;top:0;width:1280px;height:720px;padding:30px 48px 32px;display:flex;flex-direction:column;background:var(--bg);transform-origin:0 0;overflow:hidden}
 button{font-family:inherit;cursor:pointer}
 button:disabled{opacity:.4;cursor:not-allowed}
-button:focus-visible{outline:3px solid #93B4F7;outline-offset:2px}
+button:focus-visible,a:focus-visible{outline:3px solid rgba(47,79,214,.28);outline-offset:2px}
 .mono{font-family:var(--mono)}
 
 #app header{height:84px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
 .titles{display:flex;flex-direction:column;gap:2px;min-width:0}
-.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--blue)}
-#app h1{margin:0;font-size:32px;line-height:1.25;font-weight:700}
-.sub{margin:0;font-size:15px;color:var(--muted)}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gold)}
+#app h1{margin:0;font-family:var(--disp);font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.sub{margin:0;font-size:15px;color:var(--dim)}
 .hright{flex:none;display:flex;align-items:flex-end;gap:14px}
-.seg{display:flex;gap:2px;padding:3px;background:var(--panel);border:1px solid var(--border);border-radius:12px}
-.seg button{height:36px;min-width:56px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14px;font-weight:600}
-.seg button:hover{color:var(--ink)}
-.seg button.on{background:var(--ink);color:#fff}
-.counter{min-width:210px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:10px 20px;display:flex;flex-direction:column;align-items:flex-end}
+.seg{display:flex;gap:2px;padding:3px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+.seg button{height:36px;min-width:56px;padding:0 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--dim);font-family:var(--mono);font-size:13px;font-weight:600}
+.seg button:hover{color:var(--gold)}
+.seg button.on{background:var(--gold-bg);border-color:var(--gold);color:var(--gold)}
+.counter{min-width:210px;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:10px 20px;display:flex;flex-direction:column;align-items:flex-end}
 .counter small{font-size:12px;color:var(--muted)}
-.counter b{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.15;color:var(--blue)}
+.counter b{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.15;color:var(--gold)}
 
-.stage{margin-top:16px;height:360px;flex:none;background:var(--panel);border:1px solid var(--border);border-radius:20px;display:flex;flex-direction:column;overflow:hidden}
+.stage{margin-top:16px;height:360px;flex:none;background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
 #graph{position:relative;width:1184px;height:284px;flex:none}
 #edges{position:absolute;left:0;top:0}
 .flow{stroke-dasharray:4 12;animation:flowdash .6s linear infinite}
@@ -50,40 +59,40 @@ button:focus-visible{outline:3px solid #93B4F7;outline-offset:2px}
 .pt{position:absolute;border-radius:50%;pointer-events:none}
 #tok{position:absolute;width:22px;height:22px;border-radius:50%;pointer-events:none;opacity:0}
 .node{position:absolute;width:96px;height:96px;border-radius:50%;border:2px solid var(--line);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:background .3s,border-color .3s}
-.node .L{font-size:30px;font-weight:700;line-height:1.1}
+.node .L{font-family:var(--disp);font-size:30px;font-weight:700;line-height:1.1}
 .node .c{font-family:var(--mono);font-size:12px;font-weight:500}
 .tag{position:absolute;width:130px;display:flex;justify-content:center}
-.tag span{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+.tag span{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px}
 .lab{position:absolute;width:170px;display:flex;flex-direction:column;align-items:center}
-.lab .nm{font-size:14px;font-weight:600}
-.lab .rc{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--blue-d)}
+.lab .nm{font-size:14px;font-weight:600;color:var(--ink)}
+.lab .rc{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--blue)}
 .lab .st{font-size:11px;color:var(--muted)}
 .pill{position:absolute;height:30px;display:flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:1px}
 .pill span{width:60px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:600}
 .step{width:26px;height:26px;border:0;border-radius:50%;background:var(--soft);color:var(--ink);font-size:16px;line-height:1;padding:0}
-.step:hover:not(:disabled){background:#DFE5EE}
-.chip{position:absolute;width:124px;padding:4px 8px;border-radius:10px;background:#fff;border:1.5px solid;box-shadow:0 2px 8px rgba(15,23,42,.08);display:none;flex-direction:column;align-items:center}
+.step:hover:not(:disabled){background:var(--gold-bg);color:var(--gold)}
+.chip{position:absolute;width:124px;padding:4px 8px;border-radius:9px;background:#fff;border:1.5px solid;box-shadow:var(--shadow);display:none;flex-direction:column;align-items:center}
 .chip .l1{font-family:var(--mono);font-size:13px;font-weight:600}
 .chip .l2{font-size:11px;font-weight:600}
 
-.toolbar{height:76px;flex:none;border-top:1px solid var(--border);background:#FAFBFD;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.toolbar{height:76px;flex:none;border-top:1px solid var(--border);background:var(--panel-in);padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .btns{display:flex;align-items:center;gap:10px}
-.primary{height:46px;padding:0 20px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
-.primary:hover:not(:disabled){background:var(--blue-d)}
-.outline{height:46px;padding:0 16px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:var(--mono);font-size:14px;font-weight:600}
-.outline:hover:not(:disabled){border-color:var(--blue);color:var(--blue-d);background:#F5F8FF}
-.ghost{height:46px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-size:14px;font-weight:500}
-.ghost:hover{background:var(--soft)}
+.primary{height:46px;padding:0 20px;border:1px solid var(--gold);border-radius:7px;background:var(--gold-bg);color:var(--gold);font-family:var(--mono);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.primary:hover:not(:disabled){background:#fbe9c7}
+.outline{height:46px;padding:0 16px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--dim);font-family:var(--mono);font-size:14px;font-weight:600}
+.outline:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.ghost{height:46px;padding:0 14px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font-family:var(--mono);font-size:13px;font-weight:500}
+.ghost:hover{border-color:var(--line);background:#fff;color:var(--gold)}
 .rules{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13px;color:var(--muted)}
 .rules .ok{color:var(--blue);font-weight:600}
 .rules .no{color:var(--orange-t);font-weight:600}
 #viral{color:var(--ink)}
 
 .bottom{margin-top:16px;flex:1;min-height:0;display:flex;gap:20px}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:14px 20px 12px;display:flex;flex-direction:column;gap:8px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px 20px 12px;display:flex;flex-direction:column;gap:8px}
 .phead{display:flex;justify-content:space-between;align-items:center}
-#app h2{margin:0;font-size:15px;font-weight:600}
-#app h2 span{font-weight:400;color:var(--muted)}
+#app h2{margin:0;font-family:var(--disp);font-size:15px;font-weight:600;color:var(--ink)}
+#app h2 span{font-family:var(--sans);font-weight:400;color:var(--muted)}
 .legend{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--muted)}
 .legend span{display:flex;align-items:center;gap:6px}
 .chart{display:flex;gap:8px}
@@ -94,14 +103,14 @@ button:focus-visible{outline:3px solid #93B4F7;outline-offset:2px}
 .grid{position:absolute;left:0;right:0;height:1px;background:var(--border)}
 .cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 .bcol{position:relative;height:92px}
-.bar{position:absolute;bottom:0;left:50%;margin-left:-20px;width:40px;height:0;background:var(--blue);border-radius:6px 6px 0 0;transition:height .2s}
+.bar{position:absolute;bottom:0;left:50%;margin-left:-20px;width:40px;height:0;background:var(--blue);border-radius:4px 4px 0 0;transition:height .2s}
 .ex{position:absolute;left:50%;margin-left:-32px;width:64px;height:2px;background:var(--orange)}
 .blabels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 .blabels div{display:flex;flex-direction:column;align-items:center}
-.blabels b{font-family:var(--mono);font-size:13px;font-weight:600}
+.blabels b{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)}
 .blabels small{font-size:11px;color:var(--muted)}
 #log{flex:1;display:flex;flex-direction:column;gap:4px;min-height:0}
-.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.6;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:12px}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.6;color:var(--muted);background:var(--panel-in);border:1px dashed var(--line);border-radius:9px;padding:12px}
 .lrow{display:flex;align-items:center;gap:12px;height:26px}
 .lid{width:78px;flex:none;font-family:var(--mono);font-size:12px;color:var(--muted)}
 .path{display:flex;align-items:center}
@@ -109,54 +118,84 @@ button:focus-visible{outline:3px solid #93B4F7;outline-offset:2px}
 .path .d{width:12px;height:12px;border-radius:6px}
 .path .k{width:18px;height:3px;border-radius:2px}
 .lres{margin-left:auto;font-size:13px}
-.hint{position:fixed;right:12px;bottom:8px;font-size:11px;color:#8A94A6}
+.hint{position:fixed;right:12px;bottom:8px;font-family:var(--mono);font-size:11px;color:var(--muted)}
 html.page .hint{display:none}
 /* ---------- the public page around the simulation (hidden when embedded) ---------- */
-html.embed .pg{display:none}
+html.embed .pg,html.embed .class-nav{display:none}
 html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
 .pg{max-width:1184px;margin:0 auto;padding:0 24px}
-.pg-top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 24px;max-width:1232px;margin:0 auto}
-.pg-top a{font-family:var(--mono);font-size:14px;color:var(--ink);text-decoration:none}
-.pg-back{position:fixed;top:16px;right:16px;z-index:50;padding:9px 14px;border:1px solid rgba(80,75,65,.22);border-radius:999px;background:rgba(255,255,255,.94);font:500 12px/1.2 var(--mono)!important;box-shadow:0 4px 18px rgba(30,28,24,.12)}
-.pg-seg{display:flex;gap:2px;padding:3px;background:#fff;border:1px solid var(--border);border-radius:12px;margin-right:170px}
-.pg-seg button{height:32px;min-width:52px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:600}
-.pg-seg button.on{background:var(--ink);color:#fff}
-.pg-hero{padding:40px 24px 26px}
-.pg-eyebrow{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--blue);margin:0 0 12px}
-.pg-hero h1{font-size:clamp(30px,4.4vw,46px);line-height:1.15;margin:0 0 16px;font-weight:700}
-.pg-lead{font-size:19px;line-height:1.7;color:#334155;max-width:66ch;margin:0}
-.pg-under{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;max-width:1184px;margin:12px auto 0;padding:0 24px;font-size:14px;color:var(--muted)}
-.pg-under button{height:38px;padding:0 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:600;color:var(--ink)}
-.pg-under button:hover{border-color:var(--blue);color:var(--blue-d)}
-.pg-sec{padding:34px 24px 6px}
-.pg-sec h2{font-size:24px;margin:0 0 14px;font-weight:700}
-.pg-sec p,.pg-sec li{font-size:17px;line-height:1.75;color:#334155;max-width:72ch}
-.pg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
-.pg-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 18px}
-.pg-card b{display:block;font-size:16px;margin-bottom:6px}
-.pg-card span{font-size:15px;line-height:1.65;color:#475569}
-.pg-num{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font:600 14px var(--mono);align-items:center;justify-content:center;margin-right:8px}
-.pg-math{font-family:var(--mono);background:var(--blue-bg);color:var(--blue-dd);padding:2px 8px;border-radius:6px;font-size:15px;white-space:nowrap}
-.pg-foot{padding:40px 24px 60px;font-size:14px;color:var(--muted);max-width:1184px;margin:0 auto}
-.pg-foot a,.pg-sec a{color:var(--blue-d)}
-@media (max-width:760px){.pg-seg{margin-right:0}.pg-top{padding-top:64px}.pg-hero{padding-top:20px}}
+.class-nav{position:sticky;top:0;z-index:20;background:rgba(247,245,239,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1184px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:18px}
+.brand{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--ink);text-decoration:none;white-space:nowrap;margin-right:auto}
+.brand span{color:var(--gold)}
+.jump-links{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.jump-links::-webkit-scrollbar{display:none}
+.jump-links a{color:var(--dim);text-decoration:none;font-size:12.5px;padding:7px 10px;border-radius:7px;white-space:nowrap}
+.jump-links a:hover,.jump-links a:focus-visible{background:#fff;color:var(--gold);outline:1px solid var(--gold-line)}
+.pg-back{position:fixed;top:16px;right:16px;z-index:50;padding:9px 14px;border:1px solid rgba(80,75,65,.22);border-radius:999px;background:rgba(255,255,255,.94);color:#2a2722;text-decoration:none;font:500 12px/1.2 var(--mono)!important;box-shadow:0 4px 18px rgba(30,28,24,.12);backdrop-filter:blur(10px)}
+.pg-seg{flex:none;display:flex;gap:2px;padding:3px;background:#fff;border:1px solid var(--line);border-radius:9px;margin-right:170px}
+.pg-seg button{height:30px;min-width:48px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--dim);font-family:var(--mono);font-size:12.5px;font-weight:600}
+.pg-seg button:hover{color:var(--gold)}
+.pg-seg button.on{background:var(--gold-bg);border-color:var(--gold);color:var(--gold)}
+.pg-hero{padding:42px 24px 26px}
+.pg-eyebrow{display:inline-block;font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.03em;color:var(--gold);background:var(--gold-bg);border:1px solid var(--gold-line);padding:5px 11px;border-radius:20px;margin:0 0 12px}
+.pg-byline{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:0 0 14px}
+.pg-byline b{color:var(--dim);font-weight:600}
+.pg-hero h1{font-family:var(--disp);font-size:42px;line-height:1.1;letter-spacing:-.015em;margin:0 0 16px;font-weight:600;color:var(--ink);max-width:760px}
+.pg-lead{font-size:18px;line-height:1.6;color:var(--dim);max-width:66ch;margin:0}
+.pg-lead b{color:var(--ink)}
+.pg-under{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;max-width:1184px;margin:12px auto 0;padding:0 24px;font-size:13.5px;color:var(--muted)}
+.pg-under button{min-height:42px;padding:0 16px;border:1px solid var(--line);border-radius:7px;background:#fff;font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--dim)}
+.pg-under button:hover{border-color:var(--gold);color:var(--gold)}
+#sim{scroll-margin-top:58px}
+.pg-sec{padding:40px 24px;scroll-margin-top:58px}
+.pg-sec+.pg-sec,.pg-under+.pg-sec{border-top:1px solid var(--border)}
+.pg-under+.pg-sec{margin-top:40px}
+.pg-sec .num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--gold);margin:0 0 5px}
+.pg-sec h2{font-family:var(--disp);font-size:27px;line-height:1.3;letter-spacing:-.005em;margin:0 0 14px;font-weight:600;color:var(--ink)}
+.pg-sec p,.pg-sec li{font-size:16px;line-height:1.65;color:var(--dim);max-width:76ch}
+.pg-sec li{margin-bottom:6px}
+.pg-sec li b,.pg-sec p b{color:var(--ink)}
+.pg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.pg-card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px}
+.pg-card b{display:flex;align-items:center;font-family:var(--disp);font-size:16.5px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.pg-card span{font-size:14.5px;line-height:1.55;color:var(--dim)}
+.pg-num{display:inline-flex;flex:none;width:24px;height:24px;border-radius:50%;background:var(--gold);color:#fff !important;font:700 12px var(--mono) !important;align-items:center;justify-content:center;margin-right:10px;box-shadow:0 0 0 4px var(--gold-bg)}
+.pg-math{font-family:var(--mono);background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:6px;font-size:14.5px;white-space:nowrap}
+.pg-note{font-size:14.5px !important;color:var(--muted) !important}
+.pg-foot{padding:32px 24px 44px;font-size:12.5px;color:var(--muted);max-width:none;margin:0;text-align:center;border-top:1px solid var(--border)}
+.pg-foot a,.pg-sec a{color:var(--gold);font-weight:600;text-underline-offset:2px}
+@media (max-width:820px){.pg-hero h1{font-size:36px}}
+@media (max-width:760px){.pg-seg{margin-right:0}.class-nav{position:static;padding-top:58px}.pg-hero{padding-top:24px}}
+@media (max-width:560px){.brand{display:none}.nav-inner{padding:8px 16px}.pg,.pg-hero,.pg-sec,.pg-under{padding-left:16px;padding-right:16px}.pg-hero h1{font-size:31px}}
 </style>
 </head>
 <body>
-<div class="pg pg-top-wrap" style="max-width:none;padding:0">
-  <div class="pg-top">
-    <a href="../">Jakapun Tachaiya</a>
+<nav class="class-nav" aria-label="Lesson sections">
+  <div class="nav-inner">
+    <a class="brand" href="#top">Rumour <span>Lab</span></a>
+    <div class="jump-links">
+      <a href="#sim"><span data-l="en">1 · Simulate</span><span data-l="th">1 · จำลอง</span></a>
+      <a href="#what"><span data-l="en">2 · Read the picture</span><span data-l="th">2 · อ่านภาพ</span></a>
+      <a href="#steps"><span data-l="en">3 · Four steps</span><span data-l="th">3 · 4 ขั้น</span></a>
+      <a href="#try"><span data-l="en">4 · Try</span><span data-l="th">4 · ลองทำ</span></a>
+      <a href="#why"><span data-l="en">5 · Why simulate</span><span data-l="th">5 · ทำไมต้องจำลอง</span></a>
+      <a href="#where"><span data-l="en">6 · Where it shows up</span><span data-l="th">6 · ใช้ที่ไหนบ้าง</span></a>
+    </div>
     <div class="pg-seg" role="group" aria-label="Language"><button id="pg-th">ไทย</button><button id="pg-en">EN</button></div>
   </div>
+</nav>
+<div class="pg" style="max-width:none;padding:0">
   <a class="pg-back" href="../" aria-label="Back to Jakapun Tachaiya main page">← <span data-l="en">Back to main page</span><span data-l="th">กลับหน้าหลัก</span></a>
 </div>
-<section class="pg pg-hero">
+<section class="pg pg-hero" id="top">
   <p class="pg-eyebrow"><span data-l="en">INTERACTIVE LESSON · MONTE CARLO SIMULATION</span><span data-l="th">บทเรียนแบบโต้ตอบ · การจำลองมอนติคาร์โล</span></p>
+  <p class="pg-byline"><span data-l="en">Made by</span><span data-l="th">โดย</span> <b>Jakapun Tachaiya</b></p>
   <h1><span data-l="en">How far does a rumour spread?</span><span data-l="th">ข่าวลือในโซเชียลแพร่ไปได้ไกลแค่ไหน</span></h1>
   <p class="pg-lead" data-l="en">Some questions are too tangled for a neat formula. <b>Monte Carlo simulation</b> answers them another way: play the same random process thousands of times and count what happens. Here a rumour starts in a friends’ group chat. Each time it reaches a new group, someone may share it on, or everyone may scroll past. How often does it make it all the way to viral?</p>
   <p class="pg-lead" data-l="th">บางคำถามซับซ้อนเกินจะมีสูตรสวย ๆ ให้คิด <b>การจำลองมอนติคาร์โล (Monte Carlo simulation)</b> ตอบอีกแบบ: เล่นกระบวนการสุ่มเดิมซ้ำหลายพันครั้ง แล้วนับว่าเกิดอะไรขึ้นบ้าง ที่นี่ข่าวลือเริ่มในแชทแก๊งเพื่อน ทุกครั้งที่ไปถึงกลุ่มใหม่ อาจมีคนแชร์ต่อ หรือทุกคนเลื่อนผ่าน ข่าวลือจะไปถึงขั้นไวรัลบ่อยแค่ไหน?</p>
 </section>
-<div id="wrap">
+<div id="wrap"><span id="sim" aria-hidden="true" style="position:absolute;top:0"></span>
 <div id="app">
 
 <header>
@@ -241,7 +280,8 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
   <button id="pg-full">⛶ <span data-l="en">Full screen</span><span data-l="th">เต็มจอ</span></button>
 </div>
 
-<section class="pg pg-sec">
+<section class="pg pg-sec" id="what">
+  <div class="num">01</div>
   <h2><span data-l="en">What you are looking at</span><span data-l="th">ในภาพมีอะไรบ้าง</span></h2>
   <div class="pg-grid">
     <div class="pg-card"><b><span data-l="en">Five groups in a chain</span><span data-l="th">กลุ่ม 5 กลุ่มต่อกันเป็นสาย</span></b><span data-l="en">A friends’ chat (A) → class group (B) → faculty group (C) → university page (D) → viral nationwide (E). The rumour can only move forward one step at a time.</span><span data-l="th">แชทแก๊งเพื่อน (A) → กรุ๊ปห้อง (B) → กรุ๊ปคณะ (C) → เพจมหาลัย (D) → ไวรัลทั้งประเทศ (E) ข่าวลือเดินหน้าได้ทีละขั้น</span></div>
@@ -250,7 +290,8 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
   </div>
 </section>
 
-<section class="pg pg-sec">
+<section class="pg pg-sec" id="steps">
+  <div class="num">02</div>
   <h2><span data-l="en">Monte Carlo in four steps</span><span data-l="th">Monte Carlo ใน 4 ขั้น</span></h2>
   <div class="pg-grid">
     <div class="pg-card"><b><span class="pg-num">1</span><span data-l="en">Describe the process</span><span data-l="th">เขียนกระบวนการ</span></b><span data-l="en">A rumour moves A → B → C → D → E, one arrow at a time.</span><span data-l="th">ข่าวลือเดิน A → B → C → D → E ทีละลูกศร</span></div>
@@ -260,7 +301,8 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
   </div>
 </section>
 
-<section class="pg pg-sec">
+<section class="pg pg-sec" id="try">
+  <div class="num">03</div>
   <h2><span data-l="en">Three things to try</span><span data-l="th">ลองทำ 3 อย่างนี้</span></h2>
   <ol>
     <li data-l="en"><b>Watch one rumour.</b> Release 1 rumour a few times. Most die in the friends’ chat: 70% of the time nobody shares it (p = 0.3).</li>
@@ -272,13 +314,15 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
   </ol>
 </section>
 
-<section class="pg pg-sec">
+<section class="pg pg-sec" id="why">
+  <div class="num">04</div>
   <h2><span data-l="en">If you can multiply, why simulate?</span><span data-l="th">ถ้าคูณเองได้ ทำไมต้องจำลอง</span></h2>
   <p data-l="en">For this simple chain the exact answer is easy: <span class="pg-math">0.3 × 0.2 × 0.5 × 0.1 = 0.003</span>, so about 3 rumours in 1,000 go viral, and the simulation agrees. That is the point: on a problem we <i>can</i> solve, simulation gives the right answer, so we can trust it on problems we <i>cannot</i>. Real social networks branch and loop, people see the same post from several friends, sharing depends on the time of day and on who posted it. No neat formula covers that, but the simulation only needs one more rule per detail.</p>
   <p data-l="th">สายโซ่ง่าย ๆ แบบนี้คิดคำตอบที่แน่นอนได้: <span class="pg-math">0.3 × 0.2 × 0.5 × 0.1 = 0.003</span> คือราว 3 ใน 1,000 ข่าวที่ไวรัล และการจำลองก็ได้เท่ากัน นี่คือหัวใจ: กับปัญหาที่เรา <i>คิดได้</i> การจำลองให้คำตอบถูก เราจึงเชื่อมันได้กับปัญหาที่ <i>คิดไม่ได้</i> โซเชียลจริงแตกแขนงและวนกลับ คนเห็นโพสต์เดียวกันจากเพื่อนหลายคน การแชร์ขึ้นกับเวลาและคนที่โพสต์ ไม่มีสูตรสวย ๆ ครอบคลุมได้ แต่การจำลองแค่เพิ่มกติกาทีละข้อ</p>
 </section>
 
-<section class="pg pg-sec">
+<section class="pg pg-sec" id="where">
+  <div class="num">05</div>
   <h2><span data-l="en">Where Monte Carlo shows up</span><span data-l="th">Monte Carlo อยู่ที่ไหนบ้าง</span></h2>
   <div class="pg-grid">
     <div class="pg-card"><b><span data-l="en">Weather apps</span><span data-l="th">แอปพยากรณ์อากาศ</span></b><span data-l="en">“70% chance of rain” comes from running a forecast many times with slightly different starting conditions.</span><span data-l="th">“ฝนตก 70%” มาจากการรันพยากรณ์หลายครั้งด้วยจุดเริ่มต้นที่ต่างกันเล็กน้อย</span></div>
@@ -288,8 +332,8 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
   </div>
   <p data-l="en" style="margin-top:18px">A bit of history: the method was developed in the late 1940s at Los Alamos by Stanisław Ulam and John von Neumann, and named by their colleague Nicholas Metropolis after the Monte Carlo casino, because it runs on chance. <a href="https://en.wikipedia.org/wiki/Monte_Carlo_method" target="_blank" rel="noopener">Read more on Wikipedia</a>.</p>
   <p data-l="th" style="margin-top:18px">ประวัติสั้น ๆ: วิธีนี้พัฒนาขึ้นปลายทศวรรษ 1940 ที่ Los Alamos โดย Stanisław Ulam และ John von Neumann ชื่อ “มอนติคาร์โล” ตั้งโดย Nicholas Metropolis เพื่อนร่วมงาน ตามชื่อคาสิโนชื่อดัง เพราะมันอาศัยความบังเอิญ <a href="https://en.wikipedia.org/wiki/Monte_Carlo_method" target="_blank" rel="noopener">อ่านต่อใน Wikipedia</a></p>
-  <p data-l="en" style="font-size:15px;color:var(--muted)">The share probabilities here are made up for teaching. In real research they would be estimated from data, for example by counting how often posts in each kind of group get reshared.</p>
-  <p data-l="th" style="font-size:15px;color:var(--muted)">ค่าโอกาสแชร์ในหน้านี้เป็นตัวเลขสมมติเพื่อการสอน งานวิจัยจริงจะประมาณจากข้อมูล เช่น นับว่าโพสต์ในกลุ่มแต่ละแบบถูกแชร์ต่อบ่อยแค่ไหน</p>
+  <p data-l="en" class="pg-note">The share probabilities here are made up for teaching. In real research they would be estimated from data, for example by counting how often posts in each kind of group get reshared.</p>
+  <p data-l="th" class="pg-note">ค่าโอกาสแชร์ในหน้านี้เป็นตัวเลขสมมติเพื่อการสอน งานวิจัยจริงจะประมาณจากข้อมูล เช่น นับว่าโพสต์ในกลุ่มแต่ละแบบถูกแชร์ต่อบ่อยแค่ไหน</p>
 </section>
 
 <footer class="pg pg-foot">
@@ -302,7 +346,7 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
 (function () {
   'use strict';
   var NP = [[104, 158], [348, 118], [592, 158], [836, 118], [1080, 158]];
-  var CY = '#2563EB', OR = '#EA580C';
+  var CY = '#2f4fd6', OR = '#b0730f';
   var L = 'ABCDE';
   var SVGNS = 'http://www.w3.org/2000/svg';
   var TXT = {
@@ -372,11 +416,11 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
   for (var k = 0; k < 4; k++) (function (k) {
     var a = NP[k], b = NP[k + 1], c = ctrl(k);
     var d = 'M ' + a[0] + ' ' + a[1] + ' Q ' + c[0] + ' ' + c[1] + ' ' + b[0] + ' ' + b[1];
-    var base = svg('path', { d: d, fill: 'none', stroke: '#C5CEDB', 'stroke-width': 3, 'stroke-linecap': 'round' }, E);
+    var base = svg('path', { d: d, fill: 'none', stroke: '#d4d5db', 'stroke-width': 3, 'stroke-linecap': 'round' }, E);
     var flow = svg('path', { d: d, fill: 'none', stroke: CY, 'stroke-width': 2, 'stroke-linecap': 'round', 'class': 'flow', opacity: 0 }, E);
     var ap = bez(k, 0.74), at = tan(k, 0.74);
     var pts = [[ap[0] + at[0] * 8, ap[1] + at[1] * 8], [ap[0] - at[0] * 6 - at[1] * 7, ap[1] - at[1] * 6 + at[0] * 7], [ap[0] - at[0] * 6 + at[1] * 7, ap[1] - at[1] * 6 - at[0] * 7]];
-    var arrow = svg('polygon', { points: pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '), fill: '#C5CEDB' }, E);
+    var arrow = svg('polygon', { points: pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '), fill: '#d4d5db' }, E);
     edgeEls.push({ base: base, flow: flow, arrow: arrow });
   })(k);
   var tokEl = $('tok');
@@ -412,13 +456,13 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
   function nodeStyle(i) {
     var v = S.view, T = TXT[S.lang];
     var lit = v.lit >= i, stop = v.stopAt === i, viral = i === 4 && v.lit === 4;
-    var o = { bg: '#FFFFFF', border: '#C5CEDB', letter: '#5B6577', cc: '#5B6577', tag: '', tagBg: '', tagColor: '' };
-    if (lit) { o.bg = '#EAF1FF'; o.border = CY; o.letter = '#0F172A'; o.cc = '#1E40AF'; }
+    var o = { bg: '#FFFFFF', border: '#d4d5db', letter: '#6d707a', cc: '#6d707a', tag: '', tagBg: '', tagColor: '' };
+    if (lit) { o.bg = '#eef1fd'; o.border = CY; o.letter = '#0c0d10'; o.cc = '#1f379e'; }
     if (stop) { o.border = OR; o.tag = T.tagStop; o.tagBg = OR; o.tagColor = '#FFFFFF'; }
-    if (viral) { o.bg = CY; o.border = CY; o.letter = '#FFFFFF'; o.cc = '#FFFFFF'; o.tag = T.tagViral; o.tagBg = '#0F172A'; o.tagColor = '#FFFFFF'; }
+    if (viral) { o.bg = CY; o.border = CY; o.letter = '#FFFFFF'; o.cc = '#FFFFFF'; o.tag = T.tagViral; o.tagBg = '#0c0d10'; o.tagColor = '#FFFFFF'; }
     var z = pulse[i] || 0;
-    if (z > 0.05 && !lit) { o.border = CY; o.letter = '#0F172A'; }
-    o.shadow = '0 0 0 ' + (3 + 12 * z).toFixed(1) + 'px rgba(37,99,235,' + (0.05 + 0.22 * z).toFixed(3) + '), 0 4px ' + (12 + 36 * z).toFixed(1) + 'px rgba(37,99,235,' + (0.08 + 0.4 * z).toFixed(3) + ')';
+    if (z > 0.05 && !lit) { o.border = CY; o.letter = '#0c0d10'; }
+    o.shadow = '0 0 0 ' + (3 + 12 * z).toFixed(1) + 'px rgba(47,79,214,' + (0.05 + 0.22 * z).toFixed(3) + '), 0 4px ' + (12 + 36 * z).toFixed(1) + 'px rgba(47,79,214,' + (0.08 + 0.4 * z).toFixed(3) + ')';
     return o;
   }
   function updateNodes() {
@@ -437,13 +481,13 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
     var T = TXT[S.lang], v = S.view;
     for (var k = 0; k < 4; k++) {
       var e = edgeEls[k], d = v.draws[k];
-      var color = '#C5CEDB', sw = 3, dc = '#5B6577', l1 = '', l2 = '';
-      if (v.cur === k) color = '#0F172A';
+      var color = '#d4d5db', sw = 3, dc = '#6d707a', l1 = '', l2 = '';
+      if (v.cur === k) color = '#0c0d10';
       if (d) {
-        if (d.rolling) { l1 = d.v.toFixed(2); l2 = T.rolling; dc = '#0F172A'; }
+        if (d.rolling) { l1 = d.v.toFixed(2); l2 = T.rolling; dc = '#0c0d10'; }
         else {
           l1 = d.v.toFixed(2) + (d.pass ? ' < ' : ' ≥ ') + S.p[k].toFixed(1);
-          l2 = d.pass ? T.pass : T.fail; color = d.pass ? CY : OR; dc = d.pass ? CY : '#C2410C'; sw = 4;
+          l2 = d.pass ? T.pass : T.fail; color = d.pass ? CY : OR; dc = d.pass ? CY : '#b0730f'; sw = 4;
         }
       }
       e.base.setAttribute('stroke', color); e.base.setAttribute('stroke-width', sw); e.arrow.setAttribute('fill', color);
@@ -474,11 +518,11 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
       var segs = '';
       for (var i = 0; i < 5; i++) {
         var on = i <= e.idx;
-        segs += '<i class="d" style="background:' + (on ? CY : '#C5CEDB') + ';box-shadow:' + (on ? '0 0 6px rgba(37,99,235,.45)' : 'none') + '"></i>';
-        if (i < 4) segs += '<i class="k" style="background:' + (i < e.idx ? CY : (i === e.idx ? OR : '#E2E7EF')) + '"></i>';
+        segs += '<i class="d" style="background:' + (on ? CY : '#d4d5db') + ';box-shadow:' + (on ? '0 0 6px rgba(47,79,214,.45)' : 'none') + '"></i>';
+        if (i < 4) segs += '<i class="k" style="background:' + (i < e.idx ? CY : (i === e.idx ? OR : '#e4e4e9')) + '"></i>';
       }
       var viral = e.idx === 4;
-      return '<div class="lrow"><span class="lid">#' + fmt(e.id) + '</span><div class="path">' + segs + '</div><span class="lres" style="color:' + (viral ? CY : '#0F172A') + ';font-weight:' + (viral ? 700 : 500) + '">' + (viral ? T.resViral : T.resDied + L[e.idx]) + '</span></div>';
+      return '<div class="lrow"><span class="lid">#' + fmt(e.id) + '</span><div class="path">' + segs + '</div><span class="lres" style="color:' + (viral ? CY : '#0c0d10') + ';font-weight:' + (viral ? 700 : 500) + '">' + (viral ? T.resViral : T.resDied + L[e.idx]) + '</span></div>';
     }).join('');
   }
   function render() {
@@ -512,7 +556,7 @@ html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
     var pos = tok.node != null ? NP[tok.node] : bez(tok.k, tok.t);
     tokEl.style.left = (pos[0] - 11).toFixed(1) + 'px'; tokEl.style.top = (pos[1] - 11).toFixed(1) + 'px';
     tokEl.style.opacity = tok.show ? 1 : 0; tokEl.style.background = tok.color;
-    tokEl.style.boxShadow = '0 0 0 6px rgba(15,23,42,.06), 0 0 18px ' + tok.color;
+    tokEl.style.boxShadow = '0 0 0 6px rgba(20,20,30,.06), 0 0 18px ' + tok.color;
     updateNodes();
   }
 
