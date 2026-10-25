@@ -8,7 +8,8 @@ Real numbers (computed in course/.venv on 2026-10-19):
   (0.693), fact 2 (0.509); "final exam date" → fact 7 (0.830). 26 Oct → 30 Nov 2026 = 35 days; → 2 Nov = 7 days.
 - Gemini runs (2026-10-23, gemini-3.5-flash-lite unless noted; the lesson's kept outputs): the running question reads
   256, 538, 591 input tokens in 3 calls (1,385 in, 102 out; the question alone is 11). The Deep Agent study-plan run
-  (gemini-3.8-flash): 16 tool calls, 12 model calls, 97,743 input tokens (largest call 14,565). The earlier run before
+  (gemini-3.8-flash, 2026-10-25, 2-week job, FilesystemBackend on study/): 17 tool calls, 14 model calls,
+  91,666 input tokens (largest call 10,671). An earlier run without the backend searched 5 times for schedule.txt. The earlier run before
   search_course had k: 65 tool calls (54 searches), 22 model calls, 167,828 input tokens, an empty final reply.
 - exam-study-plan SKILL.md: name + description 41 tokens, whole file 144.
 - Run B in l14-eval is a real run of Qwen3-0.6B (transformers chat template with the three tools): it called
@@ -217,7 +218,7 @@ for k, (th, en) in enumerate(RUN):
 s.arrow(902, 256, 928, 256)
 s.box(930, 166, 210, 180, "pl-chip", 12)
 s.both(946, 194, "Tools", "Tools", "pl-label")
-for k, (t, icon) in enumerate([("search_course", "magnifier"), ("get_today", "clock"), ("days_between", "abacus"), ("add_to_calendar", "calendar")]):
+for k, (t, icon) in enumerate([("search_course", "magnifier"), ("get_today", "clock"), ("days_between", "abacus"), ("add_to_schedule", "calendar")]):
     ic(s, icon, 958, 220 + k * 30, 24)
     s.code(976, 226 + k * 30, t)
 # result back to the messages
@@ -416,13 +417,13 @@ s.save("l14-patterns.svg", 556)
 # ---------------------------------------------------------------- 7. why tools
 s = Svg(W, "Four limits of an LLM alone and the tool that fixes each. No clock: it guesses today's date; get_today() → 2026-10-26. "
            "No exact arithmetic: it writes numbers token by token; a calculator gives sqrt(1764) × 7 = 294. No private or new "
-           "data: it never saw our 7 facts; search_course → fact 7. No hands: it can only write text; add_to_calendar adds the "
-           "event. The first three fetch data; the last takes an action, so ask first.")
+           "data: it never saw our 7 facts; search_course → fact 7. No hands: it can only write text; add_to_schedule writes the "
+           "session into the file schedule.txt. The first three fetch data; the last takes an action, so ask first.")
 TILE_ICON = ["clock", "abacus", "books", "calendar"]
 TILES = [("1 · ไม่มีนาฬิกา", "1 · No clock", ("เดาวันที่ของวันนี้", "", "guesses today's date", ""), "get_today()", "2026-10-26", False),
          ("2 · คำนวณไม่แม่น", "2 · No exact maths", ("เขียนตัวเลขทีละ token", "จึงพลาดได้", "writes numbers token by", "token, so it can slip"), "calculator(...)", "√1764 × 7 = 294", False),
          ("3 · ไม่มีข้อมูลใหม่", "3 · No new data", ("ไม่เคยเห็นข้อเท็จจริง", "7 ข้อของเรา", "never saw our", "7 course facts"), "search_course(...)", "fact 7", False),
-         ("4 · ลงมือไม่ได้", "4 · No hands", ("เขียนได้แค่ข้อความ", "", "can only write text", ""), "add_to_calendar(...)", "event added", True)]
+         ("4 · ลงมือไม่ได้", "4 · No hands", ("เขียนได้แค่ข้อความ", "", "can only write text", ""), "add_to_schedule(...)", "line added to schedule.txt", True)]
 for k, (tth, ten, (n1t, n2t, n1e, n2e), call, res, act) in enumerate(TILES):
     x = 20 + k * 290
     s.box(x, 20, 280, 330, "sw-warn-box" if False else "ml-cell", 14)
@@ -593,12 +594,12 @@ s.save("l14-function-call.svg", 462)
 # ---------------------------------------------------------------- 11a. what plugs into the harness: into the context window
 s = Svg(W, "The harness fills the context window from three outside sources. Long-term memory: AGENTS.md ('prefers Thai "
            "answers') is read at the start into the rules. Skills: only each skill's name and description (about 41 tokens) "
-           "goes in; the full SKILL.md (about 144 tokens) is loaded only when a task matches. MCP: a calendar MCP server's "
-           "tools, such as create_event, join the tool descriptions like our own tools, and the harness forwards each call to "
+           "goes in; the full SKILL.md (about 144 tokens) is loaded only when a task matches. MCP: a Google Drive MCP server's "
+           "tools, such as a file search, join the tool descriptions like our own tools, and the harness forwards each call to "
            "the server. Short-term memory is the thread itself: the earlier calls and results, saved by a checkpointer.")
 SRC = [("brain", "Memory (ระยะยาว)", "Memory (long-term)", "เก็บไว้นอก thread", "saved outside the thread", "AGENTS.md: prefers Thai", 150),
        ("books", "Skills", "Skills", "วิธีทำงานในโฟลเดอร์", "know-how in a folder", "skills/exam-study-plan/", 342),
-       ("plug", "MCP server", "MCP server", "tool จากข้างนอก ปลั๊กเดียว", "outside tools, one plug", "calendar → create_event", 562)]
+       ("plug", "MCP server", "MCP server", "tool จากข้างนอก ปลั๊กเดียว", "outside tools, one plug", "Google Drive → search files", 562)]
 for k, (icon, th, en, dth, den, code, target) in enumerate(SRC):
     x = 20 + k * 380
     s.box(x, 20, 368, 140, "nt-band-a", 14)
@@ -626,7 +627,7 @@ CAP = [(20, "ตอนเริ่ม: อ่าน AGENTS.md และแค่
         "ของแต่ละ skill (≈41 token) ทั้งไฟล์ (≈144)", "name + description (≈41 tokens); the full",
         "โหลดเฉพาะเมื่องานตรงกัน", "SKILL.md (≈144) only when a task matches"),
        (400, "tool ของ MCP ดูเหมือน tool ของเรา", "MCP tools look like our own tools;",
-        "เมื่อ Gemini เรียก create_event", "when Gemini calls create_event,",
+        "เมื่อ Gemini เรียก tool ของ Drive", "when Gemini calls a Drive tool,",
         "harness ส่งต่อให้ server", "the harness forwards it to the server")]
 for x, a_th, a_en, b_th, b_en, c_th, c_en in CAP:
     s.box(x, 312, 368 if x == 20 else 340, 112, "ml-cell", 12)
@@ -881,7 +882,7 @@ s = Svg(W, "Left, ReAct as written in 2022: the model writes Thought, Action and
            "get_today, then days_between, then the answer 35 days. Right, a 2026 agent: the same core loop (think, act, "
            "observe), but the thinking is hidden, the actions are typed function calls, several at once, and a harness "
            "around the loop adds a plan (write_todos), files (/study_plan.md), checkpoints (thread_id), a check before done "
-           "(read_file), sub-agents (task), permission (approve before add_to_calendar), context management (summarise at "
+           "(read_file), sub-agents (task), permission (approve before add_to_schedule), context management (summarise at "
            "85%) and a trace (LangSmith).")
 s.box(20, 20, 470, 420, "ml-cell", 14)
 s.both(40, 52, "ReAct ปี 2022: ไอเดียต้นแบบ", "ReAct, 2022: the idea", "pl-label")
@@ -1016,12 +1017,12 @@ for k, (th, en, l1, l2, cls) in enumerate(STEPS):
         s.text(514, y + 22, l1, "pl-text"); s.text(514, y + 46, l2, "pl-text")
     else:
         s.code(514, y + 22, l1); s.code(514, y + 46, l2)
-s.both(420, 442, "… 49 ข้อความ จนแก้บั๊กได้ ✓", "… 49 messages, bug fixed ✓", "pl-note")
-s.both(420, 468, "5,017 รอบ → SWE-agent-LM-32B", "5,017 runs → SWE-agent-LM-32B", "pl-note")
+s.both(420, 442, "ดูผล = X: คอมพิวเตอร์เขียน โมเดลแค่อ่าน", "observe = X: the computer wrote it", "pl-note")
+s.both(420, 468, "แต่ละขั้นกลายเป็น X ของขั้นถัดไป", "each step becomes X for the next", "pl-note")
 # 3 · RL then a real R1 trace
 s.box(804, 192, 340, 98, "ml-cell", 8)
-s.both(816, 214, "RL: ไม่มี Y มีแค่รางวัล", "RL: no Y, only a reward", "pl-text")
-s.both(816, 240, "ลอง → ตรวจคำตอบ → ให้รางวัล", "try → check the answer → reward", "pl-note")
+s.both(816, 214, "GRPO: ไม่มี Y มีแค่รางวัล", "GRPO: no Y, only a reward", "pl-text")
+s.both(816, 240, "ตอบหลายข้อ → ตรวจ → เทียบกับกลุ่ม", "answer as a group → check → beat avg.", "pl-note")
 s.both(816, 264, "R1 เริ่ม “ทบทวนตัวเอง” โดยไม่มีใครสอน", "R1 began to “self-reflect”, untaught", "pl-note")
 s.box(804, 300, 340, 112, "nt-bubble", 8)
 s.code(816, 322, "<think>")
@@ -1048,14 +1049,14 @@ SC = [("app-bank", "แอปธนาคาร", "Bank app",
        "“ได้อาหารผิด แถมเครื่องดื่มหาย”", "“Wrong dish, and my drink is missing”", "เช็กออเดอร์และรูป → นโยบาย → ถามก่อนคืนเงิน", "order + photo → policy → ask before refunding"),
       ("books", "ผู้ช่วยประจำวิชา", "Course assistant",
        "“สอบปลายภาควันไหน”", "“When is the final exam?”", "ค้นข้อเท็จจริง → ตอบ (RAG)", "search the facts → answer (RAG)",
-       "“วางแผนอ่าน 5 สัปดาห์ แล้วลงปฏิทินให้”", "“Plan 5 weeks of study, add it to my calendar”", "นับวัน → เลือกหัวข้อ → ถามก่อนลงปฏิทิน", "days left → topics → ask before writing"),
+       "“วางแผนอ่าน 2 สัปดาห์สุดท้าย แล้วลงตารางให้”", "“Plan my last 2 weeks, add it to my schedule”", "นับวัน → เลือกหัวข้อ → ถามก่อนลงตาราง", "days left → topics → ask before writing"),
       ("laptop", "ฝ่ายไอที", "IT helpdesk",
        "“รีเซ็ตรหัสผ่านให้หน่อย”", "“Reset my password”", "ยืนยันตัวตน → ส่งลิงก์รีเซ็ต", "verify identity → send a reset link",
        "“VPN ใช้ไม่ได้หลังอัปเดต”", "“The VPN stopped working after an update”", "เช็กเวอร์ชัน → log → ปัญหาที่รู้แล้ว → ลองแก้", "version → logs → known issues → try a fix")]
 s = Svg(W, "More scenarios. In each app the request people send all the time suits a workflow with fixed steps, and the open-ended one needs "
            "an agent. Bank app: 'What's my balance?' versus 'I don't recognise a 1,250-baht charge'. Food delivery: 'Where is my food?' "
-           "versus 'Wrong dish, and my drink is missing'. Course assistant: 'When is the final exam?' versus 'Plan 5 weeks of study and "
-           "add it to my calendar'. IT helpdesk: 'Reset my password' versus 'The VPN stopped working after an update'. Send the common "
+           "versus 'Wrong dish, and my drink is missing'. Course assistant: 'When is the final exam?' versus 'Plan my last 2 weeks of study and "
+           "add it to my schedule'. IT helpdesk: 'Reset my password' versus 'The VPN stopped working after an update'. Send the common "
            "requests down a workflow and the rest to an agent, with a person approving anything that costs money.")
 s.box(260, 0, 436, 60, "ml-cell", 12)
 s.both(276, 25, "Workflow: ถามบ่อย ขั้นตอนเดิม", "Workflow: asked all the time", "pl-label")
@@ -1187,7 +1188,7 @@ s = Svg(W, "The context window: everything the model reads on one call, in order
            "descriptions (about 245 tokens), the student's question (11), then everything from earlier rounds: Gemini's own "
            "tool calls and the tool results (282 tokens after round 1, 53 more after round 2); then the model predicts the "
            "next token. On call 3 of our question that is 591 tokens. Every call resends the whole window: 256, 538, 591 "
-           "tokens. The study-plan job read 97,743 tokens in 12 calls, the biggest 14,565. Every token is billed on every "
+           "tokens. The study-plan job read 91,666 tokens in 14 calls, the biggest 10,671. Every token is billed on every "
            "call, long inputs are slower, and models do worse as the input grows (Chroma tested 18).")
 s.both(20, 34, "context window = ทุกอย่างที่โมเดลอ่านในการเรียก 1 ครั้ง", "The context window = everything the model reads on one call", "pl-label")
 SRC = [("icon", "notepad", "กฎ (system prompt)", "rules (system prompt)", 120),
@@ -1226,7 +1227,7 @@ for k, tok in enumerate([256, 538, 591]):
     s.both(40, y + 22, f"ครั้งที่ {k + 1}", f"call {k + 1}", "hk-desc")
     s.box(110, y + 4, tok * 0.6, 26, "ml-bar", 3)
     s.text(116 + tok * 0.6, y + 23, str(tok), "pl-label")
-s.both(40, 482, "งานยาว: แผนอ่านหนังสือ 12 ครั้ง อ่าน 97,743 token", "a long job: the study plan, 12 calls, 97,743 tokens read", "pl-text")
+s.both(40, 482, "งานยาว: แผนอ่านหนังสือ 14 ครั้ง อ่าน 91,666 token", "a long job: the study plan, 14 calls, 91,666 tokens read", "pl-text")
 s.box(600, 296, 560, 200, "sw-warn-box", 14)
 s.both(620, 326, "ทำไม window ใหญ่ ๆ จึงเป็นปัญหา", "Why a big window is a problem", "pl-label")
 WHY = [("moneybag", "คิดเงินทุก token ทุกครั้งที่เรียก", "every token is billed, on every call"),
@@ -1295,7 +1296,7 @@ s.save("l14-ori.svg", 456)
 # ---------------------------------------------------------------- 23. the harness
 s = Svg(W, "Agent = model + harness. In the middle, the LLM is the brain; around it, the harness is the operating system: "
            "loop, tools and sandbox, context, state and memory, guardrails, lifecycle, extensions; outside, the world: files, "
-           "the terminal, a browser, the calendar, the user. Examples: Claude Code, Codex, Gemini CLI, OpenHands, Manus; to "
+           "the terminal, a browser, the user. Examples: Claude Code, Codex, Gemini CLI, OpenHands, Manus; to "
            "build one: Deep Agents, OpenAI Agents SDK, Claude Agent SDK. LangChain kept the model fixed and changed only the "
            "harness: Terminal-Bench 2.0 score 52.8 → 66.5, from outside the top 30 to the top 5.")
 s.box(20, 20, 680, 420, "ml-cell", 14)
@@ -1307,7 +1308,7 @@ RING = [("loop", 360, 116), ("tools + sandbox", 160, 150), ("context", 560, 150)
 for t, x, y in RING:
     s.box(x - width(t, 17) / 2 - 12, y - 22, width(t, 17) + 24, 32, "ml-cell", 16)
     s.text(x, y, t, "hk-desc", "middle")
-s.both(40, 404, "harness = ระบบปฏิบัติการ · โลก: ไฟล์ terminal browser ปฏิทิน ผู้ใช้", "harness = the operating system · world: files, terminal, browser, calendar, user", "pl-note")
+s.both(40, 404, "harness = ระบบปฏิบัติการ · โลก: ไฟล์ terminal browser ผู้ใช้", "harness = the operating system · world: files, terminal, browser, the user", "pl-note")
 s.box(720, 20, 440, 230, "ml-cell", 14)
 s.both(740, 52, "โมเดลเดิม เปลี่ยนแค่ harness", "Same model, harness changed only", "pl-label")
 s.both(740, 78, "LangChain · Terminal-Bench 2.0 (89 งาน)", "LangChain · Terminal-Bench 2.0 (89 tasks)", "pl-note")
@@ -1328,12 +1329,12 @@ HP = [("ลูปของ agent", "Agent loop", "เรียกโมเดล
       ("Tool และ sandbox", "Tools and sandbox", "tool อะไรบ้าง โค้ดรันที่ไหน", "which tools; where code runs", "เขียน plan.md ได้แค่ในโฟลเดอร์ตัวเอง", "writes plan.md in its own folder only"),
       ("การจัดการ context", "Context management", "อะไรเข้าไปในแต่ละครั้ง", "what goes into each call", "ผลเก่า → path ของไฟล์", "old results → file paths"),
       ("State และ memory", "State and memory", "log ทุกขั้น checkpoint ความจำ", "a log of every step, checkpoints", "ล่มที่ขั้น 23 ก็ทำต่อได้", "resumes after a crash at step 23"),
-      ("Guardrail และสิทธิ์", "Guardrails, permissions", "ตรวจ argument ขออนุญาต hook", "check arguments, ask, hooks", "ถามก่อนเพิ่ม 5 event", "asks before adding 5 events"),
+      ("Guardrail และสิทธิ์", "Guardrails, permissions", "ตรวจ argument ขออนุญาต hook", "check arguments, ask, hooks", "ถามก่อนเพิ่ม 2 รอบทบทวน", "asks before adding 2 sessions"),
       ("วงจรชีวิตของงาน", "Lifecycle", "เริ่ม หยุดชั่วคราว ทำต่อ หยุด", "start, pause, resume, stop", "นิสิตหยุดได้ทุกขั้น", "the student can stop it any time"),
       ("ส่วนขยาย", "Extensions", "skill, MCP, sub-agent, AGENTS.md", "skills, MCP, sub-agents, AGENTS.md", "โหลด exam-study-plan", "loads exam-study-plan")]
 s = Svg(W, "The seven parts of a harness and what each does for the study-plan agent: agent loop (stops after at most 30 steps), "
            "tools and sandbox (writes plan.md in its own folder only), context management (old results become file paths), "
-           "state and memory (resumes after a crash at step 23), guardrails and permissions (asks before adding 5 events), "
+           "state and memory (resumes after a crash at step 23), guardrails and permissions (asks before adding 2 review sessions), "
            "lifecycle (the student can stop it any time), extensions (loads the exam-study-plan skill).")
 s.both(84, 26, "ส่วนของ harness", "Harness part", "nt-head")
 s.both(360, 26, "ทำอะไร", "What it does", "nt-head")
@@ -1569,8 +1570,8 @@ s.save("l14-stack.svg", 456)
 # ---------------------------------------------------------------- 16b. middleware hooks
 s = Svg(W, "The agent loop with its middleware hook points: before_model and after_model run just before and after each LLM "
            "call, wrap_model_call wraps the call itself, wrap_tool_call wraps each tool run. Our log_and_check is a "
-           "wrap_tool_call: in the real run it let search_course and days_between through, rejected add_to_calendar on "
-           "2026-10-20 because it is before today (2026-10-26), and let 2026-11-23 through, so the calendar ended with one event. "
+           "wrap_tool_call: in the real run it let search_course, get_today and days_between through, rejected add_to_schedule on "
+           "2026-10-20 because it is before today (2026-10-26), and let 2026-11-23 through, so schedule.txt ended with one line. "
            "Below, LangChain's built-in middleware by job: context, retries, budgets, safety, planning.")
 s.box(20, 20, 700, 300, "ml-cell", 14)
 s.both(40, 52, "จุดเสียบรอบลูป", "Hook points around the loop", "pl-label")
@@ -1594,14 +1595,14 @@ s.both(40, 300, "ผล → กลับไปที่โมเดล", "result
 s.box(740, 20, 420, 300, "nt-band-a", 14)
 s.both(760, 52, "log_and_check (การรันจริง)", "log_and_check (real run)", "pl-label")
 ic(s, "shield", 1124, 44, 32)
-LOG = [("search_course", "final exam", True), ("days_between", "11-23 → 11-30", True),
-       ("add_to_calendar", "2026-10-20", False), ("add_to_calendar", "2026-11-23", True)]
+LOG = [("search_course", "final exam", True), ("get_today", "", True), ("days_between", "11-23 → 11-30", True),
+       ("add_to_schedule", "2026-10-20", False), ("add_to_schedule", "2026-11-23", True)]
 for k, (t, a, ok) in enumerate(LOG):
-    y = 70 + k * 50
-    s.box(756, y, 388, 40, "ml-cell-b" if ok else "sw-chip-warn", 8)
-    s.code(770, y + 26, t)
-    s.code(940, y + 26, a)
-    s.text(1132, y + 27, "✓" if ok else "✗", "ml-ok" if ok else "ml-neg", "end")
+    y = 66 + k * 42
+    s.box(756, y, 388, 34, "ml-cell-b" if ok else "sw-chip-warn", 8)
+    s.code(770, y + 23, t)
+    s.code(940, y + 23, a)
+    s.text(1132, y + 24, "✓" if ok else "✗", "ml-ok" if ok else "ml-neg", "end")
 s.both(760, 296, "✗ วันที่ผ่านไปแล้ว: tool ไม่ถูกรัน", "✗ in the past: the tool never ran", "ml-neg")
 GROUPS = [("Context", "Summarization"), ("Retries", "ModelRetry · ToolRetry · ModelFallback"),
           ("Budgets", "ModelCallLimit · ToolCallLimit"), ("Safety", "PII · HumanInTheLoop"), ("Planning", "TodoList")]
@@ -1616,16 +1617,16 @@ s.save("l14-middleware.svg", 532)
 
 # ---------------------------------------------------------------- 18b. human in the loop (real run)
 s = Svg(W, "Human in the loop, from the real run. 1 The student asks for a review session one week before the final exam. "
-           "2 Gemini asks for add_to_calendar(day 2026-11-23, title 'Review session for the final exam'). 3 The middleware "
-           "interrupts: the state is saved in the checkpoint and invoke returns the request; the calendar is still empty. "
+           "2 Gemini asks for add_to_schedule(day 2026-11-23, title 'Final Exam Review Session'). 3 The middleware "
+           "interrupts: the state is saved in the checkpoint and invoke returns the request; schedule.txt is still empty. "
            "4 A person chooses approve, edit, reject or respond. 5 Command(resume=approve) continues at the same step: the tool "
-           "runs and the calendar has one event.")
+           "runs and schedule.txt has one line.")
 STAGE_PIC = [("pic", "ag-student-ask"), ("pic", "ag-robot-tools"), ("icon", "pause"), ("pic", "ag-staff-ok"), ("pic", "ag-student-happy")]
 STAGES = [("ขอ", "Ask", ["“review session one", "week before the", "final exam”"], "nt-bubble"),
-          ("Gemini ขอ", "Gemini asks", ["add_to_calendar(", " '2026-11-23',", " 'Review session…')"], "ml-cell"),
-          ("หยุด", "Pause", ["state → checkpoint", "__interrupt__", "calendar = []"], "sw-warn-box"),
+          ("Gemini ขอ", "Gemini asks", ["add_to_schedule(", " '2026-11-23',", " 'Final Exam Review…')"], "ml-cell"),
+          ("หยุด", "Pause", ["state → checkpoint", "__interrupt__", "schedule.txt: empty"], "sw-warn-box"),
           ("คนตัดสินใจ", "A person decides", ["approve · edit", "reject · respond", "(maybe hours later)"], "ml-cell"),
-          ("ทำต่อ", "Resume", ["tool runs", "calendar = 1 event", "Gemini answers"], "nt-out")]
+          ("ทำต่อ", "Resume", ["tool runs", "schedule.txt: 1 line", "Gemini answers"], "nt-out")]
 for k, (th, en, lines, cls) in enumerate(STAGES):
     x = 20 + k * 230
     s.box(x, 20, 216, 300, cls, 14)
@@ -1637,13 +1638,13 @@ for k, (th, en, lines, cls) in enumerate(STAGES):
     else:
         ic(s, name, x + 108, 124, 84)
     if k == 4:
-        ic(s, "calendar", x + 176, 160, 40)
+        ic(s, "document", x + 176, 160, 40)
     for j, t in enumerate(lines):
         s.code(x + 16, 214 + j * 32, t) if k in (1, 2) else s.text(x + 16, 214 + j * 32, t, "pl-text")
     if k < 4:
         s.arrow(x + 218, 170, x + 228, 170)
 s.box(20, 340, 1140, 120, "ml-cell", 14)
-s.code(40, 372, "HumanInTheLoopMiddleware(interrupt_on={\"add_to_calendar\": True})   # which tools stop first")
+s.code(40, 372, "HumanInTheLoopMiddleware(interrupt_on={\"add_to_schedule\": True})   # which tools stop first")
 s.code(40, 406, "careful.invoke(Command(resume={\"decisions\": [{\"type\": \"approve\"}]}), thread)")
 s.both(40, 442, "ต้องมี checkpointer: การรันหยุด แล้วกลับมาทำต่อจาก state ที่บันทึกไว้", "needs a checkpointer: the run stops, then continues from the saved state", "pl-note")
 s.save("l14-hitl.svg", 476)
@@ -1693,19 +1694,20 @@ for k, (th, en) in enumerate([("เรียนรู้ว่าทำงาน
 s.save("l14-three-ways.svg", y + 60)
 
 # ---------------------------------------------------------------- 21b. Deep Agents (real run)
-DEEP = [("gather", "รวบรวม", ["1 get_today()", "2 search_course(k=7) → all 7 facts", "3 days_between → 35"]),
-        ("plan", "วางแผน", ["4 write_todos([...steps])"]),
-        ("look", "ดูรอบ ๆ", ["5 ls('/')", "6 ls('/workspace')"]),
-        ("act", "ลงมือ", ["8–12 add_to_calendar ×5: Sun 1 … 29 Nov"]),
-        ("write", "เขียน", ["14 write_file('/study_plan.md')"]),
-        ("check", "ตรวจ", ["15 read_file('/study_plan.md')"]),
-        ("tick", "ติ๊ก", ["7, 13, 16 write_todos: tick items off"])]
+DEEP = [("gather", "รวบรวม", ["1 get_today()", "2 search_course(k=7) → all 7 facts"]),
+        ("look", "ดูรอบ ๆ", ["3–5 ls · read_file('/schedule.txt') (empty) · glob"]),
+        ("count", "นับวัน", ["6–7, 11–12 days_between → last 2 weeks: 16–29 Nov"]),
+        ("act", "ลงมือ", ["9 add_to_schedule('2026-11-18', …)", "13 add_to_schedule('2026-11-25', …)"]),
+        ("check", "ตรวจ", ["10, 14, 17 read_file('/schedule.txt')"]),
+        ("write", "เขียน", ["15 write_file('/study_plan.md') · 16 read it back"]),
+        ("extra", "ค้นเพิ่ม", ["8 search_course('review session')"])]
 s = Svg(W, "Left: what create_deep_agent adds to create_agent: planning (write_todos), a file system (ls, read_file, write_file, "
            "edit_file, glob, grep), sub-agents (task) and context management (big results to files, summarise old messages). "
-           "Right: the real run of the study-plan job with gemini-3.8-flash, 16 tool calls in 12 model calls: gather (get_today, "
-           "one search_course with k 7, days_between 35), plan (write_todos), look around (ls twice), act (five add_to_calendar, "
-           "Sundays 1 to 29 November), write the plan file, read it back, and tick off the to-do list. Input: 97,743 tokens.")
-s.box(20, 20, 420, 450, "ml-cell", 14)
+           "Right: the real run of the 2-week study-plan job with gemini-3.8-flash and its files in the real folder study/, 17 "
+           "tool calls in 14 model calls: gather (get_today, one search_course with k 7), look around (ls, read the empty "
+           "schedule, glob), count the days to find 16 to 29 November, act (add_to_schedule on 18 and 25 November), check "
+           "(read the schedule after each and at the end), write the plan file and read it back. Input: 91,666 tokens.")
+s.box(20, 20, 420, 480, "ml-cell", 14)
 s.both(40, 52, "create_deep_agent เพิ่มอะไร", "What create_deep_agent adds", "pl-label")
 ADD = [("วางแผน", "Planning", "write_todos"), ("ระบบไฟล์", "Files", "ls · read/write/edit_file · grep"),
        ("sub-agent", "Sub-agents", "task(description, subagent_type)"), ("จัดการ context", "Context", "big results → files · summarise")]
@@ -1716,20 +1718,20 @@ for k, (th, en, c) in enumerate(ADD):
     s.both(56, y + 30, th, en, "pl-label")
     s.code(56, y + 60, c)
     pic(s, ADD_PIC[k], 362, y + 6, 52, 52, "xMidYMid")
-s.both(40, 450, "+ tool ของเรา 4 ตัว", "+ our 4 tools", "pl-note")
-s.box(460, 20, 700, 450, "nt-band-a", 14)
-s.both(480, 52, "การรันจริง: 16 การเรียก tool", "The real run: 16 tool calls", "pl-label")
+s.both(40, 480, "+ tool ของเรา 4 ตัว · ไฟล์อยู่ใน study/", "+ our 4 tools · files in study/", "pl-note")
+s.box(460, 20, 700, 480, "nt-band-a", 14)
+s.both(480, 52, "การรันจริง: 17 การเรียก tool", "The real run: 17 tool calls", "pl-label")
 y = 66
 n = 1
 for name, th, calls in DEEP:
     h = 26 * len(calls) + 10
-    s.box(476, y, 668, h, "nt-out" if name in ("write", "check") else ("sw-chip-warn" if name == "act" else "ml-cell"), 8)
+    s.box(476, y, 668, h, "nt-out" if name == "write" else ("sw-chip-warn" if name == "act" else ("ml-cell-b" if name == "check" else "ml-cell")), 8)
     s.both(490, y + 23, th, name, "hk-desc")
     for j, c in enumerate(calls):
         s.code(596, y + 23 + j * 26, c)
     y += h + 6
-s.both(480, 456, "12 ครั้งที่เรียกโมเดล · input 97,743 token", "12 model calls · 97,743 input tokens", "pl-note")
-s.save("l14-deep.svg", 486)
+s.both(480, 486, "14 ครั้งที่เรียกโมเดล · input 91,666 token · ไม่ได้ใช้ write_todos", "14 model calls · 91,666 input tokens · no write_todos this time", "pl-note")
+s.save("l14-deep.svg", 516)
 
 # ---------------------------------------------------------------- 30b. reading a trace: two real runs
 RUN1 = "pgssssssssssssssssssssssssssssssssssffssssdssssssssssssssssfpdddd"
@@ -1853,10 +1855,10 @@ for name, idx, cost, t in TRADE:
     s.text(cx + dx, cy + dy, f"{name} · {t}", "hk-desc", anchor)
 s.box(640, 20, 520, 440, "nt-band-a", 14)
 s.both(660, 52, "agent ของเราเอง: วัดอะไรบ้าง", "Your own agent: what to measure", "pl-label")
-MEAS = [("target", "ผลลัพธ์: ถูกไหม", "Outcome: is it right?", "35 วัน · แผนแต่งหัวข้อ ✗", "35 days · the plan invented topics ✗"),
+MEAS = [("target", "ผลลัพธ์: ถูกไหม", "Outcome: is it right?", "35 วัน · แผนแต่งหัวข้อเอง ✗", "35 days · the plan invented a topic ✗"),
         ("magnifier", "เส้นทาง: tool และ argument ถูกไหม", "Trajectory: right tools, right args?", "Qwen 0.6B แต่งวันที่ ✗", "a small model made up dates ✗"),
-        ("stopwatch", "ค่าใช้จ่ายและเวลา", "Cost and time", "97,743 token สำหรับแผนเดียว", "97,743 tokens for one plan"),
-        ("shield", "ความปลอดภัย: ขออนุญาตก่อนไหม", "Safety: did it ask first?", "หยุดก่อน add_to_calendar ✓", "paused before add_to_calendar ✓"),
+        ("stopwatch", "ค่าใช้จ่ายและเวลา", "Cost and time", "91,666 token สำหรับแผนเดียว", "91,666 tokens for one plan"),
+        ("shield", "ความปลอดภัย: ขออนุญาตก่อนไหม", "Safety: did it ask first?", "หยุดก่อน add_to_schedule ✓", "paused before add_to_schedule ✓"),
         ("dice", "หลายรอบ: pass^k", "Many runs: pass^k", "90% ต่อครั้ง → 5 ครั้งติด 0.59", "90% each → all 5 right: 0.59")]
 for k, (icon, th, en, eth, een) in enumerate(MEAS):
     y = 74 + k * 76
@@ -1866,18 +1868,19 @@ for k, (icon, th, en, eth, een) in enumerate(MEAS):
 s.save("l14-agent-tradeoff.svg", 476)
 
 # ---------------------------------------------------------------- 27a. one Terminal-Bench task, as an exam
-# terminal-bench/tasks/sound-change-cascade (harbor-framework/terminal-bench, read 2026-10-24): described, not copied.
-# The word pairs drawn here are a made-up mini example; no task data or answers are reproduced (the task carries a
+# terminal-bench/tasks/html-js-filter (harbor-framework/terminal-bench, read 2026-10-25): described, not copied.
+# The HTML lines drawn here are a made-up mini example; no task data or test pages are reproduced (the task carries a
 # "never in training corpora" canary).
-s = Svg(W, "One Terminal-Bench 4.0 task, sound-change-cascade from Carnegie Mellon, tested like an exam. 1 The question: "
-           "find the ordered sound-change rules that turned old words into modern ones. A made-up mini example: pata → "
-           "pada, lupa → luba, tapu → tabu, so t becomes d and p becomes b between vowels; the first t of tapu stays. The "
-           "real task gives 780 pairs. 2 The exam room: a sealed computer (a Docker container), up to 8 hours, no answers "
-           "from the internet. 3 The student is the agent, harness plus model, working alone: try rules, check, fix. "
-           "4 Marking: the rules must reproduce all 780 known pairs and a set of hidden pairs exactly, and the files must "
-           "be valid; all 7 checks pass scores 1, anything else 0. Each task is tried 3 times and averaged.")
-s.both(20, 30, "งาน 1 ข้อของ Terminal-Bench 4.0 ทดสอบเหมือนการสอบ: sound-change-cascade (Carnegie Mellon)",
-       "One Terminal-Bench 4.0 task is tested like an exam: sound-change-cascade (Carnegie Mellon)", "pl-label")
+s = Svg(W, "One Terminal-Bench 4.0 task, html-js-filter (web security), tested like an exam. 1 The question: write "
+           "filter.py, which removes JavaScript from a web page and keeps everything else. A made-up mini example: a page "
+           "with a heading, a script tag and a bold word with an onclick attribute; after the filter, the heading and the "
+           "bold word stay, the script and the onclick are gone. 2 The exam room: a sealed computer (a Docker container), "
+           "up to 8 hours (an expert needs about 45 minutes), no answers from the internet. 3 The student is the agent, "
+           "harness plus model, working alone: write, test, fix. 4 Marking: more than 400 hidden attack pages are opened "
+           "in a real browser and no JavaScript may run; clean pages must come out unchanged. Both pass scores 1, "
+           "otherwise 0. Each task is tried 3 times and averaged.")
+s.both(20, 30, "งาน 1 ข้อของ Terminal-Bench 4.0 ทดสอบเหมือนการสอบ: html-js-filter (ความปลอดภัยของเว็บ)",
+       "One Terminal-Bench 4.0 task is tested like an exam: html-js-filter (web security)", "pl-label")
 HEAD = [("1 · ข้อสอบ", "1 · The question", "icon-document"), ("2 · ห้องสอบ", "2 · The exam room", "icon-laptop"),
         ("3 · ผู้สอบ", "3 · The student", "ag-robot-tools"), ("4 · ตรวจข้อสอบ", "4 · Marking", "icon-clipboard")]
 for k, (th, en, picname) in enumerate(HEAD):
@@ -1887,39 +1890,50 @@ for k, (th, en, picname) in enumerate(HEAD):
     pic(s, picname, x + 206, 50, 60, 56, "xMidYMid")
     if k < 3:
         s.arrow(x + 277, 210, x + 287, 210)
+
+
+def html_line(x, y, parts):
+    """One line of HTML; parts are (text, removed?) and removed parts are red."""
+    spans = "".join(f'<tspan class="ml-neg" font-weight="700">{escape(t)}</tspan>' if bad else escape(t) for t, bad in parts)
+    s.raw(f'<text x="{x}" y="{y}" class="dg-code" style="font-size:15px" xml:space="preserve">{spans}</text>')
+
+
 # 1: the question, with a made-up mini example
-s.both(36, 124, "คำเก่า → คำใหม่: หากฎ", "old → new: find the rules", "hk-desc")
-PAIRS = [("pata", "pa", "d", "a"), ("lupa", "lu", "b", "a"), ("tapu", "ta", "b", "u")]
-for r, (old, a, ch, b) in enumerate(PAIRS):
-    y = 158 + r * 32
-    s.raw(f'<text x="44" y="{y}" class="dg-code" style="font-size:20px">*{old}</text>')
-    s.arrow(118, y - 6, 146, y - 6)
-    s.raw(f'<text x="156" y="{y}" class="dg-code" style="font-size:20px">{a}<tspan class="ml-neg" font-weight="700">{ch}</tspan>{b}</text>')
-s.box(36, 236, 244, 46, "nt-out", 8)
-s.both(48, 256, "t→d, p→b ระหว่างสระ", "t→d, p→b between vowels", "hk-desc")
-s.code(48, 275, "/ V _ V")
-s.both(36, 308, "t ตัวแรกของ tapu ไม่เปลี่ยน", "tapu's first t stays", "pl-note")
-s.both(36, 336, "ตัวอย่างสมมติ", "a made-up example;", "pl-note")
-s.both(36, 362, "งานจริงมี 780 คู่", "the real task: 780 pairs", "pl-note")
+s.both(36, 126, "ลบ JavaScript เก็บส่วนอื่นไว้", "remove JavaScript, keep the rest", "hk-desc")
+s.both(36, 154, "หน้าเว็บก่อนกรอง", "page before", "pl-note")
+s.box(36, 160, 244, 76, "ml-cell-b", 8)
+html_line(46, 181, [("<h1>Hi!</h1>", False)])
+html_line(46, 203, [("<script>hack()</script>", True)])
+html_line(46, 225, [("<b", False), (" onclick=hack()", True), (">Hi</b>", False)])
+s.arrow(70, 238, 70, 258)
+s.code(84, 253, "filter.py")
+s.box(36, 262, 244, 54, "nt-out", 8)
+html_line(46, 284, [("<h1>Hi!</h1>", False)])
+html_line(46, 306, [("<b>Hi</b>", False)])
+s.both(36, 340, "ตัวอย่างสมมติ; ข้อสอบจริง", "a made-up example; the real", "pl-note")
+s.both(36, 364, "คือหน้าโจมตีกว่า 400 หน้า", "test: 400+ attack pages", "pl-note")
 # 2: the exam room
 for j, (th, en) in enumerate([("คอมพิวเตอร์ปิด (Docker)", "a sealed computer (Docker)"), ("สอบได้ถึง 8 ชั่วโมง", "up to 8 hours"),
+                              ("(ผู้เชี่ยวชาญใช้ราว 45 นาที)", "(an expert: about 45 min)"),
                               ("ห้ามหาเฉลยออนไลน์", "no answers from the internet")]):
-    s.both(324, 134 + j * 34, th, en, "pl-text")
+    s.both(324, 134 + j * 34, th, en, "pl-text" if j != 2 else "pl-note")
 # 3: the student
 for j, (th, en) in enumerate([("agent = harness + โมเดล", "the agent: harness + model"), ("ทำคนเดียว", "working alone"),
-                              ("ลองกฎ → ตรวจ → แก้", "try rules → check → fix")]):
+                              ("เขียน → ทดสอบ → แก้", "write → test → fix")]):
     s.both(612, 134 + j * 34, th, en, "pl-text")
 ic(s, "loop", 714, 280, 64)
 # 4: marking
-for j, (th, en) in enumerate([("✓ คู่ที่ให้มา ถูกครบ 780", "✓ all 780 known pairs"), ("✓ คู่ที่ซ่อนไว้ ถูกหมด", "✓ all hidden pairs"),
-                              ("✓ ไฟล์และรูปแบบถูก", "✓ files and format valid")]):
-    s.both(900, 134 + j * 34, th, en, "pl-text")
+s.both(900, 134, "✓ หน้าโจมตีที่ซ่อนไว้ 400+ หน้า", "✓ 400+ hidden attack pages:", "pl-text")
+s.both(922, 160, "เปิดใน browser จริง", "opened in a real browser,", "pl-note")
+s.both(922, 184, "JavaScript ห้ามรันเลย", "no JavaScript may run", "pl-note")
+s.both(900, 222, "✓ หน้าปกติต้องออกมาเหมือนเดิม", "✓ clean pages come out", "pl-text")
+s.both(922, 248, "", "unchanged", "pl-note")
 s.box(900, 270, 244, 62, "nt-out", 10)
-s.both(916, 296, "ผ่านทั้ง 7 ข้อ → 1", "all 7 checks pass → 1", "ml-ok")
-s.both(916, 320, "ข้อใดไม่ผ่าน → 0", "any fails → 0", "ml-neg")
+s.both(916, 296, "ผ่านทั้ง 2 ข้อ → 1", "both checks pass → 1", "ml-ok")
+s.both(916, 320, "ข้อใดไม่ผ่าน → 0", "either fails → 0", "ml-neg")
 s.box(20, 392, 1140, 74, "ml-cell-b", 12)
-s.both(36, 422, "คู่ที่ซ่อนไว้ = ข้อสอบใหม่ที่ไม่เคยเห็น: ต้องหากฎจริงให้ได้ ไม่ใช่แค่จำคู่ที่ให้มา",
-       "Hidden pairs = new exam questions: the agent must find the real rules, not memorise the pairs it was given.", "pl-text")
-s.both(36, 452, "ทำงานละ 3 ครั้งแล้วเฉลี่ย · 66 งาน → คะแนน Terminal-Bench 4.0",
-       "Each task is tried 3 times and averaged · 66 tasks → the Terminal-Bench 4.0 score", "pl-note")
+s.both(36, 422, "ตรวจสองทาง: ลบน้อยไป → การโจมตีทำงาน ลบมากไป → หน้าปกติพัง ต้องทำให้ถูกทั้งสองฝั่ง",
+       "Checked from both sides: remove too little → an attack runs; remove too much → a clean page breaks.", "pl-text")
+s.both(36, 452, "agent ไม่เคยเห็นหน้าโจมตีที่ใช้ตรวจ · ทำงานละ 3 ครั้งแล้วเฉลี่ย · 66 งาน → คะแนน Terminal-Bench 4.0",
+       "The agent never sees the attack pages · each task is tried 3 times and averaged · 66 tasks → the score", "pl-note")
 s.save("l14-bench-task.svg", 480)
