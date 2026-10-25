@@ -16,6 +16,9 @@
 .stp-ticks { list-style: none; margin: 0; padding: 0; position: relative; height: calc(26 * var(--ix)); }
 .stp-ticks li { position: absolute; left: calc(9px + (100% - 18px) * var(--f)); transform: translateX(-50%); white-space: nowrap; text-align: center; font: calc(13 * var(--ix))/1.4 var(--font-code); color: var(--muted); cursor: pointer; padding: calc(2 * var(--ix)) calc(8 * var(--ix)); border-radius: calc(6 * var(--ix)); }
 .stp-ticks li.is-on { color: var(--card); background: var(--accent); font-weight: 600; }
+/* the end labels sit inside the track instead of hanging past its ends */
+.stp-ticks li:first-child { transform: none; }
+.stp-ticks li:last-child:not(:first-child) { transform: translateX(-100%); }
 .stp-buttons { display: flex; align-items: center; gap: calc(12 * var(--ix)); }
 .stp-buttons button, .srt-actions button { min-height: calc(44 * var(--ix)); padding: calc(6 * var(--ix)) calc(16 * var(--ix)); border: 1px solid var(--card-border); border-radius: 999px; background: var(--card); color: var(--ink); font: 500 calc(16 * var(--ix)) var(--font-text); cursor: pointer; }
 .stp-buttons button:hover:not(:disabled), .srt-actions button:hover { border-color: var(--accent); }
@@ -72,6 +75,9 @@
 .fx .srt-actions { margin-top: calc(4 * var(--ix)); }
 .fx .srt-actions button { min-height: calc(36 * var(--ix)); }
 .fx .stp { align-self: center; width: min(100%, calc(1040 * var(--u))); }
+/* a picture stepper takes the frame's width, so the picture is not limited to the button row; its height is still capped by --stp-fx-h */
+.fx .stp-has-media { width: min(100%, calc(1100 * var(--u))); align-self: center; }
+.fx .fx-blocks:has(.stp-has-media) { align-self: stretch; }
 /* a stepper of pictures on the projector: no header, label or note (the picture has the numbers), one control row */
 .fx .stp-has-media .ixp-head, .fx .stp-has-media .stp-label, .fx .stp-has-media .stp-note { display: none; }
 .fx .stp-has-media .ixp-body { padding-top: calc(6 * var(--ix)); padding-bottom: calc(6 * var(--ix)); }

@@ -528,7 +528,7 @@ s = Svg(W, "How Gemini asks for a tool, from a real run. 1 The request has the q
            "of parts: two function_call parts in the same turn, get_today with no arguments and search_course with query "
            "'final exam' and k 7, and no text at all (text: None). 3 Our code runs both: 2026-10-26 and the facts, fact 7 first. "
            "4 The results go back as function_response parts and Gemini is called again.")
-s.box(20, 20, 340, 380, "ml-cell", 14)
+s.box(20, 20, 340, 400, "ml-cell", 14)
 s.num(44, 50, 1)
 s.both(66, 56, "สิ่งที่ส่งไป: ทั้ง context", "What we send: the context", "pl-label")
 s.box(36, 72, 308, 54, "ml-cell", 10)
@@ -540,14 +540,23 @@ s.both(50, 156, "tool: ชื่อ + docstring + parameter", "tools: name + doc
 for k, t in enumerate(["search_course(query, k)", "get_today()", "days_between(start, end)"]):
     s.code(60, 180 + k * 20, t)
 s.text(334, 200, "≈245", "pl-label", "end")
-s.both(36, 258, "input 256 token:", "256 input tokens:", "pl-note")
-s.box(36, 266, 287, 18, "ml-bar", 3)
-s.box(323, 266, 21, 18, "ml-model", 3)
-s.both(36, 304, "96% คือ tool · 4% คือคำถาม", "96% tools · 4% the question", "pl-text")
-s.box(36, 318, 308, 34, "pl-chip-del", 8)
-s.both(48, 341, "+ รอบถัดไป: ผลเดิม (538, 591)", "+ later calls: past results (538, 591)", "hk-desc")
-s.box(36, 358, 308, 34, "pl-chip-del", 8)
-s.both(48, 381, "+ ใน agent: กฎ และ memory", "+ agents: rules, memory", "hk-desc")
+s.both(36, 256, "input token ต่อการเรียกแต่ละครั้ง", "input tokens per call", "pl-note")
+SC = 204 / 591
+for k, total in enumerate([256, 538, 591]):
+    y = 268 + k * 30
+    s.text(36, y + 16, f"call {k + 1}", "dg-code")
+    x = 96
+    for part, cls in [(11, "ml-model"), (245, "ml-bar"), (total - 256, "opt-b-bar")]:
+        if part > 0:
+            w = max(part * SC, 4)
+            s.box(x, y, w, 20, cls, 3)
+            x += w
+    s.text(344, y + 16, str(total), "pl-label", "end")
+for k, (cls, th, en) in enumerate([("ml-model", "คำถาม 11", "question 11"), ("ml-bar", "tool ≈245", "tools ≈245")]):
+    s.box(36 + k * 150, 366, 14, 14, cls, 3)
+    s.both(56 + k * 150, 379, th, en, "pl-note")
+s.box(36, 390, 14, 14, "opt-b-bar", 3)
+s.both(56, 403, "การเรียกและผลก่อนหน้า (ส่งซ้ำทุกครั้ง)", "earlier calls + results, resent", "pl-note")
 s.arrow(362, 190, 392, 190)
 s.box(396, 20, 400, 380, "nt-out", 14)
 s.num(420, 50, 2)
@@ -577,9 +586,9 @@ s.both(878, 228, "ส่งผลกลับเป็น", "Sent back as", "pl-
 s.code(878, 254, "function_response")
 s.both(856, 300, "แล้วเรียก Gemini อีกครั้ง:", "then Gemini is called again:", "pl-note")
 s.both(856, 326, "days_between แล้วจึงตอบ", "days_between, then the answer", "pl-note")
-s.both(20, 434, "โมเดลไม่ได้รันอะไรเอง: มันคืนคำขอ แล้ว harness (โค้ดของเรา) เป็นคนรัน",
+s.both(20, 446, "โมเดลไม่ได้รันอะไรเอง: มันคืนคำขอ แล้ว harness (โค้ดของเรา) เป็นคนรัน",
        "The model runs nothing: it returns requests, and the harness (our code) runs them.", "pl-text")
-s.save("l14-function-call.svg", 450)
+s.save("l14-function-call.svg", 462)
 
 # ---------------------------------------------------------------- 11a. what plugs into the harness: into the context window
 s = Svg(W, "The harness fills the context window from three outside sources. Long-term memory: AGENTS.md ('prefers Thai "
@@ -947,6 +956,127 @@ for k, (tok, summ, acts, final) in enumerate(ROUNDS):
 s.both(220, Y + 374, "✓ 3 รอบเหมือนลูป ReAct · ✗ สรุปคือการเขียนใหม่ ไม่ใช่ตัวเหตุผล · thinking token คิดเงินเหมือน output",
        "✓ the same 3 rounds as the ReAct loop · ✗ the summary is a rewrite, not the reasoning · thinking tokens are billed", "pl-text")
 s.save("l14-thinking.svg", Y + 392)
+
+# ---------------------------------------------------------------- how a model learns to be an agent (real rows from Hugging Face)
+s = Svg(W, "How a model learns to be an agent. 0, pre-training: predict the next word on web text, so it knows language but has "
+           "never called a tool. 1, tool-call examples (supervised fine-tuning), e.g. NousResearch/hermes-function-calling-v1: the "
+           "system prompt lists tools with descriptions, the user asks for the front-door camera feed in 1080p, and the answer is a "
+           "tool call get_camera_live_feed with camera_id front_door and stream_quality 1080p. 2, whole agent runs, e.g. "
+           "SWE-bench/SWE-smith-trajectories (76,002 runs by SWE-agent with Claude 3.7 Sonnet): think, run a bash command, read the "
+           "observation, for 49 messages until the bug is fixed; 5,017 runs fine-tuned Qwen 2.5 Coder into SWE-agent-LM-32B. "
+           "3, thinking: DeepSeek-R1 learned by reinforcement learning to reason before answering; its traces, which start with "
+           "<think>, are in open-r1/OpenR1-Math-220k (225,129 problems, answers checked by Math Verify) and teach smaller models to "
+           "think. At run time our prompt has the same shape, so the model continues the pattern.")
+s.box(20, 0, 1140, 52, "ml-cell", 12)
+s.both(36, 33, "0 · Pre-training บนข้อความเว็บ: X = ข้อความที่ผ่านมา → Y = คำถัดไป · รู้ภาษา แต่ยังไม่เคยเรียก tool",
+       "0 · Pre-training on web text: X = the text so far → Y = the next word · knows language, never called a tool", "pl-text")
+PANELS = [(20, "nt-band-a", "1 · ตัวอย่างการเรียก tool", "1 · Tool-call examples", "fine-tune ด้วยบทสนทนาตัวอย่าง", "supervised fine-tuning",
+           "hermes-function-calling-v1", "1,893 + 5,209 แถว", "1,893 + 5,209 rows",
+           "X = tool + คำขอ → Y = คำสั่งเรียก", "X = tools + request → Y = the call"),
+          (404, "ml-cell", "2 · การทำงานของ agent ทั้งรอบ", "2 · Whole agent runs", "fine-tune ด้วย trajectory", "fine-tuning on trajectories",
+           "SWE-smith-trajectories", "76,002 รอบการทำงาน", "76,002 runs",
+           "X = งาน + ขั้นก่อนหน้า → Y = คิด + ทำ", "X = task + steps so far → Y = think + act"),
+          (788, "opt-b-box", "3 · การคิด", "3 · Thinking", "RL + กลั่นความรู้ไปโมเดลเล็ก", "reinforcement learning + distillation",
+           "OpenR1-Math-220k", "225,129 โจทย์", "225,129 problems",
+           "X = โจทย์ → Y = <think> + คำตอบ", "X = problem → Y = <think> + answer")]
+for x0, cls, tth, ten, sth, sen, ds, nth, nen, lth, len_ in PANELS:
+    s.box(x0, 64, 372, 452, cls, 14)
+    s.both(x0 + 16, 94, tth, ten, "pl-label")
+    s.both(x0 + 16, 118, sth, sen, "pl-note")
+    s.box(x0 + 16, 128, 340, 30, "nt-bubble", 8)
+    s.code(x0 + 28, 148, ds)
+    s.both(x0 + 356 - 6, 148, nth, nen, "pl-note", "end") if False else None
+    s.both(x0 + 16, 180, nth, nen, "pl-note")
+    s.both(x0 + 16, 500, lth, len_, "ml-ok")
+# 1 · a real hermes row
+x0 = 20
+s.box(36, 192, 340, 92, "ml-cell", 8)
+s.text(46, 212, "system: tools =", "pl-note")
+s.code(46, 234, "get_camera_live_feed(")
+s.code(46, 254, "  camera_id, stream_quality)")
+s.text(46, 276, "“Retrieves the live feed from a …”", "pl-note")
+s.box(36, 294, 340, 72, "nt-bubble", 8)
+s.text(46, 314, "user:", "pl-note")
+s.text(46, 338, "“…check the live feed from the", "pl-text")
+s.text(46, 360, "front door camera … in 1080p”", "pl-text")
+s.box(36, 376, 340, 96, "sw-chip-warn", 8)
+s.both(46, 396, "assistant (คำตอบต้นแบบ):", "assistant (the answer to imitate):", "pl-note")
+s.code(46, 418, '<tool_call> {"name":')
+s.code(46, 438, ' "get_camera_live_feed", "arguments":')
+s.code(46, 458, ' {"camera_id": "front_door", ...}}')
+# 2 · a real SWE-smith run
+STEPS = [("คิด", "think", "“First, let's locate the", "MoneyWidget class”", "nt-bubble"),
+         ("ทำ", "act", 'bash: find /testbed -name', '"widgets.py" | grep forms', "sw-chip-warn"),
+         ("ดูผล", "observe", "/testbed/djmoney/forms/", "widgets.py", "ml-cell")]
+for k, (th, en, l1, l2, cls) in enumerate(STEPS):
+    y = 192 + k * 78
+    s.box(420, y, 340, 70, cls, 8)
+    s.both(432, y + 22, th, en, "pl-label")
+    if k == 0:
+        s.text(514, y + 22, l1, "pl-text"); s.text(514, y + 46, l2, "pl-text")
+    else:
+        s.code(514, y + 22, l1); s.code(514, y + 46, l2)
+s.both(420, 442, "… 49 ข้อความ จนแก้บั๊กได้ ✓", "… 49 messages, bug fixed ✓", "pl-note")
+s.both(420, 468, "5,017 รอบ → SWE-agent-LM-32B", "5,017 runs → SWE-agent-LM-32B", "pl-note")
+# 3 · RL then a real R1 trace
+s.box(804, 192, 340, 98, "ml-cell", 8)
+s.both(816, 214, "RL: ไม่มี Y มีแค่รางวัล", "RL: no Y, only a reward", "pl-text")
+s.both(816, 240, "ลอง → ตรวจคำตอบ → ให้รางวัล", "try → check the answer → reward", "pl-note")
+s.both(816, 264, "R1 เริ่ม “ทบทวนตัวเอง” โดยไม่มีใครสอน", "R1 began to “self-reflect”, untaught", "pl-note")
+s.box(804, 300, 340, 112, "nt-bubble", 8)
+s.code(816, 322, "<think>")
+s.text(816, 346, "“Okay, so I need to find the speed", "pl-text")
+s.text(816, 368, "of the ship in still water …”", "pl-text")
+s.code(816, 392, "</think> → answer")
+s.box(804, 422, 340, 44, "opt-a-box", 8)
+s.both(816, 450, "Math Verify ✓ → สอนโมเดลเล็ก", "Math Verify ✓ → for small models", "pl-text")
+s.both(20, 540, "prompt ของเราตอนใช้งานมีรูปเดียวกัน โมเดลจึงทำตามแบบที่ฝึกมา: คิด แล้วเรียก tool",
+       "Our prompt at run time has the same shape, so the model continues the pattern: think, then call a tool", "pl-label")
+# X / Y badges: what the model is given, and what it is trained to write
+for (bx, by, t) in [(362, 206, "X"), (362, 308, "X"), (362, 390, "Y"),        # 1: system + user are input, the call is the target
+                    (746, 206, "Y"), (746, 284, "Y"), (746, 362, "X"),        # 2: think + act are written by the model, observe comes back in
+                    (1130, 314, "Y")]:                                       # 3: the trace + answer is the target
+    s.num(bx, by, t)
+s.save("l14-training.svg", 556)
+
+# ---------------------------------------------------------------- more scenarios: same app, a workflow request and an agent request
+SC = [("app-bank", "แอปธนาคาร", "Bank app",
+       "“ยอดเงินคงเหลือเท่าไร”", "“What's my balance?”", "ดูบัญชี → ตอบ", "look up the account → reply",
+       "“มีรายการ 1,250 บาทที่ฉันไม่รู้จัก”", "“I don't recognise a 1,250-baht charge”", "หารายการ → เช็กร้านค้า → ถามก่อนคัดค้าน", "find it → check the shop → ask first"),
+      ("truck", "ส่งอาหาร", "Food delivery",
+       "“อาหารถึงไหนแล้ว”", "“Where is my food?”", "ดูตำแหน่งไรเดอร์ → แจ้งเวลาถึง", "track the rider → reply with the time",
+       "“ได้อาหารผิด แถมเครื่องดื่มหาย”", "“Wrong dish, and my drink is missing”", "เช็กออเดอร์และรูป → นโยบาย → ถามก่อนคืนเงิน", "order + photo → policy → ask before refunding"),
+      ("books", "ผู้ช่วยประจำวิชา", "Course assistant",
+       "“สอบปลายภาควันไหน”", "“When is the final exam?”", "ค้นข้อเท็จจริง → ตอบ (RAG)", "search the facts → answer (RAG)",
+       "“วางแผนอ่าน 5 สัปดาห์ แล้วลงปฏิทินให้”", "“Plan 5 weeks of study, add it to my calendar”", "นับวัน → เลือกหัวข้อ → ถามก่อนลงปฏิทิน", "days left → topics → ask before writing"),
+      ("laptop", "ฝ่ายไอที", "IT helpdesk",
+       "“รีเซ็ตรหัสผ่านให้หน่อย”", "“Reset my password”", "ยืนยันตัวตน → ส่งลิงก์รีเซ็ต", "verify identity → send a reset link",
+       "“VPN ใช้ไม่ได้หลังอัปเดต”", "“The VPN stopped working after an update”", "เช็กเวอร์ชัน → log → ปัญหาที่รู้แล้ว → ลองแก้", "version → logs → known issues → try a fix")]
+s = Svg(W, "More scenarios. In each app the request people send all the time suits a workflow with fixed steps, and the open-ended one needs "
+           "an agent. Bank app: 'What's my balance?' versus 'I don't recognise a 1,250-baht charge'. Food delivery: 'Where is my food?' "
+           "versus 'Wrong dish, and my drink is missing'. Course assistant: 'When is the final exam?' versus 'Plan 5 weeks of study and "
+           "add it to my calendar'. IT helpdesk: 'Reset my password' versus 'The VPN stopped working after an update'. Send the common "
+           "requests down a workflow and the rest to an agent, with a person approving anything that costs money.")
+s.box(260, 0, 436, 60, "ml-cell", 12)
+s.both(276, 25, "Workflow: ถามบ่อย ขั้นตอนเดิม", "Workflow: asked all the time", "pl-label")
+s.both(276, 51, "เส้นทางเขียนไว้ครั้งเดียว", "same steps, written once", "pl-note")
+s.box(708, 0, 452, 60, "nt-band-a", 12)
+s.both(724, 25, "Agent: ปลายเปิด", "Agent: open-ended", "pl-label")
+s.both(724, 51, "ขั้นตอนขึ้นกับสิ่งที่เจอ", "the steps depend on what it finds", "pl-note")
+for k, (icon, ath, aen, wq_th, wq_en, ws_th, ws_en, aq_th, aq_en, as_th, as_en) in enumerate(SC):
+    y = 72 + k * 96
+    s.box(20, y, 228, 86, "ml-cell", 12)
+    ic(s, icon, 54, y + 43, 44)
+    s.both(84, y + 49, ath, aen, "pl-label")
+    s.box(260, y, 436, 86, "ml-cell", 12)
+    s.both(276, y + 34, wq_th, wq_en, "pl-text")
+    s.both(276, y + 66, "→ " + ws_th, "→ " + ws_en, "pl-note")
+    s.box(708, y, 452, 86, "nt-band-a", 12)
+    s.both(724, y + 34, aq_th, aq_en, "pl-text")
+    s.both(724, y + 66, "→ " + as_th, "→ " + as_en, "pl-note")
+s.both(20, 480, "แอปเดียวกันมีทั้งสองแบบ: คำขอที่พบบ่อยไป workflow ที่เหลือไป agent และให้คนอนุมัติทุกอย่างที่เสียเงิน",
+       "Same app, both kinds: common requests → workflow, the rest → agent, and a person approves payments", "pl-label")
+s.save("l14-scenarios.svg", 496)
 
 # ---------------------------------------------------------------- 18. one agent vs many
 s = Svg(W, "Left: one agent researching AI agents reads every paper and note into one context window, which fills up. Right: "
@@ -1318,6 +1448,82 @@ for k, (role, txt, rnd, n) in enumerate(ROWS):
 s.both(1144, 64, "len", "len", "pl-note", "end")
 s.both(490, 430, "โมเดลเลือกแต่ละขั้น ลูปของเราเป็นคนรัน", "the model chose each step; our loop ran it", "ml-ok")
 s.save("l14-loop.svg", 476)
+
+# ---------------------------------------------------------------- loop walk-through: 9 frames for a ```stepper (real run)
+MSGS = [("user", "How many days are left until the final exam?"),
+        ("model", "get_today()  +  search_course('final exam')"),
+        ("user", "2026-10-26 · [fact 7] final exam, Mon 30 Nov"),
+        ("model", "days_between('2026-10-26', '2026-11-30')"),
+        ("user", "35"),
+        ("model", "There are 35 days left until the final exam.")]
+STAGES = [(1, "สร้างสิ่งที่โมเดลอ่าน", "Build what the model reads", 540, 40),
+          (2, "LLM ตัดสินใจ", "LLM decides", 870, 40),
+          (3, "ตรวจ แล้วรัน tool", "Check, then run the tool", 870, 176),
+          (4, "เพิ่มผลลงใน messages", "Add the result to messages", 540, 176)]
+WALK = [(1, 0, 0, [("นักศึกษาส่งคำถามเข้ามา", "the student's question comes in", False)]),
+        (1, None, 1, [("กฎ + คำอธิบาย tool 4 ตัว + 1 ข้อความ", "rules + 4 tool descriptions + 1 message", False),
+                      ("→ ส่งให้ Gemini (รอบ 1)", "→ sent to Gemini (round 1)", False)]),
+        (2, 1, 2, [("get_today()", "get_today()", True), ("search_course('final exam')", "search_course('final exam')", True),
+                   ("ขอ tool 2 ตัวในรอบเดียว", "two tool requests in one turn", False)]),
+        (2, None, 3, [("arguments ถูกต้อง ✓ อนุญาต ✓", "valid arguments ✓ allowed ✓", False),
+                      ("get_today → 2026-10-26", "get_today → 2026-10-26", True),
+                      ("search_course → [fact 7] ...", "search_course → [fact 7] ...", True)]),
+        (3, 2, 4, [("ผลถูกเพิ่มเป็นข้อความที่ 3", "the results become message 3", False), ("→ ถามโมเดลอีกครั้ง", "→ ask the model again", False)]),
+        (4, 3, 2, [("อ่านทั้ง 3 ข้อความ แล้วขอ", "reads all 3 messages, then asks for", False),
+                   ("days_between('2026-10-26', '2026-11-30')", "days_between('2026-10-26', '2026-11-30')", True)]),
+        (5, 4, 4, [("รันแล้วได้ 35 → ข้อความที่ 5", "run it: 35 → message 5", False), ("→ ถามโมเดลอีกครั้ง (รอบ 3)", "→ ask the model again (round 3)", False)]),
+        (6, 5, 5, [("ไม่มีการเรียก tool → นี่คือคำตอบ", "no tool call → this is the answer", False),
+                   ("There are 35 days left until the final exam.", "There are 35 days left until the final exam.", True)]),
+        (6, None, 6, [("โมเดลถูกเรียก 3 รอบ · รัน tool 3 ครั้ง", "3 model calls · 3 tool runs", False),
+                      ("โมเดลเลือกทุกขั้น โค้ดของเราเป็นคนรัน", "the model chose every step; our code ran it", False)])]
+for k, (nshow, new_i, active, passing) in enumerate(WALK):
+    s = Svg(W, f"Agent loop walk-through, step {k + 1} of {len(WALK)}. Stages 1, 3 and 4 are the harness (our code); stage 2 is "
+               "the LLM. " + " ".join(en for _, en, _ in passing))
+    # left: the messages the model reads (the harness keeps them)
+    s.box(20, 0, 500, 376, "ml-cell", 14)
+    s.both(36, 28, "messages ที่โมเดลอ่าน", "Messages the model reads", "pl-label")
+    s.text(504, 28, f"{nshow} / 6", "pl-note", "end")
+    s.both(36, 52, "harness เป็นคนเก็บ", "kept by the harness", "pl-note")
+    for i, (role, txt) in enumerate(MSGS[:nshow]):
+        y = 66 + i * 49
+        hot = i == new_i
+        s.box(36, y, 64, 36, "nt-bubble" if role == "user" else "ml-model", 8)
+        s.text(68, y + 24, role, "hk-desc" if role == "user" else "ml-model-sub", "middle")
+        s.box(108, y, 400, 36, "sw-chip-warn" if hot else "ml-cell", 8)
+        s.code(118, y + 23, txt)
+    # key: which parts are the harness, which is the LLM
+    s.box(540, 6, 18, 18, "nt-band-a", 4)
+    s.both(564, 21, "harness = โค้ดของเรา", "harness = our code", "pl-note")
+    s.box(760, 6, 18, 18, "ml-model", 4)
+    s.both(784, 21, "LLM = Gemini", "LLM = Gemini", "pl-note")
+    # right: the loop, active stage lit (stage 2 says "LLM answers" in the answer step)
+    for n, th, en, x, y in STAGES:
+        on = active == n or (n == 2 and active == 5)
+        llm = n == 2
+        if llm and active == 5:
+            th, en = "LLM ตอบ", "LLM answers"
+        s.box(x, y, 290, 100, "sw-chip-warn" if on else ("ml-cell" if llm else "nt-band-a"), 12)
+        s.num(x + 24, y + 26, n)
+        s.both(x + 46, y + 32, th, en, "pl-label" if on else "pl-text")
+        tag_w = 52 if llm else 84
+        s.box(x + 14, y + 64, tag_w, 26, "ml-model" if llm else "nt-bubble", 13)
+        s.text(x + 14 + tag_w / 2, y + 82, "LLM" if llm else "harness", "ml-model-sub" if llm else "hk-desc", "middle")
+        if llm:
+            pic(s, "ag-robot-think", x + 200, y + 40, 70, 56)
+    s.arrow(832, 90, 868, 90); s.arrow(1015, 142, 1015, 174); s.arrow(868, 226, 832, 226); s.arrow(685, 174, 685, 142)
+    s.both(700, 164, "วน", "loop", "pl-note")
+    s.both(1160, 21, "ไม่เรียก tool → ตอบ ↑", "no tool call → answer ↑", "pl-note", "end")
+    # what passes now
+    s.box(540, 284, 620, 92, "ml-cell", 12)
+    s.both(556, 306, f"ขั้นที่ {k + 1}/{len(WALK)} · สิ่งที่ส่งต่อ", f"Step {k + 1}/{len(WALK)} · what passes now", "pl-note")
+    for j, (th, en, is_code) in enumerate(passing):
+        col, row = (0, j) if j < 2 else (1, 1)
+        xx, yy = 556 + col * 304, 334 + row * 29
+        if is_code:
+            s.code(xx, yy, en)
+        else:
+            s.both(xx, yy, th, en, "pl-text" if col == 0 else "pl-note")
+    s.save(f"l14-walk-{k + 1}.svg", 380)
 
 
 # ---------------------------------------------------------------- 15b. the library stack
