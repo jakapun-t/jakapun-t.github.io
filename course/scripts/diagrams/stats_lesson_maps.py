@@ -295,13 +295,13 @@ def l12_compare(s, x, y, w, h):
 
 info_map(
     "l12-map-lesson.svg",
-    "Lesson map. The problem: predict the points of 1,000 wines from a tasting note (text), a price (number) and a "
+    "Lesson map. The problem: predict the star rating (out of 5) of 1,000 wines from a tasting note (text), a price (number) and a "
     "country and grape (groups); a model needs one row of numbers. Part 2 the note becomes a vector (MiniLM, 384 "
     "numbers). Part 3 price is logged and scaled (wine 1: −0.93), country and grape are one-hot (24 + 132). Part 4 the "
     "blocks join into one row of 541 numbers. Part 5 Ridge with 5-fold CV: text alone R² 0.389, other columns 0.400, "
     "both 0.529. Part 6 review.",
-    ("รีวิวไวน์ 1,000 ขวด · คะแนน 80–100", "1,000 wine reviews · points 80–100"),
-    ("คำ ราคา และกลุ่ม ทำนายคะแนนได้แค่ไหน", "Words, price and groups: how well do they predict points?"),
+    ("รีวิวไวน์ 1,000 ขวด · ดาวเต็ม 5", "1,000 wine reviews · stars out of 5"),
+    ("คำ ราคา และกลุ่ม ทำนายคะแนนดาวได้แค่ไหน", "Words, price and groups: how well do they predict stars?"),
     ("✗ ข้อความกับตัวเลขคนละชนิด: ต้องเป็นแถวเดียวก่อน", "✗ Text and numbers differ: make them one row first"),
     l12_problem,
     [

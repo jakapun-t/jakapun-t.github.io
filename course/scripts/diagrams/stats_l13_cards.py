@@ -2,7 +2,7 @@
 style: a student can skim the picture and read the card's text for the detail.
   l13-ideas-everywhere.svg  S01  apps that already work like this lesson's ideas (Akinator, Wordle, fans-also-like, ...)
   l13-cross-entropy.svg     S05  reality p vs a model that believes 25% each; one Obese person, model A vs B
-  l13-upon-split.svg        S07  the 10 Federalist papers split by "has upon?"
+  l13-555-split.svg         S07  10 group-chat messages split by "has 555?"
   l13-gini-vs-entropy.svg   S09  the 49-person node and its two candidate questions
   l13-bootstrap-bags.svg    S12  three bootstrap bags of rows 1–8 (default_rng(3)) and the rows each leaves out
   l13-forest-settings.svg   S14  the four settings of forests and boosting, each drawn
@@ -13,8 +13,8 @@ style: a student can skim the picture and read the card's text for the detail.
     course/.venv/bin/python scripts/diagrams/stats_l13_cards.py courses/stats-dh/images
 
 Real numbers (course/.venv, the same as the lesson's code cells): label shares 0.435, 0.269, 0.185, 0.111, H(p) 1.83,
-H(p, q) 2.00; −log2 0.8 = 0.32, −log2 0.2 = 2.32. upon per paper: Hamilton 1, 6, 7, 8, 9 → 6, 4, 11, 3, 4; Madison 10,
-14, 37, 38, 39 → 0, 0, 1, 4, 0; IG 0.40. Node of 49 (23 Normal, 16 Overweight, 10 Obese, Gini 0.631): BMI ≤ 24.6 →
+H(p, q) 2.00; −log2 0.8 = 0.32, −log2 0.2 = 2.32. Has 555 per chat message (made up): Pim #1–5 all yes;
+Tae #6–10 → no, no, yes, yes, no; IG 0.40. Node of 49 (23 Normal, 16 Overweight, 10 Obese, Gini 0.631): BMI ≤ 24.6 →
 Gini 0.335, entropy 0.794; Weight ≤ 97.5 → Gini 0.385, entropy 0.777. Bootstrap bags: [1 2 2 2 5 7 7 7],
 [1 1 2 3 3 4 4 5], [1 1 4 4 5 6 6 8]. Scoreboard (CV / test): Logistic 0.846 / 0.953, Tree 0.977 / 0.953, Forest
 0.989 / 0.953, Boosting 0.976 / 0.953, KNN 0.823 / 0.858, SVM 0.861 / 0.903. The app tiles are analogies, not claims
@@ -23,26 +23,105 @@ about how each app is built. Uses the mp-*, ml-*, nt-*, rc-*, dg-*, pl-* classes
 
 import math
 
-from stats_svg import CLS, Svg, app_grid, circ, embed_png, emoji_or_icon, ring, term_grid
+from stats_svg import CLS, Svg, app_grid, circ, embed_png, emoji_or_icon, ring, term_grid, width
 
 W = 1100
 HAM, MAD = "var(--tag-concept-dot)", "var(--tag-example-dot)"
 
-# ================================================================ S01 ideas you have met already
-s = Svg(W, "Apps that already work like this lesson's ideas: Akinator asks the best yes/no question first (a decision "
-           "tree), the best first Wordle guess gives the most information (entropy), 'fans also like' looks at artists "
-           "near yours (nearest neighbours), a critics' score lets many critics vote (random forest), Duolingo drills the "
-           "words you got wrong (boosting), a spam filter keeps the widest gap between spam and normal mail (SVM).")
-s.bubble("คุณเจอความคิดของบทนี้มาแล้วในแอปที่ใช้ทุกวัน", "You've already met this lesson's ideas in everyday apps")
-bottom = app_grid(s, [
-    ("🧞", "Akinator", "Akinator", "ถามใช่/ไม่ใช่ที่ดีที่สุดก่อน", "asks the best yes/no first", "decision tree", "decision tree"),
-    ("🟩", "Wordle", "Wordle", "คำแรกที่ให้ข้อมูลมากที่สุด", "the most informative guess", "entropy", "entropy"),
-    ("🎧", "Fans also like", "Fans also like", "ศิลปินที่ใกล้กับที่คุณฟัง", "artists close to yours", "KNN", "KNN"),
-    ("🍅", "คะแนนนักวิจารณ์", "Critics' score", "นักวิจารณ์หลายคนช่วยกันโหวต", "many critics vote", "random forest", "random forest"),
-    ("🦉", "Duolingo", "Duolingo", "ทวนคำที่คุณตอบผิด", "drills what you got wrong", "boosting", "boosting"),
-    ("🛡️", "ตัวกรองสแปม", "Spam filter", "เว้นช่องกว้างสุดระหว่างสองกลุ่ม", "widest gap between groups", "SVM", "SVM"),
-])
-s.save("l13-ideas-everywhere.svg", bottom + 10)
+# ================================================================ S01 different models, good at different jobs
+BLUE, AMB = "var(--tag-concept-dot)", "var(--tag-example-dot)"
+
+
+def pic_lr(x, y):
+    for dx, dy in ((14, 60), (26, 70), (34, 52), (20, 44)):
+        circ(s, x + dx, y + dy, 5, BLUE)
+    for dx, dy in ((70, 22), (84, 34), (92, 16), (78, 12)):
+        circ(s, x + dx, y + dy, 5, AMB)
+    s.raw(f'<path d="M{x + 8} {y + 12} L{x + 104} {y + 74}" class="pl-line"/>')
+
+
+def pic_tree(x, y):
+    s.box(x + 38, y + 4, 36, 18, "ml-model", 4)
+    for lx in (14, 74):
+        s.raw(f'<path d="M{x + 56} {y + 22} L{x + lx + 16} {y + 42}" class="mp-axis"/>')
+        s.box(x + lx, y + 42, 32, 16, "ml-cell-b", 4)
+    for lx, col in ((4, BLUE), (34, AMB), (64, BLUE), (94, AMB)):
+        s.raw(f'<path d="M{x + (30 if lx < 50 else 90)} {y + 58} L{x + lx + 8} {y + 72}" class="mp-axis"/>')
+        circ(s, x + lx + 8, y + 76, 5, col)
+
+
+def mini_tree(x, y, col=BLUE):
+    s.raw(f'<path d="M{x} {y + 30} L{x + 14} {y} L{x + 28} {y + 30} Z" style="fill:{col}"/>')
+    s.fill(x + 11, y + 30, 6, 10, "var(--muted)", 1)
+
+
+def pic_forest(x, y):
+    for i in range(3):
+        mini_tree(x + 4 + i * 36, y + 8)
+    s.raw(f'<path d="M{x + 18} {y + 52} L{x + 56} {y + 66} L{x + 90} {y + 52}" class="mp-axis"/>')
+    s.both(x + 56, y + 84, "โหวต", "vote", "mp-s", "middle")
+
+
+def pic_boost(x, y):
+    for i in range(3):
+        mini_tree(x + 2 + i * 40, y + 14, (BLUE, AMB, "var(--accent)")[i])
+        if i < 2:
+            s.raw(f'<path d="M{x + 32 + i * 40} {y + 34} L{x + 40 + i * 40} {y + 34}" class="pl-line"/>')
+    s.both(x + 56, y + 80, "แก้ที่ต้นก่อนผิด", "fix the last one", "mp-s", "middle")
+
+
+def pic_knn(x, y):
+    for dx, dy, col in ((20, 20, BLUE), (90, 70, AMB), (96, 20, AMB), (14, 70, BLUE), (48, 34, BLUE), (66, 48, BLUE), (52, 60, AMB)):
+        circ(s, x + dx, y + dy, 5, col)
+    ring(s, x + 56, y + 46, 22, "mp-ring-d")
+    s.text(x + 56, y + 52, "?", "mp-n", "middle")
+
+
+def pic_svm(x, y):
+    for dx, dy in ((12, 64), (24, 76), (30, 56), (8, 48)):
+        circ(s, x + dx, y + dy, 5, BLUE)
+    for dx, dy in ((84, 18), (96, 30), (100, 10), (76, 8)):
+        circ(s, x + dx, y + dy, 5, AMB)
+    for off, cls in ((0, "pl-line"), (-14, "mp-guide"), (14, "mp-guide")):
+        s.raw(f'<path d="M{x + 16 + off} {y + 4} L{x + 92 + off} {y + 84}" class="{cls}"/>')
+
+
+MODELS = [
+    (pic_lr, "Logistic regression", "ตัดกลุ่มด้วยเส้นตรง", "cuts groups with a straight line",
+     "ข้อมูลง่าย อธิบายน้ำหนักได้", "simple data, readable weights", "สแปมหรือไม่", "spam or not"),
+    (pic_tree, "Decision tree", "ถามใช่/ไม่ใช่ทีละข้อ", "asks yes/no, one at a time",
+     "กฎที่คนอ่านเข้าใจ", "rules people can read", "เกณฑ์อนุมัติเงินกู้", "loan approval rules"),
+    (pic_forest, "Random forest", "ต้นไม้หลายต้นโหวต", "many trees vote",
+     "ข้อมูลตาราง ปรับน้อยก็ได้ผลดี", "tables, good with little tuning", "เสี่ยงเป็นโรคไหม", "disease risk"),
+    (pic_boost, "Gradient boosting", "ต้นใหม่แก้ที่ต้นก่อนผิด", "each tree fixes the last one",
+     "มักแม่นที่สุดกับข้อมูลตาราง", "often the most accurate on tables", "จับการโกงบัตรเครดิต", "card fraud"),
+    (pic_knn, "KNN", "ถามตัวอย่างที่ใกล้ที่สุด", "asks the nearest examples",
+     "หาของที่คล้ายกัน", "finding similar items", "เพลงที่คุณน่าจะชอบ", "songs you may like"),
+    (pic_svm, "SVM", "เว้นทางกว้างที่สุดระหว่างกลุ่ม", "keeps the widest gap",
+     "คอลัมน์เยอะ ข้อมูลไม่มาก", "many columns, little data", "จัดข่าวเข้าหมวด", "news by topic"),
+]
+s = Svg(W, "No model is best at everything; each kind is good at a different job. Logistic regression cuts groups with "
+           "a straight line (simple data, readable weights; e.g. spam or not). A decision tree asks yes/no questions one "
+           "at a time (rules people can read; loan approval rules). A random forest lets many trees vote (tables, good "
+           "with little tuning; disease risk). Gradient boosting adds trees that fix the last one's mistakes (often the "
+           "most accurate on tables; card fraud). KNN asks the nearest examples (finding similar items; songs you may "
+           "like). An SVM keeps the widest gap between groups (many columns, little data; news by topic).")
+s.bubble("ไม่มีโมเดลไหนเก่งทุกงาน: แต่ละแบบเก่งคนละเรื่อง", "No model is best at everything: each kind is good at a different job")
+TW_, TH2 = 352, 196
+for k, (pic, name, hth, hen, gth, gen, eth, een) in enumerate(MODELS):
+    x, y = 10 + (k % 3) * (TW_ + 12), 72 + (k // 3) * (TH2 + 14)
+    s.box(x, y, TW_, TH2, "ml-cell", 14)
+    s.box(x + 12, y + 12, 112, 92, "dg-xl-head", 10)
+    pic(x + 12, y + 12)
+    s.text(x + 138, y + 40, name, "mp-t")
+    s.both(x + 138, y + 68, hth, hen, "hk-desc")
+    s.both(x + 16, y + 134, "เก่งเรื่อง", "good at", "mp-s")
+    w = max(width(gth, 16), width(gen, 16)) + 24
+    s.box(x + 90, y + 116, min(w, TW_ - 100), 28, "ml-cell-b", 14)
+    s.both(x + 90 + min(w, TW_ - 100) / 2, y + 136, gth, gen, "mp-chip", "middle")
+    s.both(x + 16, y + 176, "เช่น", "e.g.", "mp-s")
+    s.both(x + 90, y + 176, eth, een, "hk-desc")
+s.save("l13-ideas-everywhere.svg", 72 + 2 * TH2 + 14 + 10)
 
 # ================================================================ S05 cross-entropy
 P = [0.435, 0.269, 0.185, 0.111]
@@ -79,73 +158,77 @@ for i, (m, q, ok) in enumerate((("A", 0.8, True), ("B", 0.2, False))):
 s.both(610, 344, "ฝึกโมเดล = ทำให้ความแปลกใจนี้ต่ำ (log loss)", "training = make this surprise small (log loss)", "mp-s")
 s.save("l13-cross-entropy.svg", 370)
 
-# ================================================================ S07 upon splits the papers
-PAPERS = [("1", "H", 6), ("6", "H", 4), ("7", "H", 11), ("8", "H", 3), ("9", "H", 4),
-          ("10", "M", 0), ("14", "M", 0), ("37", "M", 1), ("38", "M", 4), ("39", "M", 0)]
+# ================================================================ S07 "555" splits the chat messages
+CHATS = [("1", "H", 1), ("2", "H", 1), ("3", "H", 1), ("4", "H", 1), ("5", "H", 1),   # 1 = has 555
+         ("6", "M", 0), ("7", "M", 0), ("8", "M", 1), ("9", "M", 1), ("10", "M", 0)]
 
 
-def doc(x, y, w, h, author, label=None):
-    col = HAM if author == "H" else MAD
-    s.raw(f'<path d="M{x:g} {y:g} h{w - 10:g} l10 10 v{h - 10:g} h{-w:g} Z" style="fill:{col}"/>')
+def chat(x, y, w, h, who, label=None):
+    col = HAM if who == "H" else MAD
+    s.raw(f'<path d="M{x + 10:g} {y:g} h{w - 20:g} a10 10 0 0 1 10 10 v{h - 20:g} a10 10 0 0 1 -10 10 '
+          f'h{-(w - 26):g} l-12 9 l2 -9 a10 10 0 0 1 -10 -10 v{-(h - 20):g} a10 10 0 0 1 10 -10 Z" style="fill:{col}"/>')
     if label is not None:
         s.text(x + w / 2, y + h / 2 + 7, label, "pl-num", "middle")
 
 
-s = Svg(W, "Who wrote it? Ten Federalist papers, coloured by author (Hamilton blue, Madison amber), with how often each uses "
-           "'upon'. The question 'has upon?' sends 7 papers to yes (5 Hamilton, 2 Madison; entropy 0.86) and 3 to no (all "
-           "Madison; entropy 0, pure). Information gain = 1 − (0.7 × 0.86 + 0.3 × 0) = 0.40 bits.")
-s.bubble("ถ้ารู้แค่ว่ามีคำว่า upon ไหม เดาผู้เขียนได้ดีขึ้นแค่ไหน", "If you only know whether a paper has “upon”, how much does it help?")
-for i, (no, a, n) in enumerate(PAPERS):
+s = Svg(W, "Who sent it? Ten group-chat messages, coloured by sender (Pim blue, Tae amber), marked 555 if it "
+           "has '555' (Thai for hahaha) and – if not. The question 'has 555?' sends 7 messages to yes (5 Pim, 2 Tae; entropy 0.86) "
+           "and 3 to no (all Tae; entropy 0, pure). Information gain = 1 − (0.7 × 0.86 + 0.3 × 0) = 0.40 bits.")
+s.bubble("คำว่า 555 ช่วยเดาคนส่งได้แค่ไหน? Pim หรือ Tae", "How much does “555” help you guess the sender: Pim or Tae?")
+for i, (no, a, n) in enumerate(CHATS):
     x = 76 + i * 96
-    doc(x, 72, 48, 58, a, f"×{n}")
-    s.text(x + 24, 150, f"No. {no}", "mp-s", "middle")
+    chat(x, 72, 60, 50, a, "555" if n else "–")
+    s.text(x + 30, 150, f"#{no}", "mp-s", "middle")
 s.fill(30, 166, 16, 16, HAM, 3)
-s.text(52, 179, "Hamilton", "mp-c")
-s.fill(140, 166, 16, 16, MAD, 3)
-s.text(162, 179, "Madison", "mp-c")
-s.both(1080, 179, "ตัวเลข = จำนวน upon ในบทความ", "number = times “upon” appears", "mp-s", "end")
+s.text(52, 179, "Pim", "mp-c")
+s.fill(120, 166, 16, 16, MAD, 3)
+s.text(142, 179, "Tae", "mp-c")
+s.both(1080, 179, "บนฟอง: 555 = ข้อความมี 555 · – = ไม่มี", "on a bubble: 555 = the message has 555 · – = it does not", "mp-s", "end")
 s.box(450, 194, 200, 38, "ml-model", 19)
-s.both(550, 219, "มี upon ไหม", "has “upon”?", "ml-model-text", "middle")
+s.both(550, 219, "มี 555 ไหม", "has “555”?", "ml-model-text", "middle")
 s.arrow(480, 234, 330, 256)
 s.arrow(620, 234, 790, 256)
 s.box(80, 260, 500, 92, "nt-band-a", 12)
-s.both(100, 284, "ใช่: 7 ชิ้น", "yes: 7 papers", "mp-c")
-for i, (no, a, n) in enumerate([p for p in PAPERS if p[2] > 0]):
-    doc(100 + i * 40, 296, 28, 38, a)
+s.both(100, 284, "ใช่: 7 ข้อความ", "yes: 7 messages", "mp-c")
+for i, (no, a, n) in enumerate([c for c in CHATS if c[2] > 0]):
+    chat(100 + i * 44, 298, 34, 30, a)
 s.text(560, 330, "H = 0.86", "mp-n", "end")
 s.box(640, 260, 380, 92, "rc-res", 12)
-s.both(660, 284, "ไม่ใช่: 3 ชิ้น", "no: 3 papers", "mp-c")
-for i, (no, a, n) in enumerate([p for p in PAPERS if p[2] == 0]):
-    doc(660 + i * 40, 296, 28, 38, a)
+s.both(660, 284, "ไม่ใช่: 3 ข้อความ", "no: 3 messages", "mp-c")
+for i, (no, a, n) in enumerate([c for c in CHATS if c[2] == 0]):
+    chat(660 + i * 44, 298, 34, 30, a)
 s.text(1000, 330, "H = 0 ✓", "ml-ok", "end")
 s.text(550, 384, "IG = 1 − (0.7 × 0.86 + 0.3 × 0) = 0.40 bits", "mp-acc", "middle")
-s.save("l13-upon-split.svg", 396)
+s.save("l13-555-split.svg", 396)
 
-# ================================================================ S09 Gini or entropy
-s = Svg(W, "Gini or entropy. The second node has 49 people: 23 Normal, 16 Overweight, 10 Obese (Gini 0.631). Question 1, "
-           "BMI ≤ 24.6: yes 20 Normal (pure), no 3 Normal, 16 Overweight, 10 Obese; Gini after 0.335, entropy after 0.794. "
-           "Question 2, Weight ≤ 97.5: yes 23 Normal, 16 Overweight, no 10 Obese (pure); Gini after 0.385, entropy after "
-           "0.777. Gini picks question 1, entropy picks question 2; both trees end with the same 4 leaves.")
+# ================================================================ S09 entropy first, Gini as the add-on
+s = Svg(W, "Entropy or Gini. The second node has 49 people: 23 Normal, 16 Overweight, 10 Obese (entropy 1.51 bits, Gini "
+           "0.631). Question 1, BMI ≤ 24.6: yes 20 Normal (pure), no 3 Normal, 16 Overweight, 10 Obese (entropy 1.34); "
+           "entropy after = 20/49 × 0 + 29/49 × 1.34 = 0.794, IG 0.71; Gini after 0.335. Question 2, Weight ≤ 97.5: yes 23 "
+           "Normal, 16 Overweight (entropy 0.98), no 10 Obese (pure); entropy after = 39/49 × 0.98 + 10/49 × 0 = 0.777, "
+           "IG 0.73; Gini after 0.385. Entropy picks question 2; Gini would pick question 1; both trees end with the same "
+           "4 leaves.")
 s.bubble("โหนดนี้ควรถามคำถามไหนก่อน", "Which question should this node ask first?")
 s.stack(400, 74, 300, 34, [0, 23, 16, 10])
-s.both(550, 132, "49 คน · Gini 0.631", "49 people · Gini 0.631", "mp-c", "middle")
+s.both(550, 132, "49 คน · entropy 1.51 bits (Gini 0.631)", "49 people · entropy 1.51 bits (Gini 0.631)", "mp-c", "middle")
 PX = 6
-for k, (q, yes, no, g, h, gw, hw) in enumerate((
-        ("BMI ≤ 24.6", [0, 20, 0, 0], [0, 3, 16, 10], "0.335", "0.794", True, False),
-        ("Weight ≤ 97.5", [0, 23, 16, 0], [0, 0, 0, 10], "0.385", "0.777", False, True))):
+for k, (q, yes, no, ent, ig, g, win) in enumerate((
+        ("BMI ≤ 24.6", [0, 20, 0, 0], [0, 3, 16, 10], "20/49 × 0 + 29/49 × 1.34 = 0.794", "0.71", "0.335", False),
+        ("Weight ≤ 97.5", [0, 23, 16, 0], [0, 0, 0, 10], "39/49 × 0.98 + 10/49 × 0 = 0.777", "0.73", "0.385", True))):
     x = 10 + k * 550
     s.arrow(550, 140, x + 270, 160)
-    s.box(x, 164, 530, 210, "ml-cell", 14)
+    s.box(x, 164, 530, 250, "ml-cell-b" if win else "ml-cell", 14)
     s.both(x + 20, 196, f"คำถาม {k + 1}: {q}", f"Question {k + 1}: {q}", "mp-t")
     s.both(x + 20, 236, "ใช่", "yes", "mp-s")
     s.stack(x + 70, 218, sum(yes) * PX, 28, yes)
     s.both(x + 20, 276, "ไม่ใช่", "no", "mp-s")
     s.stack(x + 70, 258, sum(no) * PX, 28, no)
-    s.text(x + 20, 330, f"Gini {g}" + (" ✓" if gw else ""), "ml-ok" if gw else "mp-r")
-    s.text(x + 270, 330, f"entropy {h}" + (" ✓" if hw else ""), "ml-ok" if hw else "mp-r")
-    s.both(x + 20, 358, "Gini เลือกคำถามนี้" if gw else "entropy เลือกคำถามนี้", "Gini picks this one" if gw else "entropy picks this one",
-           "mp-s")
-s.save("l13-gini-vs-entropy.svg", 384)
+    s.both(x + 20, 320, f"entropy หลังถาม = {ent}", f"entropy after = {ent}", "mp-t")
+    s.both(x + 20, 352, f"IG = 1.51 − {ent[-5:]} = {ig} bits" + (" ✓ entropy เลือกข้อนี้" if win else ""),
+           f"IG = 1.51 − {ent[-5:]} = {ig} bits" + (" ✓ entropy picks this" if win else ""), "ml-ok" if win else "mp-r")
+    s.both(x + 20, 392, f"ทางเลือกเสริม: Gini หลังถาม {g}" + (" (Gini จะเลือกข้อนี้)" if not win else ""),
+           f"add-on: Gini after {g}" + (" (Gini would pick this)" if not win else ""), "mp-s")
+s.save("l13-gini-vs-entropy.svg", 424)
 
 # ================================================================ S12 bootstrap bags
 BAGS = [[1, 2, 2, 2, 5, 7, 7, 7], [1, 1, 2, 3, 3, 4, 4, 5], [1, 1, 4, 4, 5, 6, 6, 8]]

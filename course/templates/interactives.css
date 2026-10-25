@@ -1,5 +1,14 @@
 /* ---------- ```stepper and ```sorter (src/interactives.mjs); the card itself is .ixp ---------- */
-.stp-control { margin-bottom: calc(10 * var(--ix)); }
+.stp-control { margin-bottom: calc(10 * var(--ix)); display: flex; align-items: flex-start; gap: calc(14 * var(--ix)); }
+.stp-control-main { flex: 1; min-width: 0; }
+.stp-play { flex: none; min-height: calc(44 * var(--ix)); padding: calc(6 * var(--ix)) calc(18 * var(--ix)); border: 0; border-radius: 999px; background: var(--accent); color: var(--card); font: 600 calc(16 * var(--ix)) var(--font-text); cursor: pointer; }
+.stp-play:hover { filter: brightness(1.08); }
+.stp-play .stp-play-off, .stp-play[aria-pressed="true"] .stp-play-on { display: none; }
+.stp-play[aria-pressed="true"] .stp-play-off { display: inline; }
+.stp-media svg { display: block; width: 100%; height: auto; }
+.stp-has-media .stp-label { margin-bottom: calc(4 * var(--ix)); }
+.stp-panel:not([hidden]) .grow-new { animation: stp-grow .6s ease both; }
+@keyframes stp-grow { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 .stp-slider { display: flex; flex-direction: column; gap: calc(2 * var(--ix)); }
 .stp-slider-label { flex: none; font-weight: 600; color: var(--ink); font-size: calc(16 * var(--ix)); }
 .stp-slider input { width: 100%; margin: 0; min-height: calc(44 * var(--ix)); accent-color: var(--accent); cursor: pointer; }
@@ -27,7 +36,7 @@
 .stp-row.is-zero .stp-name { color: var(--muted); text-decoration: line-through; }
 .stp-row.is-zero .stp-val { color: var(--accent); font-weight: 600; }
 .stp-note { margin: calc(10 * var(--ix)) 0 0; font-size: calc(16 * var(--ix)); color: var(--ink-2); }
-@media (prefers-reduced-motion: reduce) { .stp-bar { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .stp-bar { transition: none; } .stp-panel .grow-new { animation: none; } }
 
 .srt-target { margin-left: auto; font-weight: 500; }
 .srt-target code { font: calc(14 * var(--ix)) var(--font-code); }
@@ -63,12 +72,20 @@
 .fx .srt-actions { margin-top: calc(4 * var(--ix)); }
 .fx .srt-actions button { min-height: calc(36 * var(--ix)); }
 .fx .stp { align-self: center; width: min(100%, calc(1040 * var(--u))); }
-.fx .stp .ixp-body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto auto 1fr; column-gap: calc(28 * var(--ix)); align-items: start; }
-.fx .stp .stp-control { grid-column: 1; grid-row: 1; }
-.fx .stp .stp-panel:not([hidden]) { display: contents; }
-.fx .stp .stp-label { grid-column: 1; grid-row: 2; }
-.fx .stp .stp-note { grid-column: 1; grid-row: 3; margin-top: 0; }
-.fx .stp .stp-bars { grid-column: 2; grid-row: 1 / -1; }
+/* a stepper of pictures on the projector: no header, label or note (the picture has the numbers), one control row */
+.fx .stp-has-media .ixp-head, .fx .stp-has-media .stp-label, .fx .stp-has-media .stp-note { display: none; }
+.fx .stp-has-media .ixp-body { padding-top: calc(6 * var(--ix)); padding-bottom: calc(6 * var(--ix)); }
+.fx .stp-has-media .stp-control { margin-bottom: calc(2 * var(--ix)); align-items: center; }
+.fx .stp-has-media .stp-slider { flex-direction: row; align-items: center; gap: calc(12 * var(--ix)); }
+.fx .stp-has-media .stp-slider input { flex: 1; min-height: calc(30 * var(--ix)); }
+.fx .stp-has-media .stp-ticks { height: calc(20 * var(--ix)); margin-left: auto; width: 100%; }
+.fx .stp-has-media .stp-media svg { width: auto; max-width: 100%; max-height: calc(var(--stp-fx-h, 338) * var(--u)); margin: 0 auto; }
+.fx .stp:not(.stp-has-media) .ixp-body { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto auto 1fr; column-gap: calc(28 * var(--ix)); align-items: start; }
+.fx .stp:not(.stp-has-media) .stp-control { grid-column: 1; grid-row: 1; }
+.fx .stp:not(.stp-has-media) .stp-panel:not([hidden]) { display: contents; }
+.fx .stp:not(.stp-has-media) .stp-label { grid-column: 1; grid-row: 2; }
+.fx .stp:not(.stp-has-media) .stp-note { grid-column: 1; grid-row: 3; margin-top: 0; }
+.fx .stp:not(.stp-has-media) .stp-bars { grid-column: 2; grid-row: 1 / -1; }
 .fx .stp-row { line-height: 1.35; }
 
 /* long class names in card text (e.g. `SequentialFeatureSelector`) wrap instead of spilling out */

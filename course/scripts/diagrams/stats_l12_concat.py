@@ -1,11 +1,13 @@
 """Pictures for stats-dh L12 (text as data: one row from text and numbers), in the stats-dh card style. The lesson's
 point: turn the text into a vector, turn the other columns into numbers, join them into one row, train on the row.
   l12-mixed-everywhere.svg  S01  six apps whose rows mix free text, numbers and categories
-  l12-one-row-vector.svg    S01  wine 1: note / price / country / grape → three blocks → one row of 541 → Ridge → points
-  l12-one-wine.svg          S03  wine 1 as a card (features and target) and the points of all 1,000 wines
+  l12-one-row-vector.svg    S01  three wines as a table (X features, y stars) → the same rows as numbers → Ridge
+  l12-one-wine.svg          S03  wine 1 as a card (features and target) and the stars of all 1,000 wines
   l12-text-vectors.svg      S04  wine 1's note as TF-IDF (4,146 columns, ~34 non-zero) and as MiniLM (384 numbers)
+  l12-sparse-vs-dense.svg   S04  sparse TF-IDF vs dense MiniLM: size, explainable, field words, synonyms, few labels, speed, R²
   l12-other-columns.svg     S05  price → log → scaled (wine 1: −0.93); country and grape → one-hot (24 + 132)
   l12-concat-row.svg        S06  the 541-number row of wine 1, block by block, and the 1,000 × 541 table
+  l12-row-exercise.svg      S07  exercise: wines 1 and 3 and an empty shortened 10-column row to fill in
   l12-column-pipeline.svg   S08  the column transformer and Ridge inside each cross-validation round (R² 0.518)
   l12-r2-compare.svg        S09  R² of text alone, other columns alone and the joined rows
   l12-key-terms.svg         S11  six key terms with small drawings
@@ -39,7 +41,7 @@ TXT, PRICE, CTRY, GRAPE = "var(--tag-concept-dot)", "var(--accent)", "var(--tag-
 # ---------------------------------------------------------------- data and models, as in the lesson
 wines = pd.read_csv(os.path.join(os.path.dirname(OUT.rstrip("/")), "data", "l12_wines.csv"))
 wines["log_price"] = np.log(wines["price"])
-y = wines["points"]
+y = wines["stars"]
 cv = KFold(5, shuffle=True, random_state=42)
 
 from sentence_transformers import SentenceTransformer  # noqa: E402
@@ -59,7 +61,8 @@ blocks["tfidf+"] = blocks["tfidf"] + others
 blocks["minilm+"] = blocks["minilm"] + others
 r2 = {k: cross_val_score(make_pipeline(make_column_transformer(*b), Ridge()), wines, y, cv=cv, scoring="r2").mean()
       for k, b in blocks.items()}
-pred1 = cross_val_predict(make_pipeline(make_column_transformer(*blocks["minilm+"]), Ridge()), wines, y, cv=cv)[0]
+preds = cross_val_predict(make_pipeline(make_column_transformer(*blocks["minilm+"]), Ridge()), wines, y, cv=cv)
+pred1 = preds[0]
 print({k: round(v, 3) for k, v in r2.items()}, "wine 1 predicted", round(pred1, 1))
 w1 = wines.iloc[0]
 ROW = 384 + 1 + n_country + n_grape
@@ -109,12 +112,12 @@ APPS = [
     ("🏢", "ประกาศงาน", "Job advert", "รายละเอียดงาน", "job description", "เมือง · ประสบการณ์", "city · experience", "เงินเดือน", "salary"),
     ("🍽", "แอปส่งอาหาร", "Food delivery", "รีวิวของลูกค้า", "customer review", "เวลาส่ง · ร้าน", "delivery time · shop", "ดาว", "stars"),
     ("📚", "คลังห้องสมุด", "Library catalogue", "คำโปรยหนังสือ", "a book's blurb", "ปี · จำนวนหน้า", "year · pages", "หมวดหนังสือ", "genre"),
-    ("⭐", "แอปรีวิวไวน์", "Wine app", "คำบรรยายรสชาติ", "tasting note", "ราคา · ประเทศ", "price · country", "คะแนน", "points"),
+    ("⭐", "แอปรีวิวไวน์", "Wine app", "คำบรรยายรสชาติ", "tasting note", "ราคา · ประเทศ", "price · country", "ดาว", "stars"),
 ]
 s = Svg(W, "Six everyday apps whose rows mix text, numbers and categories: a shop listing (title, description; price, "
            "category → units sold), a holiday rental (room description; price, area → guest rating), a job advert (job "
            "description; city, experience → salary), food delivery (customer review; delivery time, shop → stars), a "
-           "library catalogue (blurb; year, pages → genre), a wine app (tasting note; price, country → points).")
+           "library catalogue (blurb; year, pages → genre), a wine app (tasting note; price, country → stars).")
 s.bubble("ข้อมูลจริงมีทั้งข้อความ ตัวเลข และกลุ่มในแถวเดียวกัน", "Real rows hold text, numbers and categories side by side")
 TW, TG, TH_ = 352, 12, 196
 for k, (ic, nth, nen, tth, ten, oth, oen, pth, pen) in enumerate(APPS):
@@ -131,54 +134,72 @@ for k, (ic, nth, nen, tth, ten, oth, oen, pth, pen) in enumerate(APPS):
         chip_both(s, x + 126, yj, a, b, cls)
 s.save("l12-mixed-everywhere.svg", 72 + 2 * TH_ + 14 + 10)
 
-# ================================================================ S01 one wine → one row → points
-s = Svg(W, f"Wine 1 as one row: tasting note (text), price ${w1.price:.0f} (number), {w1.country} and {w1.variety} "
-           f"(categories). The note becomes 384 MiniLM numbers, the price 1 scaled number, country and grape "
-           f"{n_country + n_grape} one-hot columns; joined they make one row of {ROW} numbers. Ridge, trained on rows "
-           f"like it, predicts {pred1:.1f} points; the critic gave {w1.points}.")
-s.bubble("ไวน์ขวดหนึ่งมีทั้งคำ ราคา และกลุ่ม โมเดลจะใช้ทั้งหมดได้อย่างไร", "A wine has words, a price and groups: how can one model use them all?")
-cols = [(10, 520, "rc-ctx", "คำบรรยาย (ข้อความ)", "description (text)", w1.description[:62] + "…"),
-        (540, 150, "ml-cell", "ราคา (ตัวเลข)", "price (number)", f"${w1.price:.0f}"),
-        (700, 160, "ml-cell", "ประเทศ (กลุ่ม)", "country (group)", w1.country),
-        (870, 220, "ml-cell", "องุ่น (กลุ่ม)", "variety (group)", w1.variety)]
-for x, w, cls, th, en, val in cols:
-    s.box(x, 72, w, 64, cls, 10)
-    s.both(x + 14, 94, th, en, "mp-s")
-    s.text(x + 14, 122, val, "hk-desc")
-BX, BW, BY = 40, 1020, 214
-seg = [(384, TXT, "MiniLM 384", "MiniLM 384"), (1, PRICE, "ราคา 1", "price 1"), (n_country, CTRY, f"ประเทศ {n_country}", f"country {n_country}"),
-       (n_grape, GRAPE, f"องุ่น {n_grape}", f"grape {n_grape}")]
-scale = BW / ROW
-x = BX
-starts = []
-for n, col, th, en in seg:
-    w = max(n * scale, 10)
-    starts.append((x, w))
-    s.fill(x, BY, w - 2, 40, col, 4)
-    x += w
-for (x0, w0), (cx, w, *_ ) in zip(starts, cols):
-    s.arrow(cx + w / 2, 140, x0 + w0 / 2, BY - 6)
-for (x0, w0), (n, col, th, en) in zip(starts, seg):
-    if w0 > 120:
-        s.both(x0 + w0 / 2, BY + 26, th, en, "pl-num", "middle")
-    elif n == 1:
-        s.both(x0 - 4, BY + 62, th, en, "mp-c", "end")
-    else:
-        s.both(x0 + 2, BY + 62, th, en, "mp-c")
-s.both(BX, BY + 72, f"แถวเดียว {ROW} ตัวเลข (ราคาเป็นแถบบาง ๆ สีส้ม 1 ช่อง)", f"one row of {ROW} numbers (the price is the thin orange cell)", "pl-label")
-s.arrow(550, BY + 82, 550, BY + 108)
-s.box(470, BY + 112, 160, 46, "ml-model", 10)
-s.text(550, BY + 142, "Ridge", "ml-model-text", "middle")
-s.arrow(634, BY + 135, 690, BY + 135)
-s.both(700, BY + 128, f"ทำนาย {pred1:.1f} คะแนน", f"predicts {pred1:.1f} points", "mp-t")
-s.both(700, BY + 154, f"นักวิจารณ์ให้ {w1.points}", f"the critic gave {w1.points}", "mp-s")
-s.save("l12-one-row-vector.svg", BY + 176)
+# ================================================================ S01 a few wines → X and y → Ridge
+SHOW = wines.head(3)
+s = Svg(W, "Three real wines as a table: the tasting note, price, country and grape are the features X; stars is the "
+           "target y. " + "; ".join(f"wine {r.wine_id}: {r.country}, {r.variety}, ${r.price:.0f}, {r.stars} stars"
+                                    for r in SHOW.itertuples()) +
+        f". Each feature column becomes numbers (384 MiniLM numbers, 1 scaled log price, {n_country} country and "
+        f"{n_grape} grape one-hot columns), joined into one row of {ROW} numbers per wine: X is 1,000 × {ROW}, y is the "
+        f"1,000 star ratings. Ridge learns X → y; with cross-validation it predicts " +
+        ", ".join(f"{p_:.1f}" for p_ in preds[:3]) + " for these three wines.")
+s.bubble("ไวน์แต่ละขวดมีทั้งคำ ราคา และกลุ่ม โมเดลจะใช้ทั้งหมดได้อย่างไร", "Each wine has words, a price and groups: how can one model use them all?")
+# ① the data
+TX = [(10, 470, "คำบรรยาย", "description"), (488, 86, "ราคา", "price"), (582, 110, "ประเทศ", "country"),
+      (700, 190, "องุ่น", "variety")]
+YX, YW = 920, 170
+s.box(4, 66, 894, 34, "nt-band-a", 8)
+s.both(18, 89, "X = feature: สิ่งที่รู้ของแต่ละขวด", "X = features: what we know about each wine", "mp-p")
+s.box(YX - 6, 66, YW + 12, 34, "rc-ctx", 8)
+s.both(YX + YW / 2, 89, "y = target: คำตอบ", "y = target: the answer", "mp-p", "middle")
+for x, w, th, en in TX:
+    s.both(x + 6, 124, th, en, "mp-s")
+s.both(YX + 6, 124, "stars", "stars", "mp-s")
+for i, r in enumerate(SHOW.itertuples()):
+    yy = 132 + i * 38
+    s.line(4, yy, 1094, yy, "mp-guide")
+    s.text(x0 := 16, yy + 25, r.description[:52] + "…", "hk-desc")
+    s.text(494, yy + 25, f"${r.price:.0f}", "hk-desc")
+    s.text(588, yy + 25, r.country, "hk-desc")
+    s.text(706, yy + 25, r.variety, "hk-desc")
+    s.text(YX + YW / 2, yy + 25, f"{r.stars:.1f}", "mp-n", "middle")
+s.both(16, 268, "… รวม 1,000 ขวด", "… 1,000 wines in all", "mp-s")
+s.arrow(450, 258, 450, 290)
+s.both(470, 282, "แปลงแต่ละคอลัมน์เป็นตัวเลข แล้วต่อกันเป็นแถวเดียว", "turn each column into numbers, then join them into one row", "mp-acc")
+# ② the same rows as numbers
+SEG = [(10, 470, "MiniLM 384"), (488, 86, "1"), (582, 110, f"{n_country}"), (700, 190, f"{n_grape}")]
+s.both(16, 316, "MiniLM: 384 ตัวเลข", "MiniLM: 384 numbers", "mp-s")
+s.both(494, 316, "ราคา: 1", "price: 1", "mp-s")
+s.both(588, 316, f"ประเทศ: {n_country}", f"country: {n_country}", "mp-s")
+s.both(706, 316, f"องุ่น: {n_grape}", f"grape: {n_grape}", "mp-s")
+for i, r in enumerate(SHOW.itertuples()):
+    yy = 326 + i * 38
+    k = r.Index
+    strip(s, 10, yy, 470, 28, 384, TXT, values=emb[k])
+    s.box(488, yy, 86, 28, "ml-cell-b", 4)
+    s.text(531, yy + 20, f"{price_scaled[k]:.2f}", "mp-c", "middle")
+    strip(s, 582, yy, 110, 28, n_country, CTRY, lit={list(onehot.categories_[0]).index(r.country)})
+    strip(s, 700, yy, 190, 28, n_grape, GRAPE, lit={list(onehot.categories_[1]).index(r.variety)})
+    s.box(YX, yy, YW, 28, "rc-ctx", 4)
+    s.text(YX + YW / 2, yy + 20, f"{r.stars:.1f}", "mp-n", "middle")
+s.raw('<path d="M10 446 v8 H890 v-8" class="mp-axis"/>')
+s.both(450, 476, f"X: 1,000 แถว × {ROW} ตัวเลข", f"X: 1,000 rows × {ROW} numbers", "pl-label", "middle")
+s.raw(f'<path d="M{YX} 446 v8 H{YX + YW} v-8" class="mp-axis"/>')
+s.both(YX + YW / 2, 476, "y: คะแนนดาว 1,000 ค่า", "y: 1,000 star ratings", "pl-label", "middle")
+# ③ train
+s.box(380, 496, 220, 46, "ml-model", 10)
+s.both(490, 526, "Ridge เรียน X → y", "Ridge learns X → y", "ml-model-text", "middle")
+s.arrow(604, 519, 650, 519)
+s.both(660, 514, "ทำนาย (cross-validation): " + " · ".join(f"{p_:.1f}" for p_ in preds[:3]),
+       "predicted (cross-validation): " + " · ".join(f"{p_:.1f}" for p_ in preds[:3]), "mp-t")
+s.both(660, 538, "จริง: " + " · ".join(f"{v:.1f}" for v in SHOW.stars), "actual: " + " · ".join(f"{v:.1f}" for v in SHOW.stars), "mp-s")
+s.save("l12-one-row-vector.svg", 556)
 
-# ================================================================ S03 wine 1 and all points
+# ================================================================ S03 wine 1 and all stars
 s = Svg(W, f"Wine 1 as a card: features (the tasting note, price ${w1.price:.0f}, {w1.country}, {w1.variety}) and the "
-           f"target, {w1.points} points. Right: the points of all 1,000 wines, from 80 to 97, most between 85 and 92 "
-           f"(mean {y.mean():.1f}).")
-s.bubble("หนึ่งแถว = ไวน์หนึ่งขวด ทำนายคะแนนของนักวิจารณ์", "One row = one wine: predict the critic's points")
+           f"target, {w1.stars} stars ({w1.points} points out of 100). Right: the stars of all 1,000 wines, from "
+           f"{y.min():.1f} to {y.max():.1f}, most between 3.5 and 4.2 (mean {y.mean():.2f}).")
+s.bubble("หนึ่งแถว = ไวน์หนึ่งขวด ทำนายคะแนนดาวของนักวิจารณ์", "One row = one wine: predict the critic's stars")
 s.panel(10, 70, 620, 320, "ml-cell", "ไวน์ขวดที่ 1", "Wine 1", 1)
 s.box(30, 112, 580, 150, "nt-band-a", 10)
 s.both(46, 138, "feature: คำบรรยาย ราคา ประเทศ องุ่น", "features: note, price, country, grape", "mp-p")
@@ -190,18 +211,19 @@ for i, (th, en, v) in enumerate([("ราคา", "price", f"${w1.price:.0f}"), 
     s.both(x + 70, 294, th, en, "mp-s", "middle")
     s.text(x + 70, 318, v, "mp-n", "middle")
 s.box(490, 274, 120, 52, "rc-ctx", 8)
-s.both(550, 292, "target", "target", "mp-s", "middle")
-s.text(550, 320, f"{w1.points} pts", "mp-big", "middle")
-s.panel(650, 70, 440, 320, "ml-cell", "คะแนนของไวน์ทั้ง 1,000 ขวด", "Points of all 1,000 wines", 2)
-vc = y.value_counts().sort_index()
+s.both(550, 292, "target: stars", "target: stars", "mp-s", "middle")
+s.text(550, 320, f"{w1.stars:.1f} ★", "mp-big", "middle")
+s.both(30, 360, f"{w1.points} คะแนนจาก 100 → ({w1.points} − 50) / 10 = {w1.stars:.1f} ดาว", f"{w1.points} points out of 100 → ({w1.points} − 50) / 10 = {w1.stars:.1f} stars", "mp-s")
+s.panel(650, 70, 440, 320, "ml-cell", "คะแนนดาวของไวน์ทั้ง 1,000 ขวด", "Stars of all 1,000 wines", 2)
+vc = y.round(1).value_counts().sort_index()
 mx = vc.max()
-for p_, c in vc.items():
-    bx = 676 + (p_ - 80) * 22
+for v, c in vc.items():
+    bx = 676 + (v - 3.0) * 10 * 22
     h = c / mx * 200
-    s.fill(bx, 340 - h, 18, h, "var(--accent)" if p_ == w1.points else "var(--tag-concept-dot)", 2)
-for p_ in (80, 85, 90, 95):
-    s.text(676 + (p_ - 80) * 22 + 9, 362, str(p_), "mp-s", "middle")
-s.both(676, 384, f"เฉลี่ย {y.mean():.1f} · ส้ม = ขวดที่ 1 ({w1.points})", f"mean {y.mean():.1f} · orange = wine 1 ({w1.points})", "mp-s")
+    s.fill(bx, 340 - h, 18, h, "var(--accent)" if abs(v - w1.stars) < 1e-9 else "var(--tag-concept-dot)", 2)
+for v in (3.0, 3.5, 4.0, 4.5):
+    s.text(676 + (v - 3.0) * 220 + 9, 362, f"{v:.1f}", "mp-s", "middle")
+s.both(676, 384, f"เฉลี่ย {y.mean():.2f} ดาว · ส้ม = ขวดที่ 1 ({w1.stars:.1f})", f"mean {y.mean():.2f} stars · orange = wine 1 ({w1.stars:.1f})", "mp-s")
 s.save("l12-one-wine.svg", 402)
 
 # ================================================================ S04 the note as two vectors
@@ -228,6 +250,55 @@ s.panel(10, 296, 1080, 120, "ml-cell", "MiniLM: 384 ตัวเลข (สี�
 strip(s, 30, 342, 1040, 30, 384, TXT, values=emb[0])
 s.both(30, 400, "ทุกตัวมีค่า และขวดที่ความหมายใกล้กันได้ vector ใกล้กัน", "every number has a value; wines with close meanings get close vectors", "mp-s")
 s.save("l12-text-vectors.svg", 428)
+
+# ================================================================ S04 sparse TF-IDF vs dense MiniLM
+nnz_avg = T.nnz / T.shape[0]
+ROWS_CMP = [  # (label th, en, tfidf th, en, ok?, minilm th, en, ok?)
+    ("ขนาด", "size", f"{len(names):,} คอลัมน์ มีค่าราว {nnz_avg:.0f}", f"{len(names):,} columns, about {nnz_avg:.0f} non-zero",
+     None, "384 ตัวเลข มีค่าทุกตัว", "384 numbers, all filled", None),
+    ("อธิบายได้ไหม", "explainable?", "ได้: หนึ่งคอลัมน์ = หนึ่งคำ", "yes: one column = one word", True,
+     "ไม่ได้: ตัวเลขไม่มีชื่อ", "no: the numbers have no names", False),
+    ("คำเฉพาะทาง (tannins)", "field words (tannins)", "เรียนจากข้อมูลของเราเอง", "learns your data's own words", True,
+     "รู้ภาษาทั่วไปมากกว่า", "knows general language better", False),
+    ("คำพ้อง (fresh ≈ crisp)", "synonyms (fresh ≈ crisp)", "คนละคอลัมน์ ไม่เกี่ยวกัน", "separate, unrelated columns", False,
+     "vector ใกล้กัน", "close vectors", True),
+    ("ข้อมูลติดป้ายน้อย", "few labelled rows", "ต้องมีข้อมูลพอให้เรียนคำ", "needs enough rows to learn words", False,
+     "ฝึกมาแล้วกว่า 1,000 ล้านคู่ประโยค", "pretrained on > 1 billion pairs", True),
+    ("ความเร็ว (1,000 ขวด)", "speed (1,000 notes)", "0.02 วินาที", "0.02 s", True, "1.29 วินาที", "1.29 s", False),
+]
+s = Svg(W, f"Sparse TF-IDF against dense MiniLM on the 1,000 wine notes. Size: {len(names):,} columns with about "
+           f"{nnz_avg:.0f} non-zero per note, against 384 numbers all filled. TF-IDF is explainable (one column per word), "
+           "learns the data's own field words and is fast (0.02 s against 1.29 s for 1,000 notes); MiniLM puts synonyms "
+           "close and works with few labelled rows because it is pretrained, but its numbers have no names. On these "
+           f"notes alone R² is {r2['tfidf']:.3f} (TF-IDF) against {r2['minilm']:.3f} (MiniLM); joined with price, "
+           f"country and grape {r2['tfidf+']:.3f} against {r2['minilm+']:.3f}.")
+s.bubble("TF-IDF (sparse) หรือ MiniLM (dense): แบบไหนเหมาะกับงานไหน", "TF-IDF (sparse) or MiniLM (dense): which suits which job?")
+C0, C1, C2 = 10, 250, 680
+s.box(C1 - 6, 66, 420, 74, "nt-band-a", 12)
+s.box(C2 - 6, 66, 416, 74, "rc-ctx", 12)
+s.text(C1 + 10, 94, "TF-IDF (sparse)", "mp-t")
+s.text(C2 + 10, 94, "MiniLM (dense)", "mp-t")
+strip(s, C1 + 10, 106, 390, 22, len(names), TXT, lit=set(nz))
+strip(s, C2 + 10, 106, 390, 22, 384, TXT, values=emb[0])
+for i, (lth, len_, ath, aen, aok, bth, ben, bok) in enumerate(ROWS_CMP):
+    yy = 152 + i * 40
+    s.line(C0, yy - 6, 1090, yy - 6, "mp-guide")
+    s.both(C0 + 10, yy + 20, lth, len_, "mp-c")
+    for x, th, en, ok in ((C1, ath, aen, aok), (C2, bth, ben, bok)):
+        mark = "" if ok is None else ("✓ " if ok else "✗ ")
+        cls = "hk-desc" if ok is None else ("ml-ok" if ok else "ml-neg")
+        s.both(x + 10, yy + 20, mark + th, mark + en, cls)
+yy = 152 + len(ROWS_CMP) * 40
+s.line(C0, yy - 6, 1090, yy - 6, "mp-guide")
+s.box(C0, yy + 2, 1080, 84, "ml-cell", 12)
+s.both(C0 + 10, yy + 32, "R² ในบทนี้: คำบรรยายอย่างเดียว", "R² in this lesson: note alone", "mp-c")
+s.text(C1 + 10, yy + 32, f"{r2['tfidf']:.3f}", "mp-n")
+s.text(C2 + 10, yy + 32, f"{r2['minilm']:.3f}", "mp-n")
+s.both(C0 + 10, yy + 66, "ต่อกับราคา ประเทศ องุ่น", "joined with price, country, grape", "mp-c")
+s.text(C1 + 10, yy + 66, f"{r2['tfidf+']:.3f}", "mp-n")
+s.text(C2 + 10, yy + 66, f"{r2['minilm+']:.3f}", "mp-n")
+s.both(1080, yy + 66, "ต่างกันนิดเดียว: การต่อสำคัญกว่า", "a small gap: joining matters more", "mp-acc", "end")
+s.save("l12-sparse-vs-dense.svg", yy + 98)
 
 # ================================================================ S05 price and categories to numbers
 s = Svg(W, f"Price runs from ${wines.price.min():.0f} to ${wines.price.max():.0f}; on a log axis each doubling is one "
@@ -301,10 +372,52 @@ s.both(30, 364, f"ทำแบบเดียวกันทุกขวด เ�
        f"the same blocks in the same order for every wine → a 1,000 × {ROW} table = the model's X", "pl-text")
 s.save("l12-concat-row.svg", 404)
 
+# ================================================================ S07 exercise: build a shortened row by hand (no answers drawn)
+EX = [0, 2]                                             # wine 1 and wine 3
+COLS_EX = [("t1", TXT), ("t2", TXT), ("t3", TXT), ("price", PRICE), ("France", CTRY), ("Italy", CTRY), ("US", CTRY),
+           ("Glera", GRAPE), ("Pinot Grigio", GRAPE), ("Pinot Noir", GRAPE)]
+s = Svg(W, "Two real wines and a shortened row to fill in. Wine 1: Italy, Pinot Grigio, scaled log price "
+           f"{price_scaled[0]:.2f}, note vector starting {', '.join(f'{v:.2f}' for v in emb[0][:3])}, {wines.stars[0]} "
+           f"stars. Wine 3: US, Pinot Noir, {price_scaled[2]:.2f}, {', '.join(f'{v:.2f}' for v in emb[2][:3])}, "
+           f"{wines.stars[2]} stars. The row has 10 columns in a fixed order: t1–t3 (the first 3 of the 384 text "
+           "numbers), price, France, Italy, US, Glera, Pinot Grigio, Pinot Noir. The cells are left empty.")
+s.bubble("เติมแถวตัวเลขของไวน์ 2 ขวด (แบบย่อ)", "Fill in the number rows of 2 wines (shortened)")
+for j, i in enumerate(EX):
+    x = 10 + j * 550
+    s.box(x, 70, 530, 122, "rc-ctx", 12)
+    s.both(x + 18, 98, f"ไวน์ขวดที่ {wines.wine_id[i]}", f"wine {wines.wine_id[i]}", "mp-t")
+    cx = x + 140
+    for lab in (wines.country[i], wines.variety[i], f"${wines.price[i]:.0f}"):
+        w = width(lab, 16) + 24
+        s.box(cx, 80, w, 28, "ml-cell", 14)
+        s.text(cx + w / 2, 99, lab, "mp-chip", "middle")
+        cx += w + 8
+    s.both(x + 18, 134, f"ราคาหลัง log + ปรับสเกล: {price_scaled[i]:.2f}", f"price after log + scale: {price_scaled[i]:.2f}", "mp-c")
+    s.both(x + 18, 160, "vector คำบรรยาย 3 ตัวแรก: " + ", ".join(f"{v:.2f}" for v in emb[i][:3]),
+           "note vector, first 3: " + ", ".join(f"{v:.2f}" for v in emb[i][:3]), "mp-c")
+    s.both(x + 18, 184, f"y = {wines.stars[i]} ดาว (ไม่อยู่ในแถว X)", f"y = {wines.stars[i]} stars (not in the X row)", "mp-s")
+GX, CWX = 150, 93
+groups = [("ข้อความ (3 จาก 384)", "text (3 of 384)", 0, 3, TXT), ("ราคา", "price", 3, 4, PRICE),
+          ("ประเทศ", "country", 4, 7, CTRY), ("องุ่น", "grape", 7, 10, GRAPE)]
+for th, en, a_, b_, col in groups:
+    s.raw(f'<rect x="{GX + a_ * CWX + 2}" y="214" width="{(b_ - a_) * CWX - 4}" height="28" rx="6" '
+          f'style="fill:{col};fill-opacity:.18"/>')
+    s.both(GX + (a_ + b_) / 2 * CWX, 233, th, en, "mp-c", "middle")
+for c, (name, col) in enumerate(COLS_EX):
+    s.text(GX + c * CWX + CWX / 2, 266, name, "mp-s", "middle")
+for r, i in enumerate(EX):
+    yy = 278 + r * 52
+    s.both(20, yy + 30, f"ขวดที่ {wines.wine_id[i]}", f"wine {wines.wine_id[i]}", "mp-t")
+    for c in range(10):
+        s.box(GX + c * CWX + 4, yy, CWX - 8, 42, "ml-cell", 6)
+s.both(20, 410, "ลำดับคอลัมน์เหมือนกันทุกขวด · ประเทศและองุ่น: 1 ในช่องของตัวเอง ที่เหลือ 0",
+       "the same column order for every wine · country and grape: 1 in the wine's own cell, 0 elsewhere", "mp-acc")
+s.save("l12-row-exercise.svg", 424)
+
 # ================================================================ S08 column transformer + Ridge in each round
 s = Svg(W, f"A column transformer inside a pipeline: description goes to MiniLM (384 columns), log_price to "
            f"StandardScaler (1), country and variety to OneHotEncoder ({n_country + n_grape}); the outputs are joined "
-           f"side by side and Ridge learns points. In each of the 5 cross-validation rounds this is fitted on 800 wines "
+           f"side by side and Ridge learns stars. In each of the 5 cross-validation rounds this is fitted on 800 wines "
            f"and scored on the other 200; mean R² {r2['minilm+']:.3f}.")
 s.bubble("ให้ pipeline ต่อแถวให้เองในทุกรอบของ cross-validation", "Let a pipeline build the rows in every round of cross-validation")
 s.box(10, 72, 220, 240, "ml-cell", 12)
@@ -328,7 +441,7 @@ s.both(779, 176, "ต่อข้างกัน", "side by side", "mp-c", "midd
 s.text(779, 200, f"{ROW} columns", "mp-acc", "middle")
 s.arrow(858, 181, 900, 181)
 s.box(904, 156, 176, 50, "ml-model", 10)
-s.text(992, 187, "Ridge → points", "ml-model-text", "middle")
+s.text(992, 187, "Ridge → stars", "ml-model-text", "middle")
 s.text(300, 290, "make_column_transformer", "hk-mono")
 s.box(10, 330, 1080, 96, "nt-band-a", 14)
 for k in range(5):
@@ -350,7 +463,7 @@ s = Svg(W, "R² from 5-fold cross-validation with the same Ridge model: " +
         ", ".join(f"{en} {r2[k]:.3f}" for k, th, en, c in BARS) +
         f". Text alone and the other columns alone each explain about 0.3–0.4; joined rows explain about 0.52–0.53. "
         f"0.389 + 0.400 would be 0.789, but the parts overlap.")
-s.bubble("ข้อความอย่างเดียว คอลัมน์อื่นอย่างเดียว หรือต่อกัน: อะไรทำนายคะแนนได้ดีที่สุด", "Text alone, other columns alone, or joined: which predicts points best?")
+s.bubble("ข้อความอย่างเดียว คอลัมน์อื่นอย่างเดียว หรือต่อกัน: อะไรทำนายคะแนนดาวได้ดีที่สุด", "Text alone, other columns alone, or joined: which predicts stars best?")
 B0, BH = 340, 400
 for gx, th, en in ((40, "ข้อความอย่างเดียว", "text alone"), (440, "คอลัมน์อื่น", "other columns"), (660, "ต่อกันเป็นแถวเดียว", "joined into one row")):
     s.both(gx, 380, th, en, "mp-t")
@@ -361,8 +474,8 @@ for k, (key, th, en, col) in enumerate(BARS):
     s.fill(x, B0 - h, 160, h, col, 6)
     s.text(x + 80, B0 - h - 12, f"{r2[key]:.3f}" + (" ✓" if "+" in key else ""), "mp-big-ok" if "+" in key else "mp-n", "middle")
     s.both(x + 80, B0 - 14, th, en, "pl-num", "middle")
-s.both(30, 418, "R² = สัดส่วนความต่างของคะแนนที่โมเดลอธิบายได้ (cross-validation 5 ส่วน, Ridge ตัวเดียวกัน) · 0.389 + 0.400 ≠ 0.529 เพราะสองส่วนบอกเรื่องเดียวกันบางส่วน",
-       "R² = the share of the variation in points the model explains (5-fold CV, the same Ridge) · 0.389 + 0.400 ≠ 0.529: the parts overlap", "mp-s")
+s.both(30, 418, "R² = สัดส่วนความต่างของคะแนนดาวที่โมเดลอธิบายได้ (cross-validation 5 ส่วน, Ridge ตัวเดียวกัน) · 0.389 + 0.400 ≠ 0.529 เพราะสองส่วนบอกเรื่องเดียวกันบางส่วน",
+       "R² = the share of the variation in stars the model explains (5-fold CV, the same Ridge) · 0.389 + 0.400 ≠ 0.529: the parts overlap", "mp-s")
 s.save("l12-r2-compare.svg", 432)
 
 

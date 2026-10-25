@@ -13,8 +13,12 @@
 //     highlight: [bmi]                   bars drawn in the accent colour (e.g. the round's winner)
 //     note_th: ...                       one sentence under the bars
 //     note_en: ...
+//     src: images/l13-grow-3.svg        optional: an SVG shown for this step (bars become optional)
 // A bar whose value is exactly 0 is drawn as "0" with a crossed-out name (a feature Lasso dropped).
 // Every step is rendered at build time; the script only shows one at a time.
+// {play=true} adds a Play button that walks through the steps on its own (one every 1.6 s).
+// {fx-height=290}: on the projector a picture step is at most this tall (in 1280×720 design pixels; default 338).
+// Parts of a step's SVG with class="grow-new" fade in when the step appears.
 //
 // ```sorter                             click Keep / Drop for each column, then Check
 // target: SalePrice
@@ -26,6 +30,8 @@
 //     why_th: ...
 //     why_en: ...
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { load as loadYaml } from 'js-yaml';
 import { esc, inline, T, icon } from './render.mjs';
 import { LectureError } from './parse.mjs';
@@ -46,9 +52,20 @@ function renderStepper(n, ctx) {
   const d = yamlOf(n, ctx, 'stepper');
   if (!d || !Array.isArray(d.steps) || !d.steps.length) throw new LectureError(ctx.file, n.line, '```stepper needs steps: (a list)');
   const values = d.steps.flatMap((s, k) => {
-    if (!s.bars || typeof s.bars !== 'object') throw new LectureError(ctx.file, n.line, `\`\`\`stepper step ${k + 1} needs bars: { name: value, ... }`);
+    if (s.src && !s.bars) return [];
+    if (!s.bars || typeof s.bars !== 'object') throw new LectureError(ctx.file, n.line, `\`\`\`stepper step ${k + 1} needs bars: { name: value, ... } or src:`);
     return Object.values(s.bars).map(Number);
   });
+  const media = (s, k) => {
+    if (!s.src) return '';
+    const file = path.join(ctx.sourceDir, s.src);
+    if (!fs.existsSync(file)) throw new LectureError(ctx.file, n.line, `\`\`\`stepper step ${k + 1}: ${s.src} not found`);
+    if (!file.endsWith('.svg')) throw new LectureError(ctx.file, n.line, `\`\`\`stepper step ${k + 1}: src must be an .svg`);
+    const svg = fs.readFileSync(file, 'utf8').replace(/<\?xml[^>]*>\s*/, '').replace(/<!--[\s\S]*?-->/g, '').replace(/<script[\s\S]*?<\/script>/gi, '');
+    return `<div class="stp-media">${svg}</div>`;
+  };
+  const hasMedia = d.steps.some((s) => s.src);
+  const play = n.attrs.play === 'true';
   const max = Math.max(...values.map(Math.abs)) || 1;
   const signed = values.some((v) => v < 0);
   const start = Math.min(Math.max(Number(d.start) || 0, 0), d.steps.length - 1);
@@ -57,7 +74,7 @@ function renderStepper(n, ctx) {
   const panels = d.steps
     .map((s, k) => {
       const hl = new Set(s.highlight ?? []);
-      const bars = Object.entries(s.bars)
+      const bars = Object.entries(s.bars ?? {})
         .map(([name, raw]) => {
           const v = Number(raw);
           const w = ((Math.abs(v) / max) * (signed ? 50 : 100)).toFixed(2);
@@ -67,7 +84,8 @@ function renderStepper(n, ctx) {
         })
         .join('');
       const note = s.note_th || s.note_en ? `<p class="stp-note">${TH(s.note_th, s.note_en)}</p>` : '';
-      return `<div class="stp-panel" data-step="${k}"${k === start ? '' : ' hidden'}><p class="stp-label">${inline(String(s.label ?? ''))}</p><ul class="stp-bars">${bars}</ul>${note}</div>`;
+      const list = s.bars ? `<ul class="stp-bars">${bars}</ul>` : '';
+      return `<div class="stp-panel" data-step="${k}"${k === start ? '' : ' hidden'}><p class="stp-label">${inline(String(s.label ?? ''))}</p>${media(s, k)}${list}${note}</div>`;
     })
     .join('');
 
@@ -76,9 +94,12 @@ function renderStepper(n, ctx) {
     ? `<label class="stp-slider"><span class="stp-slider-label">${TH(d.slider_th ?? 'เลื่อน', d.slider_en ?? 'Slide')}</span><input type="range" min="0" max="${d.steps.length - 1}" step="1" value="${start}" aria-valuetext="${esc(labels[start])}"></label><ol class="stp-ticks">${labels.map((l, k) => `<li style="--f:${labels.length > 1 ? k / (labels.length - 1) : 0}">${esc(l.replace(/^[^=]*=\s*/, ''))}</li>`).join('')}</ol>`
     : `<div class="stp-buttons"><button type="button" data-stp="prev">← ${T(['ก่อนหน้า', 'Back'])}</button><span class="stp-pos" aria-live="polite">${start + 1} / ${d.steps.length}</span><button type="button" data-stp="next">${T(['ถัดไป', 'Next'])} →</button></div>`;
 
-  return `<figure class="ixp stp" data-stp data-labels="${esc(JSON.stringify(labels))}">
+  const playBtn = play ? `<button type="button" class="stp-play" data-stp-play aria-pressed="false"><span class="stp-play-on">▶ ${T(['เล่น', 'Play'])}</span><span class="stp-play-off">❚❚ ${T(['หยุด', 'Pause'])}</span></button>` : '';
+  const fxh = Number(n.attrs['fx-height']);
+  const fxStyle = fxh > 0 ? ` style="--stp-fx-h:${fxh}"` : '';
+  return `<figure class="ixp stp${hasMedia ? ' stp-has-media' : ''}"${fxStyle} data-stp data-labels="${esc(JSON.stringify(labels))}">
 <figcaption class="ixp-head">${icon('pointer', 16)}${TH(d.title_th ?? 'ลองเล่น', d.title_en ?? 'Try it')}</figcaption>
-<div class="ixp-body"><div class="stp-control">${control}</div>${panels}</div>
+<div class="ixp-body"><div class="stp-control">${playBtn}<div class="stp-control-main">${control}</div></div>${panels}</div>
 </figure>`;
 }
 

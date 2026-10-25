@@ -32,11 +32,30 @@
       if (next) next.disabled = i === panels.length - 1;
     }
 
-    if (range) range.addEventListener('input', function () { show(Number(range.value)); });
-    ticks.forEach(function (t, j) { t.addEventListener('click', function () { show(j); }); });
+    // Play: step forward on a timer; a click on anything else stops it
+    var playBtn = el.querySelector('[data-stp-play]');
+    var timer = null;
+    function stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      if (playBtn) playBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (playBtn) playBtn.addEventListener('click', function () {
+      if (timer) { stop(); return; }
+      if (i === panels.length - 1) show(0);
+      playBtn.setAttribute('aria-pressed', 'true');
+      timer = setInterval(function () {
+        if (i >= panels.length - 1) { stop(); return; }
+        show(i + 1);
+      }, 1600);
+    });
+
+    if (range) range.addEventListener('input', function () { stop(); show(Number(range.value)); });
+    ticks.forEach(function (t, j) { t.addEventListener('click', function () { stop(); show(j); }); });
     el.addEventListener('click', function (e) {
       var b = e.target.closest('button[data-stp]');
       if (!b || b === el) return;
+      stop();
       show(i + (b.getAttribute('data-stp') === 'next' ? 1 : -1));
     });
     show(i);
