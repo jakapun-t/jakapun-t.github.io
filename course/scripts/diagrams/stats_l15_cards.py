@@ -324,11 +324,11 @@ LET = [("X", [0.99, 0.005, 0.005], "0.99 − 0.005 = 0.98", ("มั่นใจ
        ("Z", [0.33, 0.33, 0.34], "0.34 − 0.33 = 0.01", ("ไม่รู้เลย ส่งก่อน ✓", "no idea: send first ✓"))]
 COLS = (BLUE, "var(--muted)", OK)
 for c, (lab, col) in enumerate(zip(("SAD", "NEUTRAL", "JOY"), COLS)):
-    s.fill(530 + c * 120, 108, 14, 14, col, 3)
-    s.text(550 + c * 120, 120, lab, "mp-s")
-s.both(900, 120, "margin = อันดับ 1 − อันดับ 2", "margin = top − second", "mp-s")
+    s.fill(530 + c * 120, 126, 14, 14, col, 3)
+    s.text(550 + c * 120, 138, lab, "mp-s")
+s.both(900, 138, "margin = อันดับ 1 − อันดับ 2", "margin = top − second", "mp-s")
 for r, (n, ps, calc, (vth, ven)) in enumerate(LET):
-    y = 142 + r * 86
+    y = 158 + r * 80
     s.both(526, y + 26, f"ฉบับ {n}", f"letter {n}", "mp-t")
     x = 610
     for p, col in zip(ps, COLS):
