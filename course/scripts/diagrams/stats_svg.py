@@ -132,17 +132,22 @@ def chip(s, x, y, w, h, label, cls="ml-cell", tcls="mp-c"):
 def app_grid(s, apps, top=72, cols=3, tw=352, gap=12, th_=176):
     """Everyday apps that already use the lesson's idea. Each app: (icon, name th, en, does th, en, idea th, en).
     Returns the bottom y."""
-    for k, (em, nth, nen, dth, den, ith, ien) in enumerate(apps):
+    for k, app in enumerate(apps):
+        em, nth, nen, dth, den, ith, ien = app[:7]
+        why = app[7:9] if len(app) >= 9 else None   # optional: why there is no direct formula
         x, y = 10 + (k % cols) * (tw + gap), top + (k // cols) * (th_ + 14)
         s.box(x, y, tw, th_, "ml-cell", 14)
         s.raw(f'<circle cx="{x + 46}" cy="{y + 50}" r="34" style="fill:var(--tag-concept-bg)"/>')
         emoji_or_icon(s, em, x + 46, y + 50, 56)
         s.both(x + 90, y + 46, nth, nen, "mp-t")
         s.both(x + 90, y + 72, dth, den, "hk-desc")
-        s.both(x + 20, y + 124, "ทำงานแบบ", "works like", "mp-s")
+        if why:
+            s.both(x + 20, y + 108, why[0], why[1], "mp-acc")
+        s.both(x + 20, y + 132 if why else y + 124, "จึงใช้" if why else "ทำงานแบบ", "so it uses" if why else "works like", "mp-s")
         w = max(width(ith, 16), width(ien, 16)) + 28
-        s.box(x + 20, y + 134, w, 30, "ml-cell-b", 15)
-        s.both(x + 20 + w / 2, y + 155, ith, ien, "mp-chip", "middle")
+        cy = y + 140 if why else y + 134
+        s.box(x + 20, cy, w, 30, "ml-cell-b", 15)
+        s.both(x + 20 + w / 2, cy + 21, ith, ien, "mp-chip", "middle")
     return top + ((len(apps) - 1) // cols + 1) * (th_ + 14) - 14
 
 

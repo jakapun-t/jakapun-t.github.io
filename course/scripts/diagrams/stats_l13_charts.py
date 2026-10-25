@@ -4,7 +4,7 @@
 
 Charts students draw themselves come from the lesson's own code cells (npm run outputs); this script draws only
 the annotated explainers: decision regions on height × weight (5-fold cross-validation accuracy in each title)
-and the KNN neighbourhoods of a new person (186 cm, 100 kg). Data: the course's obesity.csv (Worksheet 4).
+and the KNN neighbourhoods of a new person (186 cm, 100 kg). Data: the course's obesity.csv.
 """
 
 import os

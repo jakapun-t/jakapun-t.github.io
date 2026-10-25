@@ -114,7 +114,7 @@ export default function App() {
       <a href="?materials" className="nav-materials"><Lock aria-hidden="true"/>Class Materials</a>
       <details className="nav-dropdown"><summary>Interactive Lessons <span aria-hidden="true">▾</span></summary><div className="dropdown-menu lesson-menu">
         <a href="dashboard/Lab-Tokenizer.dc.html"><strong>Tokenization playground</strong><small>dashboard · type your own text</small></a>
-        <a href="dashboard/Lab-Keywords.dc.html"><strong>Keyword expansion demo</strong><small>dashboard · seed → domain lexicon</small></a>
+        <a href="dashboard/Lab-Rumour.html"><strong>How far does a rumour spread?</strong><small>Monte Carlo · simulate, repeat, count</small></a>
         <a href="dashboard/Lab%20-%20SynthID.html"><strong>SynthID</strong><small>word choice · hypothesis testing</small></a>
         <a href="dashboard/Lab%20-%20Neural%20Network%20Explainer.html"><strong>Neural network explainer</strong><small>forward pass · backpropagation</small></a>
       </div></details>

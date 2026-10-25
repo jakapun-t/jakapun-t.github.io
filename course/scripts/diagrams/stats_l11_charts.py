@@ -3,7 +3,7 @@
     course/.venv/bin/python scripts/diagrams/stats_l11_charts.py courses/stats-dh
 
 Charts students draw themselves come from the lesson's own code cells (npm run outputs); this
-script draws only the annotated explainers. Data: the course's obesity.csv (Worksheet 4) and the
+script draws only the annotated explainers. Data: the course's obesity.csv and the
 10-sample threshold example from the lecture slides.
 """
 

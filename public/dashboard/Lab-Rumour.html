@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How far does a rumour spread? · Monte Carlo lab</title>
+<meta name="description" content="An interactive Monte Carlo simulation: release rumours in a friends' group chat and watch how many go viral. Part of Statistics for Digital Humanities by Jakapun Tachaiya.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6FA; --panel:#FFFFFF; --border:#E2E7EF; --line:#C5CEDB; --soft:#EEF2F7;
+  --ink:#0F172A; --muted:#5B6577; --blue:#2563EB; --blue-d:#1D4ED8; --blue-dd:#1E40AF; --blue-bg:#EAF1FF;
+  --orange:#EA580C; --orange-t:#C2410C;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg)}
+html.embed,html.embed body{height:100%;overflow:hidden}
+body{font-family:'IBM Plex Sans Thai', system-ui, sans-serif;color:var(--ink)}
+#wrap{position:fixed;inset:0;overflow:hidden;background:var(--bg)}
+html.page #wrap{position:relative;inset:auto;width:100%;max-width:1184px;margin:0 auto;aspect-ratio:16/9;border:1px solid var(--border);border-radius:20px;box-shadow:0 10px 40px rgba(15,23,42,.08)}
+html.page #wrap:fullscreen{max-width:none;border:0;border-radius:0;aspect-ratio:auto}
+#app{position:absolute;left:0;top:0;width:1280px;height:720px;padding:30px 48px 32px;display:flex;flex-direction:column;background:var(--bg);transform-origin:0 0;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:3px solid #93B4F7;outline-offset:2px}
+.mono{font-family:var(--mono)}
+
+#app header{height:84px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.titles{display:flex;flex-direction:column;gap:2px;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--blue)}
+#app h1{margin:0;font-size:32px;line-height:1.25;font-weight:700}
+.sub{margin:0;font-size:15px;color:var(--muted)}
+.hright{flex:none;display:flex;align-items:flex-end;gap:14px}
+.seg{display:flex;gap:2px;padding:3px;background:var(--panel);border:1px solid var(--border);border-radius:12px}
+.seg button{height:36px;min-width:56px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14px;font-weight:600}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--ink);color:#fff}
+.counter{min-width:210px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:10px 20px;display:flex;flex-direction:column;align-items:flex-end}
+.counter small{font-size:12px;color:var(--muted)}
+.counter b{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.15;color:var(--blue)}
+
+.stage{margin-top:16px;height:360px;flex:none;background:var(--panel);border:1px solid var(--border);border-radius:20px;display:flex;flex-direction:column;overflow:hidden}
+#graph{position:relative;width:1184px;height:284px;flex:none}
+#edges{position:absolute;left:0;top:0}
+.flow{stroke-dasharray:4 12;animation:flowdash .6s linear infinite}
+@keyframes flowdash{to{stroke-dashoffset:-16}}
+#parts{position:absolute;inset:0;pointer-events:none}
+.pt{position:absolute;border-radius:50%;pointer-events:none}
+#tok{position:absolute;width:22px;height:22px;border-radius:50%;pointer-events:none;opacity:0}
+.node{position:absolute;width:96px;height:96px;border-radius:50%;border:2px solid var(--line);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:background .3s,border-color .3s}
+.node .L{font-size:30px;font-weight:700;line-height:1.1}
+.node .c{font-family:var(--mono);font-size:12px;font-weight:500}
+.tag{position:absolute;width:130px;display:flex;justify-content:center}
+.tag span{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+.lab{position:absolute;width:170px;display:flex;flex-direction:column;align-items:center}
+.lab .nm{font-size:14px;font-weight:600}
+.lab .rc{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--blue-d)}
+.lab .st{font-size:11px;color:var(--muted)}
+.pill{position:absolute;height:30px;display:flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:1px}
+.pill span{width:60px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:600}
+.step{width:26px;height:26px;border:0;border-radius:50%;background:var(--soft);color:var(--ink);font-size:16px;line-height:1;padding:0}
+.step:hover:not(:disabled){background:#DFE5EE}
+.chip{position:absolute;width:124px;padding:4px 8px;border-radius:10px;background:#fff;border:1.5px solid;box-shadow:0 2px 8px rgba(15,23,42,.08);display:none;flex-direction:column;align-items:center}
+.chip .l1{font-family:var(--mono);font-size:13px;font-weight:600}
+.chip .l2{font-size:11px;font-weight:600}
+
+.toolbar{height:76px;flex:none;border-top:1px solid var(--border);background:#FAFBFD;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.btns{display:flex;align-items:center;gap:10px}
+.primary{height:46px;padding:0 20px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.primary:hover:not(:disabled){background:var(--blue-d)}
+.outline{height:46px;padding:0 16px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-family:var(--mono);font-size:14px;font-weight:600}
+.outline:hover:not(:disabled){border-color:var(--blue);color:var(--blue-d);background:#F5F8FF}
+.ghost{height:46px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-size:14px;font-weight:500}
+.ghost:hover{background:var(--soft)}
+.rules{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13px;color:var(--muted)}
+.rules .ok{color:var(--blue);font-weight:600}
+.rules .no{color:var(--orange-t);font-weight:600}
+#viral{color:var(--ink)}
+
+.bottom{margin-top:16px;flex:1;min-height:0;display:flex;gap:20px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:14px 20px 12px;display:flex;flex-direction:column;gap:8px}
+.phead{display:flex;justify-content:space-between;align-items:center}
+#app h2{margin:0;font-size:15px;font-weight:600}
+#app h2 span{font-weight:400;color:var(--muted)}
+.legend{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.chart{display:flex;gap:8px}
+.axis{width:40px;flex:none;position:relative;height:92px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.axis span{position:absolute;right:0}
+.plot{flex:1;display:flex;flex-direction:column;gap:4px}
+.area{position:relative;height:92px}
+.grid{position:absolute;left:0;right:0;height:1px;background:var(--border)}
+.cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.bcol{position:relative;height:92px}
+.bar{position:absolute;bottom:0;left:50%;margin-left:-20px;width:40px;height:0;background:var(--blue);border-radius:6px 6px 0 0;transition:height .2s}
+.ex{position:absolute;left:50%;margin-left:-32px;width:64px;height:2px;background:var(--orange)}
+.blabels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.blabels div{display:flex;flex-direction:column;align-items:center}
+.blabels b{font-family:var(--mono);font-size:13px;font-weight:600}
+.blabels small{font-size:11px;color:var(--muted)}
+#log{flex:1;display:flex;flex-direction:column;gap:4px;min-height:0}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.6;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:12px}
+.lrow{display:flex;align-items:center;gap:12px;height:26px}
+.lid{width:78px;flex:none;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.path{display:flex;align-items:center}
+.path i{display:block}
+.path .d{width:12px;height:12px;border-radius:6px}
+.path .k{width:18px;height:3px;border-radius:2px}
+.lres{margin-left:auto;font-size:13px}
+.hint{position:fixed;right:12px;bottom:8px;font-size:11px;color:#8A94A6}
+html.page .hint{display:none}
+/* ---------- the public page around the simulation (hidden when embedded) ---------- */
+html.embed .pg{display:none}
+html[lang=th] [data-l=en],html[lang=en] [data-l=th]{display:none}
+.pg{max-width:1184px;margin:0 auto;padding:0 24px}
+.pg-top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 24px;max-width:1232px;margin:0 auto}
+.pg-top a{font-family:var(--mono);font-size:14px;color:var(--ink);text-decoration:none}
+.pg-back{position:fixed;top:16px;right:16px;z-index:50;padding:9px 14px;border:1px solid rgba(80,75,65,.22);border-radius:999px;background:rgba(255,255,255,.94);font:500 12px/1.2 var(--mono)!important;box-shadow:0 4px 18px rgba(30,28,24,.12)}
+.pg-seg{display:flex;gap:2px;padding:3px;background:#fff;border:1px solid var(--border);border-radius:12px;margin-right:170px}
+.pg-seg button{height:32px;min-width:52px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:600}
+.pg-seg button.on{background:var(--ink);color:#fff}
+.pg-hero{padding:40px 24px 26px}
+.pg-eyebrow{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--blue);margin:0 0 12px}
+.pg-hero h1{font-size:clamp(30px,4.4vw,46px);line-height:1.15;margin:0 0 16px;font-weight:700}
+.pg-lead{font-size:19px;line-height:1.7;color:#334155;max-width:66ch;margin:0}
+.pg-under{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;max-width:1184px;margin:12px auto 0;padding:0 24px;font-size:14px;color:var(--muted)}
+.pg-under button{height:38px;padding:0 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:600;color:var(--ink)}
+.pg-under button:hover{border-color:var(--blue);color:var(--blue-d)}
+.pg-sec{padding:34px 24px 6px}
+.pg-sec h2{font-size:24px;margin:0 0 14px;font-weight:700}
+.pg-sec p,.pg-sec li{font-size:17px;line-height:1.75;color:#334155;max-width:72ch}
+.pg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.pg-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 18px}
+.pg-card b{display:block;font-size:16px;margin-bottom:6px}
+.pg-card span{font-size:15px;line-height:1.65;color:#475569}
+.pg-num{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font:600 14px var(--mono);align-items:center;justify-content:center;margin-right:8px}
+.pg-math{font-family:var(--mono);background:var(--blue-bg);color:var(--blue-dd);padding:2px 8px;border-radius:6px;font-size:15px;white-space:nowrap}
+.pg-foot{padding:40px 24px 60px;font-size:14px;color:var(--muted);max-width:1184px;margin:0 auto}
+.pg-foot a,.pg-sec a{color:var(--blue-d)}
+@media (max-width:760px){.pg-seg{margin-right:0}.pg-top{padding-top:64px}.pg-hero{padding-top:20px}}
+</style>
+</head>
+<body>
+<div class="pg pg-top-wrap" style="max-width:none;padding:0">
+  <div class="pg-top">
+    <a href="../">Jakapun Tachaiya</a>
+    <div class="pg-seg" role="group" aria-label="Language"><button id="pg-th">ไทย</button><button id="pg-en">EN</button></div>
+  </div>
+  <a class="pg-back" href="../" aria-label="Back to Jakapun Tachaiya main page">← <span data-l="en">Back to main page</span><span data-l="th">กลับหน้าหลัก</span></a>
+</div>
+<section class="pg pg-hero">
+  <p class="pg-eyebrow"><span data-l="en">INTERACTIVE LESSON · MONTE CARLO SIMULATION</span><span data-l="th">บทเรียนแบบโต้ตอบ · การจำลองมอนติคาร์โล</span></p>
+  <h1><span data-l="en">How far does a rumour spread?</span><span data-l="th">ข่าวลือในโซเชียลแพร่ไปได้ไกลแค่ไหน</span></h1>
+  <p class="pg-lead" data-l="en">Some questions are too tangled for a neat formula. <b>Monte Carlo simulation</b> answers them another way: play the same random process thousands of times and count what happens. Here a rumour starts in a friends’ group chat. Each time it reaches a new group, someone may share it on, or everyone may scroll past. How often does it make it all the way to viral?</p>
+  <p class="pg-lead" data-l="th">บางคำถามซับซ้อนเกินจะมีสูตรสวย ๆ ให้คิด <b>การจำลองมอนติคาร์โล (Monte Carlo simulation)</b> ตอบอีกแบบ: เล่นกระบวนการสุ่มเดิมซ้ำหลายพันครั้ง แล้วนับว่าเกิดอะไรขึ้นบ้าง ที่นี่ข่าวลือเริ่มในแชทแก๊งเพื่อน ทุกครั้งที่ไปถึงกลุ่มใหม่ อาจมีคนแชร์ต่อ หรือทุกคนเลื่อนผ่าน ข่าวลือจะไปถึงขั้นไวรัลบ่อยแค่ไหน?</p>
+</section>
+<div id="wrap">
+<div id="app">
+
+<header>
+  <div class="titles">
+    <div class="eyebrow" data-t="eyebrow"></div>
+    <h1 data-t="title"></h1>
+    <p class="sub" data-t="sub"></p>
+  </div>
+  <div class="hright">
+    <div class="seg" role="group" aria-label="Language">
+      <button id="lang-th" aria-pressed="true">ไทย</button>
+      <button id="lang-en" aria-pressed="false">EN</button>
+    </div>
+    <div class="counter" aria-live="polite">
+      <small data-t="cTop"></small>
+      <b id="count">0</b>
+      <small data-t="cBot"></small>
+    </div>
+  </div>
+</header>
+
+<section class="stage">
+  <div id="graph">
+    <svg id="edges" width="1184" height="284" viewBox="0 0 1184 284" aria-hidden="true"></svg>
+    <div id="parts" aria-hidden="true"></div>
+    <div id="tok" aria-hidden="true"></div>
+  </div>
+  <div class="toolbar">
+    <div class="btns">
+      <button class="primary run" id="b-one">
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>
+        <span data-t="btnOne"></span>
+      </button>
+      <button class="outline run" id="b-100">+100</button>
+      <button class="outline run" id="b-10k">+10,000</button>
+      <button class="outline run" id="b-100k">+100,000</button>
+      <button class="ghost" id="b-reset" data-t="reset"></button>
+    </div>
+    <div class="rules">
+      <span><span data-t="r1"></span><span class="ok" data-t="r2"></span> · <span class="no" data-t="r3"></span></span>
+      <span id="viral"></span>
+    </div>
+  </div>
+</section>
+
+<div class="bottom">
+  <section class="panel" style="flex:1;min-width:0">
+    <div class="phead">
+      <h2><span data-t="chartTitle" style="font-weight:600;color:var(--ink)"></span> <span data-t="chartSub"></span></h2>
+      <div class="legend">
+        <span><i style="width:12px;height:12px;border-radius:3px;background:var(--blue)"></i><span data-t="legSim"></span></span>
+        <span><i style="width:16px;height:2px;background:var(--orange)"></i><span data-t="legEx"></span></span>
+      </div>
+    </div>
+    <div class="chart">
+      <div class="axis"><span style="top:-6px">100%</span><span style="top:24px">10%</span><span style="top:55px">1%</span><span style="top:85px">0.1%</span></div>
+      <div class="plot">
+        <div class="area">
+          <div class="grid" style="top:0"></div>
+          <div class="grid" style="top:30px"></div>
+          <div class="grid" style="top:61px"></div>
+          <div class="grid" style="top:91px;background:var(--line)"></div>
+          <div class="cols" id="cols"></div>
+        </div>
+        <div class="blabels" id="blabels"></div>
+      </div>
+    </div>
+  </section>
+  <section class="panel" style="width:380px;flex:none">
+    <div class="phead">
+      <h2 data-t="logTitle"></h2>
+      <span style="font-size:12px;color:var(--muted)">A → B → C → D → E</span>
+    </div>
+    <div id="log"></div>
+  </section>
+</div>
+
+</div>
+</div>
+<div class="pg pg-under">
+  <span><span data-l="en">Press “Release 1 rumour” to watch one run, then +10,000 to see the pattern. Change any p with − and +.</span><span data-l="th">กด “ปล่อยข่าวลือ 1 ข่าว” เพื่อดูทีละรอบ แล้วกด +10,000 เพื่อดูภาพรวม ปรับค่า p ได้ด้วยปุ่ม − และ +</span></span>
+  <button id="pg-full">⛶ <span data-l="en">Full screen</span><span data-l="th">เต็มจอ</span></button>
+</div>
+
+<section class="pg pg-sec">
+  <h2><span data-l="en">What you are looking at</span><span data-l="th">ในภาพมีอะไรบ้าง</span></h2>
+  <div class="pg-grid">
+    <div class="pg-card"><b><span data-l="en">Five groups in a chain</span><span data-l="th">กลุ่ม 5 กลุ่มต่อกันเป็นสาย</span></b><span data-l="en">A friends’ chat (A) → class group (B) → faculty group (C) → university page (D) → viral nationwide (E). The rumour can only move forward one step at a time.</span><span data-l="th">แชทแก๊งเพื่อน (A) → กรุ๊ปห้อง (B) → กรุ๊ปคณะ (C) → เพจมหาลัย (D) → ไวรัลทั้งประเทศ (E) ข่าวลือเดินหน้าได้ทีละขั้น</span></div>
+    <div class="pg-card"><b><span data-l="en">p on each arrow</span><span data-l="th">ค่า p บนลูกศร</span></b><span data-l="en">The chance that someone in the group shares it on. At each arrow the computer draws a random number between 0 and 1: below p, it is shared; otherwise the rumour dies there.</span><span data-l="th">โอกาสที่จะมีคนในกลุ่มแชร์ต่อ ทุกลูกศรคอมพิวเตอร์สุ่มเลขระหว่าง 0 ถึง 1 ถ้าน้อยกว่า p ข่าวลือไปต่อ ไม่งั้นข่าวลือดับตรงนั้น</span></div>
+    <div class="pg-card"><b><span data-l="en">Bars and orange lines</span><span data-l="th">แท่งสีน้ำเงินกับเส้นสีส้ม</span></b><span data-l="en">Blue bars: the share of simulated rumours that reached each group. Orange lines: the exact answer worked out by hand. Run enough rumours and the two meet.</span><span data-l="th">แท่งสีน้ำเงินคือสัดส่วนข่าวลือจำลองที่ไปถึงแต่ละกลุ่ม เส้นสีส้มคือคำตอบที่คิดด้วยมือ ปล่อยข่าวลือมากพอ สองค่านี้จะมาเจอกัน</span></div>
+  </div>
+</section>
+
+<section class="pg pg-sec">
+  <h2><span data-l="en">Monte Carlo in four steps</span><span data-l="th">Monte Carlo ใน 4 ขั้น</span></h2>
+  <div class="pg-grid">
+    <div class="pg-card"><b><span class="pg-num">1</span><span data-l="en">Describe the process</span><span data-l="th">เขียนกระบวนการ</span></b><span data-l="en">A rumour moves A → B → C → D → E, one arrow at a time.</span><span data-l="th">ข่าวลือเดิน A → B → C → D → E ทีละลูกศร</span></div>
+    <div class="pg-card"><b><span class="pg-num">2</span><span data-l="en">Add randomness</span><span data-l="th">ใส่ความสุ่ม</span></b><span data-l="en">Each arrow passes with its own chance p (0.3, 0.2, 0.5, 0.1 to start).</span><span data-l="th">แต่ละลูกศรผ่านด้วยโอกาส p ของมันเอง (เริ่มที่ 0.3, 0.2, 0.5, 0.1)</span></div>
+    <div class="pg-card"><b><span class="pg-num">3</span><span data-l="en">Repeat many times</span><span data-l="th">ทำซ้ำหลายครั้ง</span></b><span data-l="en">Release 100, 10,000 or 100,000 rumours. Each one is a possible “what if”.</span><span data-l="th">ปล่อยข่าวลือ 100, 10,000 หรือ 100,000 ข่าว แต่ละข่าวคือ “ถ้าเกิดแบบนี้ล่ะ” หนึ่งแบบ</span></div>
+    <div class="pg-card"><b><span class="pg-num">4</span><span data-l="en">Count</span><span data-l="th">นับ</span></b><span data-l="en">The share of runs that reached E is the estimated chance of going viral.</span><span data-l="th">สัดส่วนของรอบที่ไปถึง E คือโอกาสไวรัลที่ประมาณได้</span></div>
+  </div>
+</section>
+
+<section class="pg pg-sec">
+  <h2><span data-l="en">Three things to try</span><span data-l="th">ลองทำ 3 อย่างนี้</span></h2>
+  <ol>
+    <li data-l="en"><b>Watch one rumour.</b> Release 1 rumour a few times. Most die in the friends’ chat: 70% of the time nobody shares it (p = 0.3).</li>
+    <li data-l="th"><b>ดูข่าวลือทีละข่าว</b> กดปล่อย 1 ข่าวหลาย ๆ ครั้ง ส่วนใหญ่ดับในแชทแก๊ง: 70% ของครั้งไม่มีใครแชร์ (p = 0.3)</li>
+    <li data-l="en"><b>Let the numbers settle.</b> Press +10,000 a few times. With 100 rumours the bars jump around; with 100,000 they sit on the orange lines. More runs, a better estimate.</li>
+    <li data-l="th"><b>ปล่อยให้ตัวเลขนิ่ง</b> กด +10,000 หลายครั้ง ตอนมี 100 ข่าว แท่งยังแกว่ง พอ 100,000 ข่าว แท่งนั่งอยู่บนเส้นส้มพอดี ยิ่งทำซ้ำมาก ค่าประมาณยิ่งแม่น</li>
+    <li data-l="en"><b>Break one link.</b> Lower one p (say the faculty group to 0.1) and watch everything after it drop. A chain is only as strong as its weakest link.</li>
+    <li data-l="th"><b>ตัดจุดอ่อนหนึ่งจุด</b> ลด p ตัวใดตัวหนึ่ง (เช่น กรุ๊ปคณะเหลือ 0.1) แล้วดูทุกกลุ่มหลังจากนั้นลดตาม สายโซ่แข็งแรงได้เท่ากับข้อที่อ่อนที่สุด</li>
+  </ol>
+</section>
+
+<section class="pg pg-sec">
+  <h2><span data-l="en">If you can multiply, why simulate?</span><span data-l="th">ถ้าคูณเองได้ ทำไมต้องจำลอง</span></h2>
+  <p data-l="en">For this simple chain the exact answer is easy: <span class="pg-math">0.3 × 0.2 × 0.5 × 0.1 = 0.003</span>, so about 3 rumours in 1,000 go viral, and the simulation agrees. That is the point: on a problem we <i>can</i> solve, simulation gives the right answer, so we can trust it on problems we <i>cannot</i>. Real social networks branch and loop, people see the same post from several friends, sharing depends on the time of day and on who posted it. No neat formula covers that, but the simulation only needs one more rule per detail.</p>
+  <p data-l="th">สายโซ่ง่าย ๆ แบบนี้คิดคำตอบที่แน่นอนได้: <span class="pg-math">0.3 × 0.2 × 0.5 × 0.1 = 0.003</span> คือราว 3 ใน 1,000 ข่าวที่ไวรัล และการจำลองก็ได้เท่ากัน นี่คือหัวใจ: กับปัญหาที่เรา <i>คิดได้</i> การจำลองให้คำตอบถูก เราจึงเชื่อมันได้กับปัญหาที่ <i>คิดไม่ได้</i> โซเชียลจริงแตกแขนงและวนกลับ คนเห็นโพสต์เดียวกันจากเพื่อนหลายคน การแชร์ขึ้นกับเวลาและคนที่โพสต์ ไม่มีสูตรสวย ๆ ครอบคลุมได้ แต่การจำลองแค่เพิ่มกติกาทีละข้อ</p>
+</section>
+
+<section class="pg pg-sec">
+  <h2><span data-l="en">Where Monte Carlo shows up</span><span data-l="th">Monte Carlo อยู่ที่ไหนบ้าง</span></h2>
+  <div class="pg-grid">
+    <div class="pg-card"><b><span data-l="en">Weather apps</span><span data-l="th">แอปพยากรณ์อากาศ</span></b><span data-l="en">“70% chance of rain” comes from running a forecast many times with slightly different starting conditions.</span><span data-l="th">“ฝนตก 70%” มาจากการรันพยากรณ์หลายครั้งด้วยจุดเริ่มต้นที่ต่างกันเล็กน้อย</span></div>
+    <div class="pg-card"><b><span data-l="en">Election forecasts</span><span data-l="th">พยากรณ์เลือกตั้ง</span></b><span data-l="en">Forecasters simulate the vote thousands of times and report how often each side wins.</span><span data-l="th">นักพยากรณ์จำลองผลโหวตหลายพันครั้ง แล้วบอกว่าแต่ละฝ่ายชนะบ่อยแค่ไหน</span></div>
+    <div class="pg-card"><b><span data-l="en">Games and gacha</span><span data-l="th">เกมและกาชา</span></b><span data-l="en">How many pulls until a rare card, once pity and rate-up rules are added? Simulate and count.</span><span data-l="th">ต้องสุ่มกี่ครั้งถึงได้การ์ดหายาก เมื่อมีการันตีและ rate-up ด้วย? จำลองแล้วนับ</span></div>
+    <div class="pg-card"><b><span data-l="en">Projects and risk</span><span data-l="th">โปรเจกต์และความเสี่ยง</span></b><span data-l="en">Will a project finish on time, will a portfolio lose money, how far will a disease spread? The same four steps.</span><span data-l="th">โปรเจกต์จะเสร็จทันไหม พอร์ตจะขาดทุนไหม โรคจะแพร่ไปไกลแค่ไหน ใช้ 4 ขั้นเดียวกัน</span></div>
+  </div>
+  <p data-l="en" style="margin-top:18px">A bit of history: the method was developed in the late 1940s at Los Alamos by Stanisław Ulam and John von Neumann, and named by their colleague Nicholas Metropolis after the Monte Carlo casino, because it runs on chance. <a href="https://en.wikipedia.org/wiki/Monte_Carlo_method" target="_blank" rel="noopener">Read more on Wikipedia</a>.</p>
+  <p data-l="th" style="margin-top:18px">ประวัติสั้น ๆ: วิธีนี้พัฒนาขึ้นปลายทศวรรษ 1940 ที่ Los Alamos โดย Stanisław Ulam และ John von Neumann ชื่อ “มอนติคาร์โล” ตั้งโดย Nicholas Metropolis เพื่อนร่วมงาน ตามชื่อคาสิโนชื่อดัง เพราะมันอาศัยความบังเอิญ <a href="https://en.wikipedia.org/wiki/Monte_Carlo_method" target="_blank" rel="noopener">อ่านต่อใน Wikipedia</a></p>
+  <p data-l="en" style="font-size:15px;color:var(--muted)">The share probabilities here are made up for teaching. In real research they would be estimated from data, for example by counting how often posts in each kind of group get reshared.</p>
+  <p data-l="th" style="font-size:15px;color:var(--muted)">ค่าโอกาสแชร์ในหน้านี้เป็นตัวเลขสมมติเพื่อการสอน งานวิจัยจริงจะประมาณจากข้อมูล เช่น นับว่าโพสต์ในกลุ่มแต่ละแบบถูกแชร์ต่อบ่อยแค่ไหน</p>
+</section>
+
+<footer class="pg pg-foot">
+  <span data-l="en">From the course <i>Statistics for Digital Humanities</i> · <a href="../">Jakapun Tachaiya</a></span>
+  <span data-l="th">จากวิชา <i>Statistics for Digital Humanities</i> · <a href="../">Jakapun Tachaiya</a></span>
+</footer>
+<div class="hint" data-t="hint"></div>
+
+<script>
+(function () {
+  'use strict';
+  var NP = [[104, 158], [348, 118], [592, 158], [836, 118], [1080, 158]];
+  var CY = '#2563EB', OR = '#EA580C';
+  var L = 'ABCDE';
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var TXT = {
+    th: {
+      eyebrow: 'MONTE CARLO SIMULATION · การจำลองมอนติคาร์โล',
+      title: 'ข่าวลือในโซเชียลแพร่ไปได้ไกลแค่ไหน',
+      sub: 'ปล่อยข่าวลือจากแชทแก๊งเพื่อน (A) แล้วดูว่ากี่ข่าวรอดไปจนไวรัลทั้งประเทศ (E)',
+      cTop: 'ปล่อยข่าวลือไปแล้ว', cBot: 'ข่าว (รอบจำลอง)',
+      names: ['แชทแก๊งเพื่อน', 'กรุ๊ปห้อง', 'กรุ๊ปคณะ', 'เพจมหาลัย', 'ไวรัลทั้งประเทศ'],
+      reach: 'ไปถึง ', stop: 'จบที่นี่ ', tagStop: 'ข่าวลือดับที่นี่', tagViral: 'ไวรัล!',
+      rolling: 'กำลังสุ่ม…', pass: 'แชร์ต่อ ✓', fail: 'ไม่มีใครแชร์ ✗', dec: 'ลดค่า p', inc: 'เพิ่มค่า p',
+      btnOne: 'ปล่อยข่าวลือ 1 ข่าว', reset: 'รีเซ็ต',
+      r1: 'ทุกลูกศร: สุ่มเลข 0–1 · ', r2: 'น้อยกว่า p → แชร์ต่อ', r3: 'ไม่งั้นข่าวลือดับ',
+      viral: 'ไวรัลถึง E ล่าสุด: ข่าวที่ #', noViral: 'ยังไม่มีข่าวไหนไวรัลถึง E',
+      chartTitle: 'ไปถึงแต่ละกลุ่ม', chartSub: '(สเกล log)', legSim: 'จำลอง', legEx: 'คิดมือ (คูณ p)', exact: 'คิดมือ ',
+      logTitle: 'เส้นทางข่าวลือล่าสุด', empty1: 'กด “ปล่อยข่าวลือ 1 ข่าว”', empty2: 'แล้วดูว่ามันไปได้ไกลแค่ไหน',
+      resViral: 'ไวรัล!', resDied: 'ดับที่ ',
+      hint: 'F = เต็มจอ · Space = ปล่อย 1 ข่าว'
+    },
+    en: {
+      eyebrow: 'MONTE CARLO SIMULATION',
+      title: 'How far does a rumour spread?',
+      sub: 'Release rumours in a friends’ chat (A) and see how many go viral nationwide (E)',
+      cTop: 'Rumours released', cBot: 'simulation runs',
+      names: ['Friends’ chat', 'Class group', 'Faculty group', 'University page', 'Viral nationwide'],
+      reach: 'Reached ', stop: 'Ended here ', tagStop: 'Died here', tagViral: 'Viral!',
+      rolling: 'Rolling…', pass: 'Shared ✓', fail: 'Not shared ✗', dec: 'Decrease p', inc: 'Increase p',
+      btnOne: 'Release 1 rumour', reset: 'Reset',
+      r1: 'Each arrow: random number 0–1 · ', r2: 'below p → shared', r3: 'otherwise it dies',
+      viral: 'Latest viral rumour: #', noViral: 'No rumour has reached E yet',
+      chartTitle: 'Reach by group', chartSub: '(log scale)', legSim: 'Simulated', legEx: 'By hand (multiply p)', exact: 'by hand ',
+      logTitle: 'Latest rumour paths', empty1: 'Press “Release 1 rumour”', empty2: 'and watch how far it travels',
+      resViral: 'Viral!', resDied: 'Died at ',
+      hint: 'F = fullscreen · Space = release 1 rumour'
+    }
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, parent) { var e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e; }
+  function svg(tag, attrs, parent) { var e = document.createElementNS(SVGNS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+  function fmt(x) { return x.toLocaleString('en-US'); }
+  function pct(x) { if (x == null || !isFinite(x)) return '–'; var y = x * 100; return (y >= 1 || y === 0 ? y.toFixed(1) : y.toFixed(2)) + '%'; }
+  function pct2(x) { return (x == null || !isFinite(x)) ? '–' : (x * 100).toFixed(2) + '%'; }
+  function emptyView() { return { lit: -1, draws: [null, null, null, null], stopAt: null, cur: -1 }; }
+
+  // ---------- state ----------
+  var EMBED = window.self !== window.top || /[?&]embed=1/.test(location.search);
+  document.documentElement.classList.add(EMBED ? 'embed' : 'page');
+  var qLang = (location.search.match(/[?&]lang=(th|en)/) || [])[1];
+  function parentLang() { try { var l = window.parent.document.documentElement.getAttribute('data-lang'); return l === 'en' || l === 'th' ? l : null; } catch (e) { return null; } }
+  var S = { lang: qLang || (EMBED ? (parentLang() || 'th') : 'en'), p: [0.3, 0.2, 0.5, 0.1], n: 0, reach: [0, 0, 0, 0, 0], log: [], lastViral: null, busy: false, mode: null, view: emptyView() };
+  var timers = [], parts = [], pulse = [0, 0, 0, 0, 0], raf = null, tween = null, lastT = 0;
+  var tok = { node: 0, k: 0, t: 0, show: false, color: CY };
+
+  // ---------- geometry ----------
+  function ctrl(k) { var a = NP[k], b = NP[k + 1]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 60]; }
+  function bez(k, t) { var a = NP[k], b = NP[k + 1], c = ctrl(k), u = 1 - t; return [u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]]; }
+  function tan(k, t) {
+    var a = NP[k], b = NP[k + 1], c = ctrl(k), u = 1 - t;
+    var dx = 2 * u * (c[0] - a[0]) + 2 * t * (b[0] - c[0]), dy = 2 * u * (c[1] - a[1]) + 2 * t * (b[1] - c[1]);
+    var len = Math.sqrt(dx * dx + dy * dy) || 1; return [dx / len, dy / len];
+  }
+
+  // ---------- build DOM ----------
+  var G = $('graph'), E = $('edges');
+  var edgeEls = [], nodeEls = [];
+  for (var k = 0; k < 4; k++) (function (k) {
+    var a = NP[k], b = NP[k + 1], c = ctrl(k);
+    var d = 'M ' + a[0] + ' ' + a[1] + ' Q ' + c[0] + ' ' + c[1] + ' ' + b[0] + ' ' + b[1];
+    var base = svg('path', { d: d, fill: 'none', stroke: '#C5CEDB', 'stroke-width': 3, 'stroke-linecap': 'round' }, E);
+    var flow = svg('path', { d: d, fill: 'none', stroke: CY, 'stroke-width': 2, 'stroke-linecap': 'round', 'class': 'flow', opacity: 0 }, E);
+    var ap = bez(k, 0.74), at = tan(k, 0.74);
+    var pts = [[ap[0] + at[0] * 8, ap[1] + at[1] * 8], [ap[0] - at[0] * 6 - at[1] * 7, ap[1] - at[1] * 6 + at[0] * 7], [ap[0] - at[0] * 6 + at[1] * 7, ap[1] - at[1] * 6 - at[0] * 7]];
+    var arrow = svg('polygon', { points: pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '), fill: '#C5CEDB' }, E);
+    edgeEls.push({ base: base, flow: flow, arrow: arrow });
+  })(k);
+  var tokEl = $('tok');
+  for (var i = 0; i < 5; i++) {
+    var x = NP[i][0], y = NP[i][1];
+    var nd = el('div', 'node', G); nd.style.left = (x - 48) + 'px'; nd.style.top = (y - 48) + 'px';
+    var Ls = el('span', 'L', nd); Ls.textContent = L[i];
+    var cs = el('span', 'c', nd);
+    var tg = el('div', 'tag', G); tg.style.left = (x - 65) + 'px'; tg.style.top = (y - 78) + 'px';
+    var tgs = el('span', '', tg);
+    var lb = el('div', 'lab', G); lb.style.left = (x - 85) + 'px'; lb.style.top = (y + 54) + 'px';
+    nodeEls.push({ nd: nd, L: Ls, c: cs, tg: tg, tgs: tgs, nm: el('span', 'nm', lb), rc: el('span', 'rc', lb), st: el('span', 'st', lb) });
+  }
+  for (k = 0; k < 4; k++) (function (k) {
+    var apex = bez(k, 0.5);
+    var pill = el('div', 'pill', G); pill.style.left = (apex[0] - 58).toFixed(0) + 'px'; pill.style.top = (apex[1] - 50).toFixed(0) + 'px';
+    var dec = el('button', 'step', pill); dec.textContent = '−'; dec.onclick = function () { setP(k, -0.1); };
+    var ps = el('span', '', pill);
+    var inc = el('button', 'step', pill); inc.textContent = '+'; inc.onclick = function () { setP(k, 0.1); };
+    var chip = el('div', 'chip', G); chip.style.left = (apex[0] - 62).toFixed(0) + 'px'; chip.style.top = (apex[1] + 14).toFixed(0) + 'px';
+    var e = edgeEls[k];
+    e.dec = dec; e.inc = inc; e.ps = ps; e.chip = chip; e.l1 = el('span', 'l1', chip); e.l2 = el('span', 'l2', chip);
+  })(k);
+  var barEls = [];
+  for (i = 0; i < 5; i++) {
+    var col = el('div', 'bcol', $('cols'));
+    var lbl = el('div', '', $('blabels'));
+    barEls.push({ bar: el('div', 'bar', col), ex: el('div', 'ex', col), b: el('b', '', lbl), s: el('small', '', lbl) });
+  }
+  var pool = [];
+
+  // ---------- rendering ----------
+  function nodeStyle(i) {
+    var v = S.view, T = TXT[S.lang];
+    var lit = v.lit >= i, stop = v.stopAt === i, viral = i === 4 && v.lit === 4;
+    var o = { bg: '#FFFFFF', border: '#C5CEDB', letter: '#5B6577', cc: '#5B6577', tag: '', tagBg: '', tagColor: '' };
+    if (lit) { o.bg = '#EAF1FF'; o.border = CY; o.letter = '#0F172A'; o.cc = '#1E40AF'; }
+    if (stop) { o.border = OR; o.tag = T.tagStop; o.tagBg = OR; o.tagColor = '#FFFFFF'; }
+    if (viral) { o.bg = CY; o.border = CY; o.letter = '#FFFFFF'; o.cc = '#FFFFFF'; o.tag = T.tagViral; o.tagBg = '#0F172A'; o.tagColor = '#FFFFFF'; }
+    var z = pulse[i] || 0;
+    if (z > 0.05 && !lit) { o.border = CY; o.letter = '#0F172A'; }
+    o.shadow = '0 0 0 ' + (3 + 12 * z).toFixed(1) + 'px rgba(37,99,235,' + (0.05 + 0.22 * z).toFixed(3) + '), 0 4px ' + (12 + 36 * z).toFixed(1) + 'px rgba(37,99,235,' + (0.08 + 0.4 * z).toFixed(3) + ')';
+    return o;
+  }
+  function updateNodes() {
+    var T = TXT[S.lang];
+    for (var i = 0; i < 5; i++) {
+      var o = nodeStyle(i), n = nodeEls[i];
+      n.nd.style.background = o.bg; n.nd.style.borderColor = o.border; n.nd.style.boxShadow = o.shadow;
+      n.L.style.color = o.letter; n.c.style.color = o.cc; n.c.textContent = fmt(S.reach[i]);
+      n.tg.style.display = o.tag ? 'flex' : 'none'; n.tgs.textContent = o.tag; n.tgs.style.background = o.tagBg; n.tgs.style.color = o.tagColor;
+      var reachP = S.n ? S.reach[i] / S.n : null;
+      var stopP = S.n ? (S.reach[i] - (i < 4 ? S.reach[i + 1] : 0)) / S.n : null;
+      n.nm.textContent = T.names[i]; n.rc.textContent = T.reach + pct(reachP); n.st.textContent = T.stop + pct(stopP);
+    }
+  }
+  function updateEdges() {
+    var T = TXT[S.lang], v = S.view;
+    for (var k = 0; k < 4; k++) {
+      var e = edgeEls[k], d = v.draws[k];
+      var color = '#C5CEDB', sw = 3, dc = '#5B6577', l1 = '', l2 = '';
+      if (v.cur === k) color = '#0F172A';
+      if (d) {
+        if (d.rolling) { l1 = d.v.toFixed(2); l2 = T.rolling; dc = '#0F172A'; }
+        else {
+          l1 = d.v.toFixed(2) + (d.pass ? ' < ' : ' ≥ ') + S.p[k].toFixed(1);
+          l2 = d.pass ? T.pass : T.fail; color = d.pass ? CY : OR; dc = d.pass ? CY : '#C2410C'; sw = 4;
+        }
+      }
+      e.base.setAttribute('stroke', color); e.base.setAttribute('stroke-width', sw); e.arrow.setAttribute('fill', color);
+      e.flow.setAttribute('opacity', S.mode === 'batch' ? 0.5 : 0);
+      e.chip.style.display = d ? 'flex' : 'none'; e.chip.style.borderColor = dc;
+      e.l1.textContent = l1; e.l2.textContent = l2; e.l1.style.color = dc; e.l2.style.color = dc;
+      e.ps.textContent = 'p = ' + S.p[k].toFixed(1);
+      e.dec.disabled = S.busy || S.p[k] <= 0; e.inc.disabled = S.busy || S.p[k] >= 1;
+      e.dec.setAttribute('aria-label', T.dec); e.inc.setAttribute('aria-label', T.inc);
+    }
+  }
+  function logH(x) { if (!(x > 0)) return 0; return Math.max(0, Math.min(1, (Math.log10(x) + 3) / 3)) * 91; }
+  function updateBars() {
+    var T = TXT[S.lang];
+    for (var i = 0; i < 5; i++) {
+      var ex = 1; for (var k = 0; k < i; k++) ex *= S.p[k];
+      var sim = S.n ? S.reach[i] / S.n : null, b = barEls[i];
+      b.bar.style.height = (sim == null ? 0 : logH(sim)).toFixed(1) + 'px';
+      b.ex.style.bottom = logH(ex).toFixed(1) + 'px'; b.ex.style.opacity = ex > 0 ? 1 : 0;
+      b.b.textContent = L[i] + ' · ' + (sim == null ? '–' : pct2(sim));
+      b.s.textContent = T.exact + pct2(ex);
+    }
+  }
+  function updateLog() {
+    var T = TXT[S.lang], box = $('log');
+    if (!S.log.length) { box.innerHTML = '<div class="empty"><span>' + T.empty1 + '</span><span>' + T.empty2 + '</span></div>'; return; }
+    box.innerHTML = S.log.map(function (e) {
+      var segs = '';
+      for (var i = 0; i < 5; i++) {
+        var on = i <= e.idx;
+        segs += '<i class="d" style="background:' + (on ? CY : '#C5CEDB') + ';box-shadow:' + (on ? '0 0 6px rgba(37,99,235,.45)' : 'none') + '"></i>';
+        if (i < 4) segs += '<i class="k" style="background:' + (i < e.idx ? CY : (i === e.idx ? OR : '#E2E7EF')) + '"></i>';
+      }
+      var viral = e.idx === 4;
+      return '<div class="lrow"><span class="lid">#' + fmt(e.id) + '</span><div class="path">' + segs + '</div><span class="lres" style="color:' + (viral ? CY : '#0F172A') + ';font-weight:' + (viral ? 700 : 500) + '">' + (viral ? T.resViral : T.resDied + L[e.idx]) + '</span></div>';
+    }).join('');
+  }
+  function render() {
+    var T = TXT[S.lang];
+    document.documentElement.lang = S.lang;
+    var nodes = document.querySelectorAll('[data-t]');
+    for (var i = 0; i < nodes.length; i++) nodes[i].textContent = T[nodes[i].getAttribute('data-t')];
+    $('count').textContent = fmt(S.n);
+    $('viral').textContent = S.lastViral ? T.viral + fmt(S.lastViral) : T.noViral;
+    $('lang-th').className = S.lang === 'th' ? 'on' : ''; $('lang-th').setAttribute('aria-pressed', S.lang === 'th');
+    $('lang-en').className = S.lang === 'en' ? 'on' : ''; $('lang-en').setAttribute('aria-pressed', S.lang === 'en');
+    if ($('pg-th')) { $('pg-th').className = S.lang === 'th' ? 'on' : ''; $('pg-en').className = S.lang === 'en' ? 'on' : ''; }
+    var runs = document.querySelectorAll('.run');
+    for (i = 0; i < runs.length; i++) runs[i].disabled = S.busy;
+    updateNodes(); updateEdges(); updateBars(); updateLog();
+  }
+  function renderFrame() {
+    var vis = parts.filter(function (q) { return q.t >= 0 || q.dying > 0; });
+    for (var i = 0; i < vis.length; i++) {
+      var q = vis[i], pt = bez(q.k, Math.max(0, q.t));
+      var failing = q.k === q.idx && q.idx < 4;
+      var c = (failing && q.t > 0.12) || q.dying > 0 ? OR : CY;
+      var s = q.big ? 22 : 10, op = 0.9;
+      if (q.dying > 0) { var r = q.dying / (q.life || 0.4); op = r; s = s + (1 - r) * (q.big ? 26 : 14); }
+      if (!pool[i]) pool[i] = el('div', 'pt', $('parts'));
+      var st = pool[i].style;
+      st.display = 'block'; st.left = (pt[0] - s / 2).toFixed(1) + 'px'; st.top = (pt[1] - s / 2).toFixed(1) + 'px';
+      st.width = st.height = s.toFixed(1) + 'px'; st.background = c; st.opacity = op; st.boxShadow = '0 0 10px ' + c;
+    }
+    for (var j = vis.length; j < pool.length; j++) pool[j].style.display = 'none';
+    var pos = tok.node != null ? NP[tok.node] : bez(tok.k, tok.t);
+    tokEl.style.left = (pos[0] - 11).toFixed(1) + 'px'; tokEl.style.top = (pos[1] - 11).toFixed(1) + 'px';
+    tokEl.style.opacity = tok.show ? 1 : 0; tokEl.style.background = tok.color;
+    tokEl.style.boxShadow = '0 0 0 6px rgba(15,23,42,.06), 0 0 18px ' + tok.color;
+    updateNodes();
+  }
+
+  // ---------- engine ----------
+  function later(fn, ms) { var id = setTimeout(fn, ms); timers.push(id); return id; }
+  function every(fn, ms) { var id = setInterval(fn, ms); timers.push(id); return id; }
+  function stopAll() { timers.forEach(function (id) { clearTimeout(id); clearInterval(id); }); timers = []; tween = null; parts = []; tok.show = false; }
+  function sim(p) {
+    var draws = [], idx = 0;
+    for (var k = 0; k < 4; k++) { var v = Math.random(), pass = v < p[k]; draws.push({ v: v, pass: pass }); if (!pass) break; idx = k + 1; }
+    return { draws: draws, idx: idx };
+  }
+  function ensureLoop() {
+    if (raf) return;
+    lastT = performance.now();
+    var frame = function (now) {
+      var dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+      tick(dt);
+      if (parts.length || tween || pulse.some(function (x) { return x > 0.02; })) raf = requestAnimationFrame(frame);
+      else { raf = null; pulse = [0, 0, 0, 0, 0]; renderFrame(); }
+    };
+    raf = requestAnimationFrame(frame);
+  }
+  function tick(dt) {
+    var i;
+    for (i = 0; i < 5; i++) pulse[i] *= Math.exp(-dt * 3.2);
+    var keep = [];
+    for (i = 0; i < parts.length; i++) {
+      var q = parts[i];
+      if (q.dying > 0) { q.dying -= dt; if (q.dying > 0) keep.push(q); continue; }
+      var before = q.t; q.t += dt * q.speed;
+      if (before < 0 && q.t >= 0) pulse[0] = Math.min(1, pulse[0] + 0.18);
+      if (q.t < 0) { keep.push(q); continue; }
+      if (q.k < q.idx) {
+        if (q.t >= 1) { q.k++; q.t -= 1; pulse[q.k] = Math.min(1, pulse[q.k] + (q.k === 4 ? 1 : 0.35)); if (q.k === 4) continue; }
+        keep.push(q);
+      } else {
+        if (q.t >= 0.3) { q.t = 0.3; q.dying = 0.4; q.life = 0.4; }
+        keep.push(q);
+      }
+    }
+    parts = keep;
+    if (tween) {
+      var tw = tween; tw.e += dt;
+      var f = Math.min(1, tw.e / tw.dur), ease = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+      tok.k = tw.k; tok.t = tw.t0 + (tw.t1 - tw.t0) * ease;
+      if (f >= 1) { tween = null; if (tw.cb) tw.cb(); }
+    }
+    renderFrame();
+  }
+
+  function runOne() {
+    if (S.busy) return;
+    stopAll();
+    var p = S.p.slice(), r = sim(p);
+    S.view = { lit: 0, draws: [null, null, null, null], stopAt: null, cur: -1 };
+    tok = { node: 0, k: 0, t: 0, show: true, color: CY };
+    pulse[0] = 1; S.busy = true; S.mode = 'single';
+    render(); ensureLoop();
+    var step = function (k) {
+      if (k >= r.draws.length) { finishOne(r); return; }
+      S.view.cur = k; render();
+      var ticks = 0;
+      var iv = every(function () {
+        ticks++;
+        if (ticks < 10) { S.view.draws[k] = { v: Math.random(), rolling: true }; updateEdges(); return; }
+        clearInterval(iv);
+        var d = r.draws[k];
+        S.view.draws[k] = d; updateEdges();
+        tok.node = null; tok.k = k; tok.t = 0;
+        if (d.pass) {
+          tween = { k: k, t0: 0, t1: 1, dur: 0.8, e: 0, cb: function () {
+            tok.node = k + 1; S.view.lit = k + 1; S.view.cur = -1; pulse[k + 1] = 1;
+            if (k + 1 === 4) tok.show = false;
+            render(); later(function () { step(k + 1); }, 380);
+          } };
+        } else {
+          tok.color = OR;
+          tween = { k: k, t0: 0, t1: 0.3, dur: 0.4, e: 0, cb: function () {
+            tok.show = false;
+            parts.push({ k: k, t: 0.3, idx: k, speed: 0, dying: 0.6, life: 0.6, big: true });
+            S.view.stopAt = k; S.view.cur = -1;
+            render(); later(function () { finishOne(r); }, 350);
+          } };
+        }
+        ensureLoop();
+      }, 65);
+    };
+    later(function () { step(0); }, 500);
+  }
+  function finishOne(r) {
+    S.n++;
+    for (var i = 0; i <= r.idx; i++) S.reach[i]++;
+    S.log = [{ id: S.n, idx: r.idx }].concat(S.log).slice(0, 4);
+    if (r.idx === 4) S.lastViral = S.n;
+    S.busy = false; S.mode = null;
+    render();
+  }
+  function runBatch(N) {
+    if (S.busy) return;
+    stopAll();
+    var p = S.p.slice();
+    var ticks = N <= 100 ? 20 : 30, chunk = Math.ceil(N / ticks), done = 0, vis = N <= 100 ? chunk : 4;
+    S.view = emptyView(); S.busy = true; S.mode = 'batch';
+    render();
+    var iv = every(function () {
+      var m = Math.min(chunk, N - done);
+      for (var j = 0; j < m; j++) {
+        var r = sim(p);
+        S.n++;
+        for (var i = 0; i <= r.idx; i++) S.reach[i]++;
+        if (r.idx === 4) { S.lastViral = S.n; pulse[4] = 1; }
+        if (m - j <= 4) S.log.unshift({ id: S.n, idx: r.idx });
+        if (j < vis) parts.push({ k: 0, t: -Math.random() * 0.25, idx: r.idx, speed: 2.3, dying: 0 });
+      }
+      S.log = S.log.slice(0, 4);
+      done += m;
+      if (done >= N) { clearInterval(iv); S.busy = false; S.mode = null; }
+      render(); ensureLoop();
+    }, 90);
+  }
+  function resetStats(p) {
+    stopAll();
+    pulse = [0, 0, 0, 0, 0];
+    if (p) S.p = p;
+    S.n = 0; S.reach = [0, 0, 0, 0, 0]; S.log = []; S.lastViral = null; S.busy = false; S.mode = null; S.view = emptyView();
+    render(); renderFrame();
+  }
+  function setP(k, delta) {
+    if (S.busy) return;
+    var p = S.p.slice();
+    p[k] = Math.min(1, Math.max(0, Math.round((p[k] + delta) * 10) / 10));
+    resetStats(p);
+  }
+
+  // ---------- wiring ----------
+  $('b-one').onclick = runOne;
+  $('b-100').onclick = function () { runBatch(100); };
+  $('b-10k').onclick = function () { runBatch(10000); };
+  $('b-100k').onclick = function () { runBatch(100000); };
+  $('b-reset').onclick = function () { resetStats(); };
+  $('lang-th').onclick = function () { S.lang = 'th'; render(); };
+  $('lang-en').onclick = function () { S.lang = 'en'; render(); };
+  if ($('pg-th')) { $('pg-th').onclick = function () { S.lang = 'th'; render(); }; $('pg-en').onclick = function () { S.lang = 'en'; render(); }; }
+  function toggleFull() { var w = $('wrap'); if (!document.fullscreenElement) { if (w.requestFullscreen) w.requestFullscreen(); } else if (document.exitFullscreen) document.exitFullscreen(); }
+  if ($('pg-full')) $('pg-full').onclick = toggleFull;
+  // embedded in a lesson page: follow the page's ไทย / EN switch
+  if (EMBED) { try { new MutationObserver(function () { var l = parentLang(); if (l && l !== S.lang) { S.lang = l; render(); } }).observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['data-lang'] }); } catch (e) { /* not same-origin */ } }
+  document.addEventListener('keydown', function (ev) {
+    if (ev.target && /INPUT|TEXTAREA/.test(ev.target.tagName)) return;
+    var live = EMBED || document.fullscreenElement;
+    if (ev.code === 'Space' && live) { ev.preventDefault(); runOne(); }
+    else if (ev.key === 'f' || ev.key === 'F') toggleFull();
+  });
+  function fit() {
+    var w = $('wrap'), W = w.clientWidth, H = w.clientHeight, s = Math.min(W / 1280, H / 720);
+    $('app').style.transform = 'translate(' + ((W - 1280 * s) / 2).toFixed(1) + 'px,' + ((H - 720 * s) / 2).toFixed(1) + 'px) scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('fullscreenchange', function () { setTimeout(fit, 50); });
+  fit();
+  render(); renderFrame();
+})();
+</script>
+</body>
+</html>

@@ -148,3 +148,11 @@
 .fx .pfl-what { font-size: max(16px, calc(16 * var(--ix))); margin: 0; }
 .fx .pfl-title, .fx .pfl-what, .fx .pfl-io { grid-column: 1; }
 .fx .pfl-ex { grid-column: 2; grid-row: 1 / span 3; font-size: calc(13 * var(--ix)); line-height: 1.3; padding: calc(6 * var(--ix)) calc(10 * var(--ix)); }
+
+/* ```embed: a self-contained app in a 16:9 frame */
+.emb-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--card-border); border-radius: calc(12 * var(--ix)); overflow: hidden; background: var(--card); }
+.emb-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.emb-note { margin: calc(10 * var(--ix)) 0 0; font-size: calc(15 * var(--ix)); color: var(--ink-2); }
+.fx .emb .ixp-head, .fx .emb .emb-note { display: none; }
+.fx .emb .ixp-body { padding: calc(4 * var(--ix)); }
+.fx .emb .emb-frame { width: min(100%, calc(560 * 16 / 9 * var(--u))); margin: 0 auto; }

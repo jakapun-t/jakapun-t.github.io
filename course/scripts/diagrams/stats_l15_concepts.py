@@ -10,6 +10,7 @@ same 100 invented letters, 1840–1890, for emotion and formality), computed in 
       A and B agree on 58 of 100 emotions; Cohen's kappa 0.42; Krippendorff's alpha (3 RAs) 0.375; formality ICC 0.418.
       "Anxiety or not", A vs B: both yes 17, A yes B no 10, A no B yes 18, both no 55: p_o 0.72, p_e 0.569, kappa 0.35.
   Pilot 2 (revised guidelines, 100 new letters): emotion alpha 0.684, formality ICC 0.807.
+  Case-study loop picture: a made-up TikTok comments project, pilot 1 kappa 0.45 (64/100), pilot 2 kappa 0.80 (88/100).
 """
 
 from stats_svg import Svg, W, math, width  # noqa: F401
@@ -28,8 +29,8 @@ s = Svg(W, "Garbage in, garbage out. Two research assistants, A and B, label the
 s.bubble("ผู้ช่วยวิจัยสองคนอ่านจดหมายฉบับเดียวกัน ติดป้ายอารมณ์เหมือนกันไหม", "Two research assistants read the same letters: do they give the same emotion?")
 s.box(20, 70, 1140, 330, "nt-band-a", 14)
 s.both(40, 104, "จดหมาย", "letter", "pl-note")
-s.both(40, 160, "ผู้ช่วย A", "RA A", "pl-label")
-s.both(40, 240, "ผู้ช่วย B", "RA B", "pl-label")
+s.both(40, 207, "ผู้ช่วย A", "RA A", "pl-label")   # middle of A's tag row (180–220)
+s.both(40, 287, "ผู้ช่วย B", "RA B", "pl-label")   # middle of B's tag row (260–300)
 for k, (lid, a, b) in enumerate(LETTERS):
     x = 170 + k * 124
     s.raw(f'<path d="M{x} 116 h86 l14 14 v34 h-100 Z" class="ml-cell"/>')   # a small sheet of paper
@@ -97,35 +98,48 @@ s = Svg(W, "The same 4 sentences under two guidelines. Bad guideline ('Positive:
            "reported feelings ('She said she was very happy'), agreeing on 1 of 4. Good guideline (a clear definition plus rules for "
            "sarcasm, weak praise and reported sentiment): every rater gives Positive, Negative, Neutral, Neutral.")
 s.bubble("คู่มือสองแบบ ประโยคเดียวกัน 4 ประโยค ผู้ติดป้ายสองคนตอบตรงกันไหม", "Two guidelines, the same 4 sentences: do two raters agree?")
-for i, (cls, th, en, rule_th, rule_en) in enumerate([
-        ("sw-warn-box", "✗ คู่มือที่ไม่ดี", "✗ A bad guideline", "Positive = ข้อความรู้สึกดีหรือมีความสุข", "Positive = the text has a good or happy feeling"),
-        ("nt-band-a", "✓ คู่มือที่ดี", "✓ A good guideline", "นิยามชัด + กฎ: ประชด → Negative · ชมแบบจืด → Neutral · เล่าความรู้สึกคนอื่น → Neutral",
-         "clear definition + rules: sarcasm → Negative · weak praise → Neutral · reported feeling → Neutral")]):
+GUIDE = [  # what each guideline actually says, line by line: (th, en, css class)
+    [("Positive = ข้อความรู้สึกดีหรือมีความสุข", "Positive = the text has a good or happy feeling", "pl-text"),
+     ("(แค่นี้ ไม่มีนิยามอื่น ไม่มีกฎกรณีขอบ)", "(that's all: no other definitions, no edge-case rules)", "pl-note")],
+    [("นิยาม: Positive = ผู้เขียนพอใจหรือยินดีชัดเจน", "Definition: Positive = the author is clearly pleased", "pl-text"),
+     ("และเป็นความรู้สึกของผู้เขียนเอง", "and the feeling is the author's own", "pl-text"),
+     ("กฎ 1: ประชด → Negative (ใช้กับประโยค 2)", "Rule 1: sarcasm → Negative (sentence 2)", "pl-note"),
+     ("กฎ 2: ชมแบบจืด “ไม่เลว” → Neutral (ประโยค 3)", "Rule 2: weak praise “not bad” → Neutral (sentence 3)", "pl-note"),
+     ("กฎ 3: เล่าความรู้สึกคนอื่น → Neutral (ประโยค 4)", "Rule 3: someone else's feeling → Neutral (sentence 4)", "pl-note")],
+]
+for i, (cls, th, en) in enumerate([("sw-warn-box", "✗ คู่มือที่ไม่ดี", "✗ A bad guideline"),
+                                   ("nt-band-a", "✓ คู่มือที่ดี", "✓ A good guideline")]):
     x0 = 20 + i * 580
-    s.box(x0, 70, 560, 420, cls, 14)
+    s.box(x0, 70, 560, 556, cls, 14)
     s.both(x0 + 20, 104, th, en, "pl-label")
-    s.both(x0 + 20, 134, rule_th[:60] if i == 0 else "นิยามชัด + กฎสำหรับกรณีขอบ", rule_en if i == 0 else "a clear definition + edge-case rules", "pl-note")
-    s.both(x0 + 300, 168, "ผู้ติดป้าย 1", "rater 1", "pl-note", "middle")
-    s.both(x0 + 440, 168, "ผู้ติดป้าย 2", "rater 2", "pl-note", "middle")
+    s.box(x0 + 16, 118, 528, 168, "ml-cell", 10)                  # the guideline page itself
+    s.both(x0 + 32, 140, "คู่มือเขียนว่า:", "The guideline says:", "mp-s")
+    for k, (gth, gen, gcls) in enumerate(GUIDE[i]):
+        s.both(x0 + 32, 170 + k * 27, gth, gen, gcls)
+    s.both(x0 + 300, 314, "ผู้ติดป้าย 1", "rater 1", "pl-note", "middle")
+    s.both(x0 + 440, 314, "ผู้ติดป้าย 2", "rater 2", "pl-note", "middle")
     for k, (sent, b1, b2, g1, g2) in enumerate(SENT):
-        y = 190 + k * 66
+        y = 326 + k * 64
         r1, r2 = (b1, b2) if i == 0 else (g1, g2)
+        sent = f"{k + 1}. {sent}"
         if width(sent, 18) < 225:
             s.text(x0 + 20, y + 26, sent, "pl-note")
         else:                                   # two lines, split at the space nearest the middle
-            cut = min((i for i, ch in enumerate(sent) if ch == " "), key=lambda i: abs(i - len(sent) / 2))
+            cut = min((j for j, ch in enumerate(sent) if ch == " "), key=lambda j: abs(j - len(sent) / 2))
             s.text(x0 + 20, y + 16, sent[:cut], "pl-note")
-            s.text(x0 + 20, y + 38, sent[cut + 1:], "pl-note")
+            s.text(x0 + 34, y + 38, sent[cut + 1:], "pl-note")
         for j, lab in enumerate((r1, r2)):
             bx = x0 + 250 + j * 140
             s.box(bx, y + 4, 100, 34, "ml-cell" if r1 == r2 else "rc-ctx", 17)
             s.text(bx + 50, y + 27, lab, "pl-note", "middle")
         s.text(x0 + 540, y + 27, "✓" if r1 == r2 else "✗", "ml-ok" if r1 == r2 else "ml-neg", "end")
     agree = sum((b1 == b2) if i == 0 else (g1 == g2) for (_, b1, b2, g1, g2) in SENT)
-    s.both(x0 + 20, 470, f"ตรงกัน {agree} จาก 4 ประโยค", f"agree on {agree} of 4 sentences", "ml-neg" if i == 0 else "ml-ok")
-s.both(20, 528, "ประโยคที่ 2 ประชด · ที่ 3 ปฏิเสธซ้อน (ชมแบบจืด) · ที่ 4 เล่าความรู้สึกของคนอื่น ไม่ใช่ของผู้เขียน",
-       "Sentence 2 is sarcasm · 3 is a negated negative (weak praise) · 4 reports someone else's feeling, not the author's", "pl-note")
-s.save("l15-guideline.svg", 546)
+    s.both(x0 + 20, 606, f"ตรงกัน {agree} จาก 4 ประโยค", f"agree on {agree} of 4 sentences", "ml-neg" if i == 0 else "ml-ok")
+s.both(20, 662, "ประโยค 2 ประชด · 3 ปฏิเสธซ้อน (ชมแบบจืด) · 4 เล่าความรู้สึกของคนอื่น ไม่ใช่ของผู้เขียน",
+       "Sentence 2 is sarcasm · 3 is weak praise · 4 reports someone else's feeling, not the author's", "pl-note")
+s.both(20, 688, "คู่มือที่ไม่ดีไม่บอกว่าสามแบบนี้ต้องทำอย่างไร ผู้ติดป้ายจึงเดาคนละแบบ คู่มือที่ดีมีกฎ 1–3 ตอบไว้แล้ว",
+       "The bad guideline says nothing about these three, so raters guess differently; the good one answers them with rules 1–3", "pl-note")
+s.save("l15-guideline.svg", 706)
 
 # ================================================================ L14 Cohen's kappa worked on "Anxiety or not"
 s = Svg(W, "Cohen's kappa for 'Anxiety or not', RA A vs RA B on the 100 pilot letters. The table: both yes 17, A yes and B "
@@ -218,15 +232,16 @@ s.both(20, 508, "ทั้งสามวิธีต้องมีชุด go
 s.save("l15-scaling.svg", 526)
 
 # ================================================================ L14 the quality loop with the case-study numbers
-s = Svg(W, "The data-quality loop on the letters project. Refine the guidelines, measure agreement, scale up, audit, and "
-           "refine again. Pilot 1 with the first guidelines: emotion alpha 0.375 and formality ICC 0.418, both too low. "
-           "After anchor examples were added, pilot 2 on 100 new letters: emotion alpha 0.684 and formality ICC 0.807, so "
-           "labelling could go ahead.")
+s = Svg(W, "The data-quality loop on a made-up TikTok project: two friends label comments under a viral shop's videos as "
+           "praise, complaint or neutral. Refine the guidelines, measure agreement, scale up, audit, and refine again. "
+           "Pilot 1 with the first guidelines: they agree on 64 of 100 comments, kappa 0.45 (moderate), too low. After "
+           "rules for sarcasm, '555' and off-topic comments, pilot 2 on 100 new comments: 88 of 100, kappa 0.80 "
+           "(substantial), so labelling could go ahead.")
 s.bubble("ค่าความตรงกันต่ำไม่ใช่ความล้มเหลว แต่เป็นสัญญาณให้แก้คู่มือ", "A low agreement score is not a failure: it tells you to fix the guidelines")
 STEPS = [("1 แก้คู่มือ", "1 Refine", "นิยาม + ตัวอย่างหลัก", "definitions + anchors"),
          ("2 วัดผล", "2 Measure", "κ, α, ICC", "κ, α, ICC"),
-         ("3 ขยาย", "3 Scale", "โมเดล · กฎ · LLM", "model · rules · LLM"),
-         ("4 ตรวจ", "4 Audit", "เทียบกับชุด validation", "check a validation set")]
+         ("3 ขยาย", "3 Scale", "LLM · active learning", "LLM · active learning"),
+         ("4 ตรวจ", "4 Audit", "เทียบกับชุด gold", "check the gold set")]
 CX, CY, R = 300, 300, 170
 for k, (th, en, sth, sen) in enumerate(STEPS):
     ang = -math.pi / 2 + k * math.pi / 2
@@ -242,16 +257,19 @@ for k, (th, en, sth, sen) in enumerate(STEPS):
     s.raw(f'<path d="M{ex + 10 * math.cos(t + 2.6):.1f} {ey + 10 * math.sin(t + 2.6):.1f} L{ex:.1f} {ey:.1f} L{ex + 10 * math.cos(t - 2.6):.1f} {ey + 10 * math.sin(t - 2.6):.1f}" class="pl-line" fill="none"/>')
 # results table on the right
 s.box(600, 80, 560, 420, "nt-band-a", 14)
-s.both(620, 116, "กรณีศึกษา: จดหมาย 100 ฉบับ ผู้ช่วยวิจัย 3 คน", "Case study: 100 letters, 3 research assistants", "pl-label")
-s.both(780, 166, "อารมณ์ (α)", "emotion (α)", "pl-note", "middle")
-s.both(1000, 166, "ความเป็นทางการ (ICC)", "formality (ICC)", "pl-note", "middle")
-for k, (th, en, a, icc, ok) in enumerate([("pilot 1: คู่มือแรก", "pilot 1: first guidelines", 0.375, 0.418, False),
-                                           ("pilot 2: เพิ่มตัวอย่างหลัก", "pilot 2: anchors added", 0.684, 0.807, True)]):
-    y = 206 + k * 120
+s.both(620, 116, "กรณีศึกษา: คอมเมนต์ 100 อัน เพื่อน 2 คนติดป้าย", "Case study: 100 comments, 2 friends label", "pl-label")
+s.both(620, 142, "ป้าย: ชม · บ่น · เป็นกลาง (ตัวเลขสมมติ)", "labels: praise · complaint · neutral (made up)", "pl-note")
+s.both(800, 184, "ตรงกัน", "agree", "pl-note", "middle")
+s.both(1010, 184, "κ (หักส่วนบังเอิญ)", "κ (chance removed)", "pl-note", "middle")
+for k, (th, en, agree, kap, ok, lab_th, lab_en) in enumerate([
+        ("pilot 1: คู่มือแรก", "pilot 1: first guidelines", "64 / 100", "0.45", False, "ปานกลาง", "moderate"),
+        ("pilot 2: เพิ่มกฎ 3 ข้อ", "pilot 2: 3 rules added", "88 / 100", "0.80", True, "ค่อนข้างมาก", "substantial")]):
+    y = 222 + k * 120
     s.both(620, y, th, en, "pl-text")
-    for j, v in enumerate((a, icc)):
-        cx = 780 + j * 220
-        s.box(cx - 70, y + 16, 140, 50, "rc-res" if ok else "sw-warn-box", 10)
-        s.text(cx, y + 49, f"{v:.3f}", "pl-label", "middle")
-s.both(620, 456, "✓ pilot 2 ผ่านเกณฑ์ (α ≥ 0.667, ICC > 0.75) → เริ่มได้", "✓ pilot 2 passes: α ≥ 0.667, ICC > 0.75 → go", "ml-ok")
+    for j, v in enumerate((agree, kap)):
+        cx = 800 + j * 210
+        s.box(cx - 75, y + 16, 150, 50, "rc-res" if ok else "sw-warn-box", 10)
+        s.text(cx, y + 49, v, "pl-label", "middle")
+    s.both(1010, y + 88, lab_th, lab_en, "mp-s", "middle")
+s.both(620, 476, "✓ pilot 2 ผ่าน (κ > 0.6) → เริ่มขยายได้", "✓ pilot 2 passes (κ > 0.6) → scale up", "ml-ok")
 s.save("l15-loop.svg", 520)

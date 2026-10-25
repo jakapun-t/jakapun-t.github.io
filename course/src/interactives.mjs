@@ -202,9 +202,31 @@ function renderPipeline(n, ctx) {
 </figure>`;
 }
 
-export const INTERACTIVE_LANGS = new Set(['stepper', 'sorter', 'pipeline']);
+// ```embed {src="../../../public/dashboard/Lab-Rumour.html"}   a self-contained HTML app inside the (encrypted) page
+// title_th: ...                          the card header (YAML body, optional)
+// title_en: ...
+// note_th: ...                           one line under the app (optional)
+// note_en: ...
+// The file goes in as an iframe srcdoc, so it works offline and needs nothing else online. It runs same-origin
+// with the lesson, so the app can read the page's ไทย/EN switch (html[data-lang]). Shown 16:9.
+function renderEmbed(n, ctx) {
+  const src = n.attrs.src;
+  if (!src) throw new LectureError(ctx.file, n.line, '```embed needs src="....html"');
+  const file = path.join(ctx.sourceDir, src);
+  if (!fs.existsSync(file)) throw new LectureError(ctx.file, n.line, `\`\`\`embed: ${src} not found`);
+  const d = (n.text.trim() ? yamlOf(n, ctx, 'embed') : null) || {};
+  const html = fs.readFileSync(file, 'utf8');
+  const note = d.note_th || d.note_en ? `<p class="emb-note">${TH(d.note_th, d.note_en)}</p>` : '';
+  return `<figure class="ixp emb">
+<figcaption class="ixp-head">${icon('pointer', 16)}${TH(d.title_th ?? 'ลองเล่น', d.title_en ?? 'Try it')}</figcaption>
+<div class="ixp-body"><div class="emb-frame"><iframe title="${esc(d.title_en ?? 'interactive')}" allow="fullscreen" allowfullscreen srcdoc="${esc(html)}"></iframe></div>${note}</div>
+</figure>`;
+}
+
+export const INTERACTIVE_LANGS = new Set(['stepper', 'sorter', 'pipeline', 'embed']);
 
 export function renderInteractive(n, ctx) {
+  if (n.lang === 'embed') return renderEmbed(n, ctx);
   if (n.lang === 'pipeline') return renderPipeline(n, ctx);
   return n.lang === 'stepper' ? renderStepper(n, ctx) : renderSorter(n, ctx);
 }

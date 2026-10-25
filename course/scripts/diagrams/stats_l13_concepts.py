@@ -18,7 +18,7 @@ Every number is a real run in course/.venv (the same as the lesson's code cells)
   Boosting toy (Height → Weight, 4 people 160/60, 175/80, 180/90, 190/100, depth-1 trees, learning rate 1):
       start 82.5 for all, squared error 875; round 1 (split 167.5) 60, 90, 90, 90 → 200; round 2 (split 185)
       56.7, 86.7, 86.7, 100 → 66.7.
-  Model comparison (Worksheet 5: 5 features, MinMaxScaler, GridSearchCV f1_weighted, 22 test people):
+  Model comparison (5 features, MinMaxScaler, GridSearchCV f1_weighted, 22 test people):
       CV / test: LR 0.846 / 0.953, tree 0.977 / 0.953, RF 0.989 / 0.953, GB 0.976 / 0.953, SVM 0.861 / 0.903, KNN 0.823 / 0.858.
 
 Uses the nt-*, pl-*, ml-*, sw-*, rc-*, dg-*, hk-* classes in templates/page.css.

@@ -297,38 +297,104 @@ for k, (tth, ten, chips, ans_th, ans_en, ok) in enumerate((
 s.save("l15-llm-prompt.svg", 380)
 
 # ================================================================ S17 active learning
-s = Svg(W, "Active learning. Left: the loop: label a seed of 100 letters, train a model, score every unlabelled letter, "
-           "send the 100 least certain to people, add their labels and retrain. Right: three letters' probabilities for "
-           "SAD, NEUTRAL, JOY: X 0.99 (sure, margin 0.98), Y 0.51 and 0.49 (margin 0.02), Z 0.33, 0.33, 0.34 (margin 0.01, "
-           "entropy 1.58, the least sure): send Z first.")
+s = Svg(W, "Active learning. Left: the loop: 1 people label 100 letters, 2 train a model, 3 the model scores the other 900 "
+           "letters, 4 the 100 it is least sure about go back to people; repeat with 200, 300 labels. Right: three letters' "
+           "probabilities for SAD, NEUTRAL, JOY: X 0.99 / 0.005 / 0.005 (margin 0.99 − 0.005 = 0.98, sure), Y 0.51 / 0.49 / 0 "
+           "(margin 0.02), Z 0.33 / 0.33 / 0.34 (margin 0.01, the least sure): send Z first, skip X.")
 s.bubble("ควรส่งจดหมายฉบับไหนให้คนอ่าน", "Which letter should a person read?")
-s.panel(10, 70, 470, 310, "ml-cell", "วงจร active learning", "The active-learning loop", 1)
-STEPSAL = [("ติดป้าย 100 ฉบับ", "label 100"), ("ฝึกโมเดล", "train"), ("ให้คะแนนทุกฉบับ", "score all"), ("ส่งที่ไม่แน่ใจ", "send unsure")]
-cx, cy, R = 245, 232, 92
-for i, (th, en) in enumerate(STEPSAL):
-    a = -math.pi / 2 + i * math.pi / 2
-    x, y = cx + R * math.cos(a), cy + R * math.sin(a)
-    w = max(width(th, 16), width(en, 16)) + 24
-    s.box(x - w / 2, y - 16, w, 32, "nt-band-a", 16)
-    s.both(x, y + 6, th, en, "mp-chip", "middle")
-s.raw(f'<circle cx="{cx}" cy="{cy}" r="{R - 34}" style="fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:6 5"/>')
-emoji_or_icon(s, "🔁", cx, cy, 44)
-s.panel(500, 70, 590, 310, "ml-cell", "ความน่าจะเป็นของจดหมาย 3 ฉบับ", "Three letters' probabilities", 2)
-LET = [("X", [0.99, 0.005, 0.005], "0.98"), ("Y", [0.51, 0.49, 0.0], "0.02"), ("Z", [0.33, 0.33, 0.34], "0.01")]
-for c, (lab, col) in enumerate(zip(("SAD", "NEUTRAL", "JOY"), (BLUE, "var(--muted)", OK))):
-    s.fill(560 + c * 120, 108, 14, 14, col, 3)
-    s.text(580 + c * 120, 120, lab, "mp-s")
-for r, (n, ps, m) in enumerate(LET):
-    y = 150 + r * 70
-    s.both(530, y + 24, f"ฉบับ {n}", f"letter {n}", "mp-t")
-    x = 640
-    for p, col in zip(ps, (BLUE, "var(--muted)", OK)):
-        s.fill(x, y + 6, p * 260, 28, col, 3)
-        x += p * 260
+s.panel(10, 70, 470, 360, "ml-cell", "วงจร active learning", "The active-learning loop", 1)
+LOOP = [(30, 126, "① คนติดป้าย 100 ฉบับ", "① people label 100"),
+        (262, 126, "② ฝึกโมเดล", "② train a model"),
+        (262, 296, "③ โมเดลทาย 900 ฉบับที่เหลือ", "③ model scores the other 900"),
+        (30, 296, "④ ส่ง 100 ฉบับที่ไม่แน่ใจที่สุด", "④ send the 100 least sure")]
+BW, BH = 198, 56
+for (x, y, th, en) in LOOP:
+    s.box(x, y, BW, BH, "nt-band-a", 12)
+    s.both(x + BW / 2, y + 34, th, en, "mp-chip", "middle")
+s.arrow(30 + BW + 4, 154, 262 - 4, 154)                    # 1 → 2
+s.arrow(262 + BW / 2, 126 + BH + 4, 262 + BW / 2, 296 - 4)  # 2 → 3
+s.arrow(262 - 4, 324, 30 + BW + 4, 324)                    # 3 → 4
+s.arrow(30 + BW / 2, 296 - 4, 30 + BW / 2, 126 + BH + 4)    # 4 → 1
+s.both(245, 232, "วนซ้ำ", "repeat", "pl-label", "middle")
+s.both(245, 258, "ป้าย 100 → 200 → 300 …", "labels 100 → 200 → 300 …", "mp-s", "middle")
+s.both(30, 408, "คนอ่านเฉพาะฉบับที่โมเดลยังไม่รู้ ไม่เสียเวลากับฉบับที่ง่าย", "People only read what the model can't decide yet", "mp-s")
+s.panel(500, 70, 590, 360, "ml-cell", "โมเดลมั่นใจแค่ไหน", "How sure is the model?", 2)
+LET = [("X", [0.99, 0.005, 0.005], "0.99 − 0.005 = 0.98", ("มั่นใจ ไม่ต้องส่ง", "sure: skip")),
+       ("Y", [0.51, 0.49, 0.0], "0.51 − 0.49 = 0.02", ("ลังเล SAD/NEUTRAL", "torn SAD/NEUTRAL")),
+       ("Z", [0.33, 0.33, 0.34], "0.34 − 0.33 = 0.01", ("ไม่รู้เลย ส่งก่อน ✓", "no idea: send first ✓"))]
+COLS = (BLUE, "var(--muted)", OK)
+for c, (lab, col) in enumerate(zip(("SAD", "NEUTRAL", "JOY"), COLS)):
+    s.fill(530 + c * 120, 108, 14, 14, col, 3)
+    s.text(550 + c * 120, 120, lab, "mp-s")
+s.both(900, 120, "margin = อันดับ 1 − อันดับ 2", "margin = top − second", "mp-s")
+for r, (n, ps, calc, (vth, ven)) in enumerate(LET):
+    y = 142 + r * 86
+    s.both(526, y + 26, f"ฉบับ {n}", f"letter {n}", "mp-t")
+    x = 610
+    for p, col in zip(ps, COLS):
+        if p >= 0.05:
+            s.fill(x, y + 6, p * 270, 30, col, 3)
+            s.raw(f'<text x="{x + p * 135:.1f}" y="{y + 27}" text-anchor="middle" style="fill:#fff;font:600 14px var(--font-head)">{p:g}</text>')
+        x += p * 270
     pick = n == "Z"
-    s.text(920, y + 26, f"margin {m}", "mp-acc" if pick else "mp-c")
-s.both(1070, 362, "ส่ง Z ก่อน (ไม่แน่ใจที่สุด) ✓", "send Z first (least sure) ✓", "ml-ok", "end")
-s.save("l15-active-loop.svg", 392)
+    s.text(900, y + 20, calc, "mp-acc" if pick else "mp-c")
+    s.both(900, y + 44, vth, ven, "ml-ok" if pick else "mp-s")
+s.both(526, 408, "margin ยิ่งน้อย โมเดลยิ่งไม่แน่ใจ → คนควรอ่านฉบับนั้น", "The smaller the margin, the less sure the model → a person should read it", "mp-s")
+s.save("l15-active-loop.svg", 440)
+
+# ================================================================ S18 compare the three ways to scale up
+SCALE = [
+    ("weak supervision", "weak supervision", "📜",
+     ("คนทำ: เขียนกฎสั้น ๆ 10–50 ข้อ", "People: write 10–50 rules"),
+     [("ป้ายครบ 20,000 ฉบับในไม่กี่นาที", "labels all 20,000 in minutes"),
+      ("กฎอ่านออก อธิบายและแก้ได้", "rules are readable and fixable")],
+     [("ต้องมีผู้เชี่ยวชาญเขียนกฎ", "needs an expert to write rules"),
+      ("พลาดสิ่งที่ไม่มีคำบ่งชี้ เช่น ประชด", "misses what has no keyword")],
+     ("เหมาะ: ข้อมูลมาก มีคำบ่งชี้ชัด", "Best: big data, clear cue words")),
+    ("LLM ติดป้ายรอบแรก", "LLM first pass", "🤖",
+     ("คนทำ: ใส่คู่มือใน prompt แล้วตรวจแก้", "People: prompt it, then review"),
+     [("เข้าใจบริบท ประชด การตีความ", "gets context, irony, nuance"),
+      ("เร็วกว่าเริ่มจากศูนย์ 5–10 เท่า", "5–10× faster than from scratch")],
+     [("ผิดได้อย่างมั่นใจ ต้องสุ่มตรวจ", "can be confidently wrong"),
+      ("เสียเงิน และส่งข้อมูลออกนอก", "costs money, data leaves you")],
+     ("เหมาะ: งานตีความที่เขียนกฎไม่ได้", "Best: interpretive tasks")),
+    ("active learning", "active learning", "🙋",
+     ("คนทำ: ติดป้ายเฉพาะฉบับที่โมเดลถาม", "People: label only what it asks"),
+     [("ใช้เวลาคนคุ้มที่สุด", "spends people's time best"),
+      ("ทุกป้ายมาจากคน คุณภาพสูง", "every label is human")],
+     [("ต้องวนฝึก-ทาย-ส่ง หลายรอบ", "needs many rounds"),
+      ("ชุดที่ได้เอียงไปทางฉบับยาก", "labels lean to hard cases")],
+     ("เหมาะ: มีคนติดป้าย แต่เวลาน้อย", "Best: few annotator hours")),
+]
+s = Svg(W, "Comparing the three ways to scale up labelling. Weak supervision: people write 10–50 rules; it labels all 20,000 "
+           "letters in minutes and the rules can be read and fixed, but it needs an expert and misses anything without a "
+           "cue word, such as irony. LLM first pass: people put the guideline in a prompt and review; it understands "
+           "context and is 5–10 times faster than starting from scratch, but it can be confidently wrong, costs money and "
+           "sends the data away. Active learning: people label only the letters the model asks about; it spends their "
+           "time best and every label is human, but it needs many rounds and the labelled set leans to hard cases. All "
+           "three need a human gold set to check quality, and they can be combined.")
+s.bubble("ขยายการติดป้ายสามวิธี ได้อะไร เสียอะไร", "Three ways to scale up: what do you gain, what do you lose?")
+PW = 352
+for i, (tth, ten, icon_, (dth, den), pros, cons, (bth, ben)) in enumerate(SCALE):
+    x0 = 10 + i * (PW + 12)
+    s.panel(x0, 70, PW, 440, "ml-cell", tth, ten, i + 1)
+    emoji_or_icon(s, icon_, x0 + PW / 2, 150, 52)
+    s.both(x0 + 20, 206, dth, den, "pl-note")
+    s.box(x0 + 14, 222, PW - 28, 104, "nt-band-a", 10)
+    s.both(x0 + 28, 248, "ข้อดี", "Benefits", "mp-s")
+    for k, (th, en) in enumerate(pros):
+        s.both(x0 + 28, 278 + k * 30, "✓ " + th, "✓ " + en, "pl-note")
+    s.box(x0 + 14, 336, PW - 28, 104, "sw-warn-box", 10)
+    s.both(x0 + 28, 362, "ข้อเสีย", "Drawbacks", "mp-s")
+    for k, (th, en) in enumerate(cons):
+        s.both(x0 + 28, 392 + k * 30, "✗ " + th, "✗ " + en, "pl-note")
+    s.both(x0 + 20, 478, bth, ben, "pl-label")
+    for txt in [dth, den, bth, ben] + [t for pair in pros + cons for t in pair]:
+        if width(txt, 17) >= PW - 40:
+            print('LONG', round(width(txt, 17)), txt)
+s.both(10, 540, "ทั้งสามวิธีต้องมีชุด gold ที่คนติดป้ายไว้เพื่อตรวจคุณภาพ และใช้ร่วมกันได้: LLM ติดรอบแรก แล้ว active learning ส่งฉบับที่ไม่แน่ใจให้คน",
+       "All three need a human gold set to check quality, and they combine: an LLM labels first, then active learning sends the unsure ones to people", "mp-s")
+s.save("l15-scale-compare.svg", 556)
 
 
 # ================================================================ S19 takeaways

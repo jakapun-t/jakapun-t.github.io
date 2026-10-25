@@ -16,8 +16,8 @@ Every number is a real run in course/.venv (the same numbers as the lessons' cod
       depth-3 tree root BMI ≤ 20.6 → Underweight 37, then BMI ≤ 24.6 → Normal 20, 22 of 22 test right; a forest of 100
       votes Obese 94, Overweight 6; CV random forest 0.989, tree 0.977; KNN k = 3: 2 Obese 1 Overweight → Obese,
       k = 7: 4 Overweight 3 Obese → Overweight.
-  L14 Persuasion: words per chapter (24), median 3,189.5; news A→E with p 0.3, 0.2, 0.5, 0.1 reaches E in 0.3% of
-      runs; bootstrap rows from default_rng(3) on 1–8; median 95% CI 2,775 to 3,518; volume II +557, p = 0.36.
+  L14 food-delivery waits (made-up, 24 orders, minutes), median 25; rumour A→E (chat → viral) with p 0.3, 0.2, 0.5, 0.1 goes viral in
+      0.3% of runs; bootstrap rows from default_rng(3) on 1–8; median 95% CI 23 to 28 min; rain +6.3 min, p = 0.18.
   L15 letters: letter 3 formality A 1, B 9, C 8; emotion alpha 0.375, formality ICC 0.418; "Anxiety or not" A vs B
       agree 72%, chance 56.9%, kappa 0.35; after revising: alpha 0.684, ICC 0.807.
 Schematic drawings (the scatter of curved groups, the sigmoid and ROC shapes, the histogram of simulated worlds) carry
@@ -409,19 +409,19 @@ info_map(
 )
 
 
-# ================================================================ L14 simulation (Persuasion)
-CH = [2625, 1993, 2854, 1817, 3350, 3844, 3467, 3367, 2887, 3881, 3029, 5589,
-      2775, 2550, 2837, 2420, 3518, 4159, 2410, 3518, 7036, 5942, 6625, 1601]
+# ================================================================ L14 simulation (food-delivery waits)
+WAIT = [18, 22, 25, 21, 27, 24, 31, 19, 23, 26, 48, 20,
+        24, 28, 22, 35, 25, 55, 30, 21, 60, 26, 25, 29]   # minutes; 1–12 dry days, 13–24 rainy days
 VOL = ["var(--tag-concept-dot)", "var(--tag-example-dot)"]
 
 
 def l14_problem(s, x, y, w, h):
-    base, top = y + 92, 80 / 7036
-    for i, c in enumerate(CH):
+    base, top = y + 92, 80 / 60
+    for i, c in enumerate(WAIT):
         s.fill(x + 20 + i * 11, base - c * top, 8, c * top, VOL[i // 12], 2)
-    ym = base - 3189.5 * top
+    ym = base - 25 * top
     s.line(x + 14, ym, x + 286, ym, "mp-straight")
-    s.both(x + w / 2, y + 110, "เส้นประ: median 3,190 คำ", "dashed: median 3,190 words", "mp-s", "middle")
+    s.both(x + w / 2, y + 110, "เส้นประ: median 25 นาที", "dashed: median 25 min", "mp-s", "middle")
 
 
 def l14_mc(s, x, y, w, h):
@@ -469,19 +469,19 @@ def l14_review(s, x, y, w, h):
 
 info_map(
     "l14-map-lesson.svg",
-    "Lesson map. The problem: some questions have no formula, such as how sure we can be of the median chapter length of "
-    "Persuasion (24 chapters, median 3,190 words). Three ways to answer by simulating other worlds: 2 Monte Carlo (news "
-    "passed A to E with chances 0.3, 0.2, 0.5, 0.1 reaches E in 0.3% of 100,000 runs), 3 bootstrap (resample the "
-    "chapters: median 95% CI 2,775 to 3,518 words), 4 permutation test (shuffle the volume labels: volume II is 557 "
-    "words longer per chapter, but p = 0.36), then 5 review: compare the real result with thousands of simulated worlds.",
-    ("Persuasion · 24 บท · คำต่อบท", "Persuasion · 24 chapters · words each"),
-    ("median 3,190 คำ เชื่อได้แค่ไหน", "How sure is the median, 3,190 words?"),
+    "Lesson map. The problem: some questions have no formula, such as how sure we can be of the median food-delivery "
+    "wait (24 orders, median 25 minutes). Three ways to answer by simulating other worlds: 2 Monte Carlo (a rumour shared "
+    "from a friends' chat A to viral E with chances 0.3, 0.2, 0.5, 0.1 goes viral in 0.3% of 100,000 runs), 3 bootstrap (resample the orders: median "
+    "95% CI 23 to 28 minutes), 4 permutation test (shuffle the dry/rainy labels: rainy days are 6.3 minutes slower on "
+    "average, but p = 0.18), then 5 review: compare the real result with thousands of simulated worlds.",
+    ("ส่งอาหาร · 24 ออเดอร์ · นาทีที่รอ", "Food delivery · 24 orders · minutes waited"),
+    ("median 25 นาที เชื่อได้แค่ไหน", "How sure is the median, 25 min?"),
     ("✗ ไม่มีสูตรหาช่วงของ median", "✗ No formula gives a median's range"),
     l14_problem,
     [
-        (2, "วิธีที่ 1: Monte Carlo", "Way 1: Monte Carlo", l14_mc, "ข่าวถึง E\nแค่ 0.3% ของรอบ", "news reaches E\nin 0.3% of runs"),
-        (3, "วิธีที่ 2: Bootstrap", "Way 2: Bootstrap", l14_boot, "95% CI ของ median:\n2,775–3,518 คำ ✓", "median 95% CI:\n2,775–3,518 words ✓"),
-        (4, "วิธีที่ 3: Permutation", "Way 3: Permutation", l14_perm, "เล่ม 2 ยาวกว่า 557 คำ\nแต่ p = 0.36", "volume II +557 words\nbut p = 0.36"),
+        (2, "วิธีที่ 1: Monte Carlo", "Way 1: Monte Carlo", l14_mc, "ข่าวลือไวรัล (E)\nแค่ 0.3% ของรอบ", "rumour goes viral\nin 0.3% of runs"),
+        (3, "วิธีที่ 2: Bootstrap", "Way 2: Bootstrap", l14_boot, "95% CI ของ median:\n23–28 นาที ✓", "median 95% CI:\n23–28 min ✓"),
+        (4, "วิธีที่ 3: Permutation", "Way 3: Permutation", l14_perm, "วันฝนช้ากว่า 6.3 นาที\nแต่ p = 0.18", "rain +6.3 min\nbut p = 0.18"),
         (5, "ทบทวน", "Review", l14_review, "ไม่มีสูตร?\nก็จำลองเอา", "no formula?\nsimulate it"),
     ],
     (None, "ทั้งสามวิธีสร้างโลกคู่ขนานหลายพันโลก แล้วดูว่าผลจริงแปลกแค่ไหน",
@@ -552,7 +552,8 @@ info_map(
     "labels disagree (letter 3 gets formality 1, 9 and 8; emotion alpha 0.375, formality ICC 0.418). Four parts: 2 know "
     "what quality means (consistent is not the same as correct), 3 write clear guidelines with examples (“It wasn't bad.” "
     "is Neutral), 4 measure agreement beyond chance (72% agree, 57% expected by chance, kappa 0.35), 5 scale up from 200 "
-    "hand-labelled letters to 20,000, then 6 the case study: after revising the guidelines, alpha 0.684 and ICC 0.807.",
+    "hand-labelled letters to 20,000, then 6 a case study: two friends label TikTok comments under a viral shop's "
+    "videos; after 3 new rules, kappa goes from 0.45 to 0.80.",
     ("จดหมาย 100 ฉบับ · ผู้ช่วยวิจัย 3 คน", "100 letters · 3 research assistants"),
     ("ป้ายจากผู้ช่วยวิจัยเชื่อได้ไหม", "Can we trust the assistants' labels?"),
     ("✗ ไม่ตรงกัน: อารมณ์ α 0.375 · ความเป็นทางการ ICC 0.418", "✗ They disagree: emotion α 0.375 · formality ICC 0.418"),
@@ -563,6 +564,6 @@ info_map(
         (4, "วัดความตรงกัน", "Measure agreement", l15_agree, "ตรงกันแค่พอใช้ ✗", "only fair agreement ✗"),
         (5, "ขยายเป็นหลายหมื่น", "Scale up", l15_scale, "ติดป้ายเองแค่น้อย\nแล้วใช้ให้คุ้ม", "label a little by hand,\nuse it well"),
     ],
-    (6, "กรณีศึกษา: แก้คู่มือแล้ววัดใหม่ α 0.375 → 0.684 · ICC 0.418 → 0.807",
-     "Case study: revise the guidelines, measure again: α 0.375 → 0.684 · ICC 0.418 → 0.807"),
+    (6, "กรณีศึกษา: คอมเมนต์ร้านดังใน TikTok แก้คู่มือแล้ว κ 0.45 → 0.80",
+     "Case study: TikTok comments on a viral shop: fix the guideline, κ 0.45 → 0.80"),
 )
