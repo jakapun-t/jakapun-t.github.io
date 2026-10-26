@@ -1527,6 +1527,99 @@ for k, (nshow, new_i, active, passing) in enumerate(WALK):
     s.save(f"l14-walk-{k + 1}.svg", 380)
 
 
+# ---------------------------------------------------------------- 13b. one run → (X, Y) training pairs: 5 frames for a ```stepper
+# The trajectory is the real run of our question (the walk-through above); the system row stands for the rules + tool list.
+TRAJ = [("system", "nt-band-a", "hk-desc", "กฎ + คำอธิบาย tool 4 ตัว", "rules + 4 tool descriptions", False),
+        ("user", "nt-bubble", "hk-desc", "How many days are left until the final exam?", None, True),
+        ("model", "ml-model", "ml-model-sub", "get_today()  +  search_course('final exam')", None, True),
+        ("tool", "pl-chip-del", "hk-desc", "2026-10-26 · [fact 7] final exam, Mon 30 Nov", None, True),
+        ("model", "ml-model", "ml-model-sub", "days_between('2026-10-26', '2026-11-30')", None, True),
+        ("tool", "pl-chip-del", "hk-desc", "35", None, True),
+        ("model", "ml-model", "ml-model-sub", "There are 35 days left until the final exam.", None, True)]
+PAIRS = {1: (1, 2), 2: (3, 4), 3: (5, 6)}          # pair → (last row in X, the Y row)
+for f in range(5):
+    pair = f if f in PAIRS else None
+    s = Svg(W, ["One real run of our question, 7 rows: the rules and tool list, the student's question, then the model's "
+                "turns and the tool results. The model wrote 3 rows (dark); the computer wrote 2 (the tool results).",
+                "Training pair 1: X = the rules, tools and the question; Y = the model's first turn, get_today() + "
+                "search_course('final exam').",
+                "Training pair 2: X = everything up to the first tool results; Y = days_between('2026-10-26', '2026-11-30'). "
+                "The tool results are in X: the model reads them but is never trained to write them.",
+                "Training pair 3: X = everything up to the result 35; Y = the answer, 'There are 35 days left until the "
+                "final exam.' No tool call, so the run ends.",
+                "One run gives 3 training pairs, one per model turn. X grows each time; each Y becomes part of the next X; "
+                "the tool results are only ever in X."][f])
+    # left: the run, row by row
+    s.box(20, 0, 620, 376, "ml-cell", 14)
+    s.both(36, 28, "การรันจริง 1 รอบ = 7 แถว", "One real run = 7 rows", "pl-label")
+    s.both(624, 28, "ใครเขียน", "who wrote it", "pl-note", "end")
+    for i, (role, cls, tcls, th, en, code) in enumerate(TRAJ):
+        y = 44 + i * 46
+        s.box(36, y, 72, 36, cls, 8)
+        s.text(72, y + 24, role, tcls, "middle")
+        if pair is None:
+            box = "ml-cell-b" if role == "model" and f == 4 else "ml-cell"
+            tag = ("Y→X" if role == "model" else ("X" if f == 4 else "")) if f == 4 else ""
+        else:
+            last, yrow = PAIRS[pair]
+            box = "sw-chip-warn" if i == yrow else ("ml-cell-b" if i <= last else "pl-chip-del")
+            tag = "Y" if i == yrow else ("X" if i <= last else "")
+        s.box(116, y, 440, 36, box, 8)
+        if code:
+            s.code(128, y + 23, th)
+        else:
+            s.both(128, y + 24, th, en, "hk-desc")
+        if tag:
+            s.text(596, y + 25, tag, "ml-neg" if tag == "Y" else "pl-label", "middle")
+    # right: what this frame shows
+    s.box(660, 0, 500, 376, "nt-band-a" if pair else "ml-cell", 14)
+    if f == 0:
+        s.both(680, 28, "1 รอบ → ข้อมูลฝึกหลายคู่", "One run → several training pairs", "pl-label")
+        LINES = [("แถวสีเข้ม = โมเดลเขียน (3 แถว)", "dark rows = written by the model (3)", "pl-text"),
+                 ("แถว tool = คอมพิวเตอร์เขียน (2 แถว)", "tool rows = written by the computer (2)", "pl-text"),
+                 ("แต่ละแถวที่โมเดลเขียน กลายเป็น Y 1 ครั้ง", "each row the model wrote becomes a Y once", "pl-text"),
+                 ("X = ทุกแถวก่อนหน้า Y นั้น", "X = every row before that Y", "pl-text"),
+                 ("กด ถัดไป เพื่อดูทีละคู่", "press Next to see each pair", "pl-note")]
+        for j, (th, en, c) in enumerate(LINES):
+            s.both(680, 76 + j * 44, th, en, c)
+        pic(s, "ag-robot-think", 1040, 250, 100, 110)
+    elif pair:
+        last, yrow = PAIRS[pair]
+        s.both(680, 28, f"ข้อมูลฝึกคู่ที่ {pair} จาก 3", f"Training pair {pair} of 3", "pl-label")
+        s.box(680, 46, 460, 96, "ml-cell-b", 10)
+        s.text(696, 76, "X", "pl-label")
+        s.both(722, 76, "โมเดลอ่าน", "the model reads", "pl-text")
+        s.both(696, 108, f"แถว 0–{last}: {last + 1} แถว", f"rows 0–{last}: {last + 1} rows", "hk-desc")
+        s.arrow(910, 146, 910, 168)
+        s.box(680, 172, 460, 96, "sw-chip-warn", 10)
+        s.text(696, 202, "Y", "ml-neg")
+        s.both(722, 202, "โมเดลถูกฝึกให้เขียน", "the model is trained to write", "pl-text")
+        s.code(696, 238, TRAJ[yrow][3][:46])
+        NOTE = {1: ("Y = การเรียก tool 2 ตัวในรอบเดียว", "Y = two tool calls in one turn"),
+                2: ("ผล tool แถว 3 อยู่ใน X: อ่าน แต่ไม่ถูกฝึกให้เขียน", "tool row 3 is in X: read, never trained to write"),
+                3: ("Y = คำตอบ ไม่เรียก tool แล้ว → จบ", "Y = the answer: no tool call → the run ends")}[pair]
+        s.both(680, 306, NOTE[0], NOTE[1], "pl-text")
+        s.both(680, 340, "Y ของคู่นี้ จะกลายเป็นส่วนหนึ่งของ X ในคู่ถัดไป" if pair < 3 else "ครบ 3 คู่จากการรัน 1 รอบ",
+               "this Y becomes part of X in the next pair" if pair < 3 else "3 pairs from one run", "pl-note")
+    else:
+        s.both(680, 28, "1 รอบ = 3 คู่", "One run = 3 pairs", "pl-label")
+        for j, (a, b) in enumerate([("0–1", "2"), ("0–3", "4"), ("0–5", "6")]):
+            y = 46 + j * 52
+            s.box(680, y, 460, 42, "ml-cell", 8)
+            s.both(696, y + 27, f"คู่ที่ {j + 1}", f"pair {j + 1}", "pl-label")
+            s.box(790, y + 7, 150, 28, "ml-cell-b", 6)
+            s.both(865, y + 27, f"X = แถว {a}", f"X = rows {a}", "hk-desc", "middle")
+            s.box(960, y + 7, 150, 28, "sw-chip-warn", 6)
+            s.both(1035, y + 27, f"Y = แถว {b}", f"Y = row {b}", "hk-desc", "middle")
+        RULES = [("✓ X โตขึ้นทุกคู่", "✓ X grows with each pair", "pl-text"),
+                 ("✓ Y = เฉพาะแถวที่โมเดลเขียน", "✓ Y = only rows the model wrote", "pl-text"),
+                 ("✗ ผล tool ไม่เคยเป็น Y", "✗ tool results are never Y", "ml-neg"),
+                 ("(ไม่อย่างนั้นโมเดลจะเรียนแต่งผลขึ้นเอง)", "(or it would learn to invent results)", "pl-note")]
+        for j, (th, en, c) in enumerate(RULES):
+            s.both(680, 232 + j * 36, th, en, c)
+    s.save(f"l14-pairs-{f + 1}.svg", 380)
+
+
 # ---------------------------------------------------------------- 15b. the library stack
 s = Svg(W, "Left: what create_agent does for each line of run_agent: keeps the message list, sends it with the tool schemas, "
            "runs the requested tools and sends the results back, stops when a reply has no tool call; the model is a string such "
