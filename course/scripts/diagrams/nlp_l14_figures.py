@@ -1191,30 +1191,39 @@ s = Svg(W, "The context window: everything the model reads on one call, in order
            "tokens. The study-plan job read 91,666 tokens in 14 calls, the biggest 10,671. Every token is billed on every "
            "call, long inputs are slower, and models do worse as the input grows (Chroma tested 18).")
 s.both(20, 34, "context window = ทุกอย่างที่โมเดลอ่านในการเรียก 1 ครั้ง", "The context window = everything the model reads on one call", "pl-label")
-SRC = [("icon", "notepad", "กฎ (system prompt)", "rules (system prompt)", 120),
-       ("icon", "tools", "คำอธิบาย tool", "tool descriptions", 300),
-       ("pic", "ag-student-ask", "คำถาม", "the question", 455),
-       ("pic", "ai-robot", "call เดิมของโมเดล", "its own past calls", 600),
-       ("icon", "magnifier", "ผลของ tool", "tool results", 800)]
-for kind, name, th, en, cx in SRC:
-    if kind == "icon":
-        ic(s, name, cx, 82, 52)
-    else:
-        pic(s, name, cx - 30, 52, 60, 62, "xMidYMid")
-    s.both(cx, 136, th, en, "hk-desc", "middle")
-    s.arrow(cx, 144, cx, 176)
-# the bar on call 3 of our question: 245 + 11 + 282 + 53 = 591 tokens
-X, SC, Y = 40, 1.48, 180
+# the bar on call 3 of our question: 245 + 11 + 282 + 53 = 591 tokens; each picture sits over its own block
+X, SC, Y = 110, 1.40, 180
 SEG = [(16, "pl-chip-del", "none here"), (245, "ml-bar", "≈245"), (11, "ml-model", "11"), (282, "sw-chip-warn", "282"), (53, "sw-chip-warn", "53")]
+edges = []
 x = X
 for tok, cls, lab in SEG:
     w = 24 if tok == 16 else tok * SC
+    edges.append((x, x + w))
     s.box(x, Y, w, 44, cls, 3)
     if lab == "none here":
         s.both(x, Y + 66, "ไม่มีในรอบนี้", "none here", "hk-desc")
     elif lab:
         s.text(x + w / 2, Y + 66, lab, "hk-desc", "middle")
     x += w + 2
+SRC = [("icon", "notepad", "กฎ (system prompt)", "rules (system prompt)", 0),
+       ("icon", "tools", "คำอธิบาย tool", "tool descriptions", 1),
+       ("pic", "ag-student-ask", "คำถาม", "the question", 2)]
+for kind, name, th, en, seg in SRC:
+    cx = (edges[seg][0] + edges[seg][1]) / 2
+    if kind == "icon":
+        ic(s, name, cx, 82, 52)
+    else:
+        pic(s, name, cx - 30, 52, 60, 62, "xMidYMid")
+    s.both(cx, 136, th, en, "hk-desc", "middle")
+    s.arrow(cx, 144, cx, 176)
+# its own past calls + the tool results: together in the earlier-round blocks (282 after round 1, 53 after round 2)
+L0, L1 = edges[3][0], edges[4][1]
+mid = (L0 + L1) / 2
+pic(s, "ai-robot", mid - 82, 52, 60, 62, "xMidYMid")
+ic(s, "magnifier", mid + 52, 82, 52)
+s.both(mid, 136, "call เดิมของโมเดล + ผลของ tool", "its own past calls + tool results", "hk-desc", "middle")
+s.path(f"M{L0 + 2:g} 176 L{L0 + 2:g} 160 L{L1 - 2:g} 160 L{L1 - 2:g} 176")
+s.path(f"M{mid:g} 144 L{mid:g} 160")
 s.box(x + 6, Y, 1150 - x - 6, 44, "nt-out", 3)
 s.both(x + 20, Y + 28, "→ token ถัดไป", "→ next token", "pl-text")
 s.both(X, Y + 92, "การเรียกครั้งที่ 3 ของคำถามเรา: 591 token · รอบก่อนหน้า (call + ผล): 282 + 53",
