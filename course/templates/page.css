@@ -235,7 +235,7 @@ main { display: flex; flex-direction: column; gap: var(--gap-cards); min-width: 
   background: var(--tag-warning-bg); color: var(--tag-warning-fg);
 }
 .kind-warning > .icon { margin-top: 6px; }
-.kind-warning-body { font-size: 18px; }
+.kind-warning-body { font-size: 18px; flex: 1; min-width: 0; }  /* min-width 0: code inside scrolls instead of overflowing the box on phones */
 .kind-warning-label { font-weight: 600; }
 
 .kind-exercise { border: 1px solid var(--tag-exercise-border); border-radius: var(--radius-block); overflow: hidden; gap: 0; }

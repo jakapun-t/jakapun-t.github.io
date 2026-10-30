@@ -68,14 +68,14 @@ def draw_map(name, title, start, problem, heading, parts):
 # ---------------------------------------------------------------- lesson 10: pandas
 # 2: reviews.shape (200, 14); reviews["Rating"].count() 188          (S09, S21)
 # 3: (reviews["Airline Name"] == "Thai Airways").sum() 26             (S02)
-# 4: Delay Minutes missing before 14, after filling from the text 10  (S24)
+# 4: Delay Minutes missing before 14, after filling with the mean (33.7) 0  (S24)
 # 5: groupby("Airline Name")["Rating"].mean(): Cathay Pacific 7.28 first, Japan Airlines 6.04 last (S29)
 # 6: verified reviews by Country: Hong Kong 7.62, Thailand 6.92, Indonesia 6.36 (S39)
 draw_map(
     "l10-map-lesson.svg",
     "Lesson map. The problem: 200 raw airline reviews in a CSV file, and the question which airline travellers rate "
     "best. Five parts: 2 load and look (200 rows, 14 columns, 188 ratings), 3 select (Thai Airways: 26 reviews), "
-    "4 change and clean (delay gaps 14 to 10, read from the text), 5 summarise (Cathay Pacific best, 7.28), "
+    "4 change and clean (delay gaps 14 to 0, filled with the mean 33.7), 5 summarise (Cathay Pacific best, 7.28), "
     "6 combine and reshape (by country, Hong Kong first, 7.62).",
     "airline_reviews.csv",
     ("1 ปัญหา: สายการบินไหนได้คะแนนดีที่สุด", "1 The problem: which airline is rated best?",
@@ -88,7 +88,7 @@ draw_map(
          ".loc · .iloc · conditions with & | ~", "เฉพาะ Thai Airways: 26 รีวิว", "Thai Airways only: 26 reviews"),
         ("4 แก้และทำความสะอาด", "4 Change and clean", "เติมค่าว่าง แก้ข้อความ เพิ่มคอลัมน์ (บน copy)",
          "Fill gaps, tidy text, add columns (on a copy)", ".copy · isna · fillna · .str · apply",
-         "Delay Minutes ว่าง 14 → 10 (อ่านจากข้อความ)", "Delay gaps 14 → 10, read from the text"),
+         "Delay Minutes ว่าง 14 → 0 (เติมค่าเฉลี่ย 33.7)", "Delay gaps 14 → 0, filled with the mean 33.7"),
         ("5 สรุป", "5 Summarise", "ตัวเลขเดียวต่อกลุ่ม ไม่ใช่ต่อแถว", "One number per group, not per row",
          "count · mean · groupby · agg", "อันดับ 1: Cathay Pacific 7.28 ✓", "Best rated: Cathay Pacific, 7.28 ✓"),
         ("6 รวมและจัดรูปตาราง", "6 Combine and reshape", "เพิ่มตารางที่สอง (ประเทศ) แล้วเปลี่ยนรูปตาราง",
