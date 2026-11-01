@@ -418,16 +418,51 @@ for k, (lab, v) in enumerate([("always NN", 14.5), ("unigram", 87.9), ("+ rules"
 s.save("l15-unigram.svg", 456)
 
 # ---------------------------------------------------------------- 8a. HMM set-up: tagged training data, the question, the assumptions, other uses
-TRAIN = [[("Mary", "N"), ("Jane", "N"), ("can", "M"), ("see", "V"), ("Will", "N")],
-         [("Spot", "N"), ("will", "M"), ("see", "V"), ("Mary", "N")],
-         [("Will", "M"), ("Jane", "N"), ("spot", "V"), ("Mary", "N")],
-         [("Mary", "N"), ("will", "M"), ("pat", "V"), ("Spot", "N")]]
-s = Svg(W, "The HMM problem set-up. Given: four training sentences that people already tagged with N (noun), M (modal: can, will) "
-           "and V (verb): Mary Jane can see Will (N N M V N), Spot will see Mary (N M V N), Will Jane spot Mary (M N V N), Mary will "
-           "pat Spot (N M V N). Wanted: the hidden tags of the new sentence Will can spot Mary, whose words we see. Two Markov "
-           "assumptions: a tag depends only on the tag before it, and a word depends only on its own tag. The same recipe works "
-           "whenever a hidden sequence produces a seen one: speech recognition, weather from ice creams eaten, a fitness watch "
-           "guessing activity from steps, and Thai word segmentation (B/I per character).")
+# The running HMM example (2 tags, 3 words): train on 4 tiny tagged sentences, tag "Watch dogs bark".
+from fractions import Fraction
+import math as _m
+TRAIN = [[("dogs", "N"), ("bark", "V")],
+         [("feed", "V"), ("dogs", "N")],
+         [("birds", "N"), ("watch", "V"), ("dogs", "N")],
+         [("watch", "N"), ("batteries", "N"), ("die", "V")]]
+WORDS = ["Watch", "dogs", "bark"]
+TG = ["N", "V"]
+
+
+def hmm_tables(train):
+    """Count transitions (with start/end) and emissions; return probability lookups as Fractions."""
+    from collections import Counter
+    tr, em, tc = Counter(), Counter(), Counter()
+    for sent in train:
+        ts = ["start"] + [t for _, t in sent] + ["end"]
+        for a, b in zip(ts, ts[1:]):
+            tr[a, b] += 1
+        for a in ts[:-1]:
+            tc[a] += 1
+        for w_, t in sent:
+            em[t, w_.lower()] += 1
+    return (lambda a, b: Fraction(tr[a, b], tc[a])), (lambda t, w_: Fraction(em[t, w_.lower()], tc[t])), tc
+
+
+PT, PE, TC = hmm_tables(TRAIN)
+
+
+def path_score(tags, words=WORDS):
+    p, prev = Fraction(1), "start"
+    for t, w_ in zip(tags, words):
+        p *= PT(prev, t) * PE(t, w_)
+        prev = t
+    return p * PT(prev, "end")
+
+
+SA, SB = path_score("VNV"), path_score("NNV")
+assert (SA, SB) == (Fraction(1, 1024), Fraction(1, 1536))
+s = Svg(W, "The HMM problem set-up. Given: four tiny training sentences that people already tagged with N (noun) and V (verb): "
+           "dogs bark (N V), feed dogs (V N), birds watch dogs (N V N), watch batteries die (N N V). Wanted: the hidden tags "
+           "of the new sentence Watch dogs bark, whose words we see: an order (Watch! V N V) or a statement about watchdogs "
+           "(N N V). Two Markov assumptions: a tag depends only on the tag before it, and a word depends only on its own tag. "
+           "The same recipe works whenever a hidden sequence produces a seen one: speech recognition, weather from ice creams "
+           "eaten, a fitness watch guessing activity from steps, and Thai word segmentation (B/I per character).")
 s.both(20, 24, "ที่มี: ประโยคเทรน 4 ประโยค ที่คนติดป้ายไว้แล้ว", "Given: 4 training sentences, already tagged by people", "pl-label")
 for k, sent in enumerate(TRAIN):
     x0, y0 = 20 + (k % 2) * 590, 40 + (k // 2) * 92
@@ -438,16 +473,15 @@ s.box(20, B, 560, 146, "ml-cell", 12)
 s.both(40, B + 28, "อยากรู้: ป้ายของประโยคใหม่", "Wanted: the tags of a new sentence", "pl-label")
 s.both(40, B + 68, "เห็น: คำ", "seen: words", "pl-note")
 s.both(40, B + 120, "ซ่อน: ป้าย", "hidden: tags", "pl-note")
-e = tagged(s, 150, B + 44, [("Will", "?"), ("can", "?"), ("spot", "?"), ("Mary", "?")], gap=8,
-           tagcls=["sw-chip-warn"] * 4)
-for k, (th, en) in enumerate([("N = นาม", "N = noun"), ("M = can, will", "M = can, will"), ("V = กริยา", "V = verb")]):
-    s.both(e + 12, B + 66 + k * 26, th, en, "pl-note")
+e = tagged(s, 150, B + 44, [(w_, "?") for w_ in WORDS], gap=8, tagcls=["sw-chip-warn"] * 3)
+for k, (th, en) in enumerate([("N = นาม", "N = noun"), ("V = กริยา", "V = verb")]):
+    s.both(e + 16, B + 66 + k * 26, th, en, "pl-note")
 s.box(600, B, 560, 146, "nt-band-a", 12)
 s.both(620, B + 28, "สมมติฐาน 2 ข้อ (Markov)", "Two assumptions (Markov)", "pl-label")
 s.both(620, B + 62, "① ป้ายขึ้นกับป้ายก่อนหน้าเท่านั้น", "① a tag depends only on the tag before it", "pl-text")
-s.both(646, B + 86, "เช่น หลัง M มาเป็น V บ่อยแค่ไหน → transition", "e.g. after M, how often is it V? → transition", "pl-note")
+s.both(646, B + 86, "เช่น หลัง N มาเป็น V บ่อยแค่ไหน → transition", "e.g. after N, how often is it V? → transition", "pl-note")
 s.both(620, B + 114, "② คำขึ้นกับป้ายของตัวเองเท่านั้น", "② a word depends only on its own tag", "pl-text")
-s.both(646, B + 138, "เช่น ป้าย M เป็นคำว่า can บ่อยแค่ไหน → emission", "e.g. how often is an M the word can? → emission", "pl-note")
+s.both(646, B + 138, "เช่น ป้าย V เป็นคำว่า watch บ่อยแค่ไหน → emission", "e.g. how often is a V the word watch? → emission", "pl-note")
 T = B + 168
 s.both(20, T + 14, "สูตรเดียวกันใช้ได้ทุกที่ที่ลำดับที่ซ่อนอยู่สร้างลำดับที่เราเห็น", "The same recipe works wherever a hidden sequence makes a seen one", "pl-label")
 USES = [("microphone", "รู้จำเสียงพูด", "Speech recognition", "ซ่อน: หน่วยเสียง", "hidden: speech sounds", "เห็น: คลื่นเสียง", "seen: the audio"),
@@ -463,12 +497,42 @@ for k, (icon, tth, ten, hth, hen, sth, sen) in enumerate(USES):
     s.both(x0 + 16, T + 126, sth, sen, "pl-note")
 s.save("l15-hmm-setup.svg", T + 152)
 
+# ---- practice card: the classic 3-tag example (Mary, Jane, Will, Spot), data only, for students to count and score themselves
+TRAIN3 = [[("Mary", "N"), ("Jane", "N"), ("can", "M"), ("see", "V"), ("Will", "N")],
+          [("Spot", "N"), ("will", "M"), ("see", "V"), ("Mary", "N")],
+          [("Will", "M"), ("Jane", "N"), ("spot", "V"), ("Mary", "N")],
+          [("Mary", "N"), ("will", "M"), ("pat", "V"), ("Spot", "N")]]
+s = Svg(W, "Practice data with three tags, N (noun), M (modal: can, will) and V (verb). Four training sentences that people "
+           "already tagged: Mary Jane can see Will (N N M V N), Spot will see Mary (N M V N), Will Jane spot Mary (M N V N), "
+           "Mary will pat Spot (N M V N). Wanted: the tags of Will can spot Mary. Two candidates to score: A, N M V N (spot as a "
+           "verb), and B, N M N N (spot as a noun).")
+s.both(20, 24, "ข้อมูลฝึก: ประโยคเทรน 4 ประโยค ป้าย 3 แบบ", "Practice data: 4 training sentences, 3 tags", "pl-label")
+for k, sent in enumerate(TRAIN3):
+    x0, y0 = 20 + (k % 2) * 590, 40 + (k // 2) * 92
+    s.text(x0 + 6, y0 + 24, str(k + 1), "pl-note")
+    tagged(s, x0 + 28, y0, sent, gap=8)
+B = 232
+s.box(20, B, 560, 146, "ml-cell", 12)
+s.both(40, B + 28, "อยากรู้: ป้ายของประโยคใหม่", "Wanted: the tags of a new sentence", "pl-label")
+s.both(40, B + 68, "เห็น: คำ", "seen: words", "pl-note")
+s.both(40, B + 120, "ซ่อน: ป้าย", "hidden: tags", "pl-note")
+e = tagged(s, 150, B + 44, [("Will", "?"), ("can", "?"), ("spot", "?"), ("Mary", "?")], gap=8, tagcls=["sw-chip-warn"] * 4)
+for k, (th, en) in enumerate([("N = นาม", "N = noun"), ("M = can, will", "M = can, will"), ("V = กริยา", "V = verb")]):
+    s.both(e + 12, B + 66 + k * 26, th, en, "pl-note")
+s.box(600, B, 560, 146, "nt-band-a", 12)
+s.both(620, B + 28, "ให้คะแนน 2 ลำดับ", "Score two candidates", "pl-label")
+s.box(620, B + 46, 520, 36, "opt-a-box", 8)
+s.both(636, B + 70, "A · N M V N   (spot = กริยา)", "A · N M V N   (spot = verb)", "pl-text")
+s.box(620, B + 92, 520, 36, "opt-b-box", 8)
+s.both(636, B + 116, "B · N M N N   (spot = นาม)", "B · N M N N   (spot = noun)", "pl-text")
+s.save("l15-hmm-practice.svg", B + 160)
+
 # ---------------------------------------------------------------- 8a2. the HMM equation: why there are two parts to count
 s = Svg(W, "The HMM equation. The probability of a tag sequence with its words is the product, over every word i, of two parts: "
            "the transition P(t_i | t_i-1), how likely this tag is after the previous one (assumption 1, counted in step 1 as table A), "
            "and the emission P(w_i | t_i), how likely this word is given its tag (assumption 2, counted in step 2 as table B). "
-           "On Will can spot Mary tagged N M V N it reads P(N|start) P(Will|N) P(M|N) P(can|M) P(V|M) P(spot|V) P(N|V) P(Mary|N) P(end|N): "
-           "9 factors, all read from the two tables.")
+           "On Watch dogs bark tagged V N V it reads P(V|start) P(watch|V) P(N|V) P(dogs|N) P(V|N) P(bark|V) P(end|V): "
+           "7 factors, all read from the two tables.")
 FE = 21
 parts = [("P(ป้าย, คำ)  =  ∏ᵢ", "P(tags, words)  =  ∏ᵢ", None), ("P(tᵢ | tᵢ₋₁)", "P(tᵢ | tᵢ₋₁)", "nt-band-a"),
          ("×", "×", None), ("P(wᵢ | tᵢ)", "P(wᵢ | tᵢ)", "sw-chip-warn")]
@@ -483,7 +547,6 @@ for (th, en, cls), w_ in zip(parts, widths):
     x += w_
 s.both(x + 24, 34, "∏ = คูณกันทุกคำ i", "∏ = multiply over", "pl-note")
 s.both(x + 24, 64, "ในประโยค", "every word i", "pl-note")
-# the two parts, each tied to an assumption and to a counting step
 PANELS = [(20, "nt-band-a", centres[1], "Transition  P(tᵢ | tᵢ₋₁)", "Transition  P(tᵢ | tᵢ₋₁)",
            "ป้ายนี้มาหลังป้ายก่อนหน้าบ่อยแค่ไหน", "how likely is this tag after the previous tag?",
            "สมมติฐาน ①: ดูแค่ป้ายก่อนหน้า", "assumption ①: only the tag before matters",
@@ -501,12 +564,11 @@ for x0, cls, cx, tth, ten, q_th, q_en, a_th, a_en, st_th, st_en in PANELS:
     s.both(x0 + 20, 174, q_th, q_en, "pl-text")
     s.both(x0 + 20, 202, a_th, a_en, "pl-note")
     s.both(x0 + 20, 230, st_th, st_en, "ml-b")
-# the equation read on Will can spot Mary with tags N M V N
-s.both(20, 284, "อ่านสูตรบน Will can spot Mary ถ้าป้ายเป็น N M V N", "Read on Will can spot Mary, if its tags are N M V N", "pl-label")
-TAGS = ["N", "M", "V", "N"]; WORDS = ["Will", "can", "spot", "Mary"]
-TR = ["P(N|start)", "P(M|N)", "P(V|M)", "P(N|V)"]; EM = ["P(Will|N)", "P(can|M)", "P(spot|V)", "P(Mary|N)"]
+s.both(20, 284, "อ่านสูตรบน Watch dogs bark ถ้าป้ายเป็น V N V", "Read on Watch dogs bark, if its tags are V N V", "pl-label")
+TAGS = ["V", "N", "V"]
+TR = ["P(V|start)", "P(N|V)", "P(V|N)"]; EM = ["P(watch|V)", "P(dogs|N)", "P(bark|V)"]
 CY = 360
-xs = [270 + k * 200 for k in range(4)]
+xs = [320 + k * 260 for k in range(3)]
 s.box(20, CY - 25, 90, 50, "ml-cell", 25); s.text(65, CY + 6, "start", "pl-text", "middle")
 s.box(1070, CY - 25, 90, 50, "ml-cell", 25); s.text(1115, CY + 6, "end", "pl-text", "middle")
 prev = 110
@@ -515,34 +577,34 @@ for k, (x, tg, w_) in enumerate(zip(xs, TAGS, WORDS)):
     s.text(x, CY + 8, tg, "pl-label", "middle")
     s.arrow(prev + 2, CY, x - 34, CY)
     mid = (prev + x - 34) / 2
-    s.box(mid - 52, CY - 50, 104, 28, "nt-band-a", 6)
+    s.box(mid - 56, CY - 50, 112, 28, "nt-band-a", 6)
     s.text(mid, CY - 31, TR[k], "dg-code", "middle")
     prev = x + 32
     s.arrow(x, CY + 34, x, CY + 92)
-    s.box(x + 8, CY + 46, 104, 28, "sw-chip-warn", 6)
-    s.text(x + 60, CY + 65, EM[k], "dg-code", "middle")
+    s.box(x + 8, CY + 46, 116, 28, "sw-chip-warn", 6)
+    s.text(x + 66, CY + 65, EM[k], "dg-code", "middle")
     s.box(x - 48, CY + 96, 96, 42, "nt-out", 10)
     s.text(x, CY + 123, w_, "pl-label", "middle")
 s.arrow(prev + 2, CY, 1068, CY)
 mid = (prev + 1068) / 2
-s.box(mid - 52, CY - 50, 104, 28, "nt-band-a", 6); s.text(mid, CY - 31, "P(end|N)", "dg-code", "middle")
-s.both(20, CY + 176, "9 ตัวคูณ: transition 5 ตัว (ฟ้า) และ emission 4 ตัว (ส้ม) ทั้งหมดอ่านได้จากตาราง A และ B ที่นับไว้",
-       "9 factors: 5 transitions (blue) and 4 emissions (orange), all read from the two counted tables A and B", "pl-text")
+s.box(mid - 56, CY - 50, 112, 28, "nt-band-a", 6); s.text(mid, CY - 31, "P(end|V)", "dg-code", "middle")
+s.both(20, CY + 176, "7 ตัวคูณ: transition 4 ตัว (ฟ้า) และ emission 3 ตัว (ส้ม) ทั้งหมดอ่านได้จากตาราง A และ B ที่นับไว้",
+       "7 factors: 4 transitions (blue) and 3 emissions (orange), all read from the two counted tables A and B", "pl-text")
 s.save("l15-hmm-equation.svg", CY + 194)
 
 # ---------------------------------------------------------------- 8b. HMM steps 1-2: count transitions and emissions
+assert (PT("N", "N"), PT("N", "V"), PT("N", "end")) == (Fraction(1, 6), Fraction(3, 6), Fraction(2, 6))
+assert (PE("N", "dogs"), PE("V", "watch")) == (Fraction(3, 6), Fraction(1, 4))
 s = Svg(W, "Steps 1 and 2 of an HMM: counting. Step 1, transitions: add start and end to each tagged training sentence "
-           "(start N N M V N end, start N M V N end, start M N V N end, start N M V N end) and count which tag follows N: "
-           "N 1, M 3, V 1, end 4, 9 in all, so P(N|N) = 1/9, P(M|N) = 3/9, P(V|N) = 1/9, P(end|N) = 4/9. Step 2, emissions: N "
-           "appears 9 times as Mary 4, Jane 2, Spot 2, Will 1, so P(Mary|N) = 4/9; M appears 4 times as will 3, can 1; V appears "
-           "4 times as see 2, spot 1, pat 1. Each probability is a count divided by how often the first tag appears.")
-for x0, cls in [(20, "ml-cell"), (600, "ml-cell")]:
-    s.box(x0, 0, 560, 424, cls, 14)
-# step 1
+           "(start N V end, start V N end, start N V N end, start N N V end) and count which tag follows N: N 1, V 3, end 2, "
+           "6 in all, so P(N|N) = 1/6, P(V|N) = 3/6, P(end|N) = 2/6. Step 2, emissions: N appears 6 times as dogs 3, birds 1, "
+           "watch 1, batteries 1, so P(dogs|N) = 3/6; V appears 4 times as bark, feed, watch and die, 1 each, so P(watch|V) = 1/4. "
+           "Each probability is a count divided by how often the first tag appears.")
+for x0 in (20, 600):
+    s.box(x0, 0, 560, 424, "ml-cell", 14)
 s.both(40, 32, "ขั้น 1 · Transition: ป้ายไหนตามมา", "Step 1 · Transition: which tag comes next?", "pl-label")
 s.both(40, 60, "เติม start / end แล้วไล่ดูทีละคู่", "add start / end, then read the pairs", "pl-note")
-SEQS = [["start", "N", "N", "M", "V", "N", "end"], ["start", "N", "M", "V", "N", "end"],
-        ["start", "M", "N", "V", "N", "end"], ["start", "N", "M", "V", "N", "end"]]
+SEQS = [["start"] + [t for _, t in sent] + ["end"] for sent in TRAIN]
 for r, seq in enumerate(SEQS):
     x, y = 40, 74 + r * 34
     for k, t in enumerate(seq):
@@ -553,38 +615,33 @@ for r, seq in enumerate(SEQS):
             s.raw(f'<rect x="{x:g}" y="{y:g}" width="{cw:g}" height="26" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/>')
         s.text(x + cw / 2, y + 18, t, "dg-code", "middle")
         x += cw + 6
-s.both(40, 236, "หลัง N (ส้ม) มาอะไร (ฟ้า): ทั้งหมด 9 คู่", "what follows N (orange)? the blue boxes: 9 pairs", "pl-note")
-for r, (t, c) in enumerate([("N → N", 1), ("N → M", 3), ("N → V", 1), ("N → end", 4)]):
-    y = 252 + r * 32
+s.both(40, 236, "หลัง N (ส้ม) มาอะไร (ฟ้า): ทั้งหมด 6 คู่", "what follows N (orange)? the blue boxes: 6 pairs", "pl-note")
+for r, (t, c) in enumerate([("N → N", 1), ("N → V", 3), ("N → end", 2)]):
+    y = 252 + r * 36
     s.text(40, y + 18, t, "dg-code")
-    s.box(140, y, 56 * c, 24, "ml-bar", 4)
-    s.text(146 + 56 * c, y + 18, str(c), "pl-note")
-    s.text(480, y + 18, f"{c}/9", "pl-label")
-s.text(40, 404, "P(M | N) = count(N → M) / count(N) = 3/9", "pl-label")
-# step 2
+    s.box(140, y, 80 * c, 24, "ml-bar", 4)
+    s.text(146 + 80 * c, y + 18, str(c), "pl-note")
+    s.text(480, y + 18, f"{c}/6", "pl-label")
+s.text(40, 404, "P(V | N) = count(N → V) / count(N) = 3/6", "pl-label")
 s.both(620, 32, "ขั้น 2 · Emission: ป้ายนี้เป็นคำไหน", "Step 2 · Emission: which word is it?", "pl-label")
-s.both(620, 60, "N ปรากฏ 9 ครั้ง เป็นคำเหล่านี้", "N appears 9 times, as these words", "pl-note")
-for r, (w_, c) in enumerate([("Mary", 4), ("Jane", 2), ("Spot", 2), ("Will", 1)]):
+s.both(620, 60, "N ปรากฏ 6 ครั้ง เป็นคำเหล่านี้", "N appears 6 times, as these words", "pl-note")
+for r, (w_, c) in enumerate([("dogs", 3), ("birds", 1), ("watch", 1), ("batteries", 1)]):
     y = 74 + r * 32
     s.text(620, y + 18, w_, "pl-text")
-    s.box(700, y, 56 * c, 24, "ml-bar-top", 4)
-    s.text(706 + 56 * c, y + 18, str(c), "pl-note")
-    s.text(1060, y + 18, f"{c}/9", "pl-label")
-s.both(620, 222, "M ปรากฏ 4 ครั้ง", "M appears 4 times", "pl-note")
-for r, (w_, c) in enumerate([("will", 3), ("can", 1)]):
-    y = 234 + r * 32
+    s.box(730, y, 80 * c, 24, "ml-bar-top", 4)
+    s.text(736 + 80 * c, y + 18, str(c), "pl-note")
+    s.text(1060, y + 18, f"{c}/6", "pl-label")
+s.both(620, 230, "V ปรากฏ 4 ครั้ง เป็นคำเหล่านี้", "V appears 4 times, as these words", "pl-note")
+for r, w_ in enumerate(["bark", "feed", "watch", "die"]):
+    y = 244 + r * 32
     s.text(620, y + 18, w_, "pl-text")
-    s.box(700, y, 56 * c, 24, "ml-bar-top", 4)
-    s.text(706 + 56 * c, y + 18, str(c), "pl-note")
-    s.text(1060, y + 18, f"{c}/4", "pl-label")
-s.both(620, 328, "V ปรากฏ 4 ครั้ง: see 2 · spot 1 · pat 1", "V appears 4 times: see 2 · spot 1 · pat 1", "pl-note")
-s.text(620, 352, "→ 2/4 · 1/4 · 1/4", "pl-label")
-s.text(620, 404, "P(Mary | N) = count(N, Mary) / count(N) = 4/9", "pl-label")
+    s.box(730, y, 80, 24, "ml-bar-top", 4)
+    s.text(816, y + 18, "1", "pl-note")
+    s.text(1060, y + 18, "1/4", "pl-label")
+s.text(620, 404, "P(dogs | N) = count(N, dogs) / count(N) = 3/6", "pl-label")
 s.save("l15-hmm-count.svg", 428)
 
 # ---------------------------------------------------------------- 8. HMM step 3: score two tag sequences (the only two that are not 0)
-from fractions import Fraction
-import math as _m
 
 
 def dec(v):
@@ -593,57 +650,148 @@ def dec(v):
     return f"{v:.{max(d, 3)}f}"
 
 
-s = Svg(W, "Scoring two tag sequences for Will can spot Mary with the counted tables, multiplying left to right: a transition "
-           "into each tag (blue), then that tag's emission (orange). A, N M V N (spot as a verb): 3/4, 1/9, 3/9, 1/4, 3/4, 1/4, "
-           "4/4, 4/9, 4/9, product 1/3888, about 0.000257. B, N M N N (spot as a noun): the same first four factors, then "
-           "M to N 1/4, spot as N 2/9, N to N 1/9, Mary as N 4/9, N to end 4/9, product 1/118098, about 0.0000085. A is about "
-           "30 times more likely, so the tagger picks N M V N. The other 79 of the 81 possible sequences score 0.")
-s.both(20, 24, "สองลำดับป้ายของ Will can spot Mary คูณจากซ้ายไปขวา: transition (ฟ้า) แล้ว emission (ส้ม)",
-       "Two tag sequences for Will can spot Mary, multiplied left to right: transition (blue), then emission (orange)", "pl-label")
-PATHS = [("A", "N M V N", "spot = กริยา", "spot = verb",
-          [("start→N", "3/4", "t"), ("Will|N", "1/9", "e"), ("N→M", "3/9", "t"), ("can|M", "1/4", "e"), ("M→V", "3/4", "t"),
-           ("spot|V", "1/4", "e"), ("V→N", "4/4", "t"), ("Mary|N", "4/9", "e"), ("N→end", "4/9", "t")]),
-         ("B", "N M N N", "spot = นาม", "spot = noun",
-          [("start→N", "3/4", "t"), ("Will|N", "1/9", "e"), ("N→M", "3/9", "t"), ("can|M", "1/4", "e"), ("M→N", "1/4", "t"),
-           ("spot|N", "2/9", "e"), ("N→N", "1/9", "t"), ("Mary|N", "4/9", "e"), ("N→end", "4/9", "t")])]
+s = Svg(W, "Scoring two tag sequences for Watch dogs bark with the counted tables, multiplying left to right: a transition "
+           "into each tag (blue), then that tag's emission (orange). A, V N V (Watch! as an order): 1/4, 1/4, 2/4, 3/6, 3/6, "
+           "1/4, 2/4, product 1/1024, about 0.000977. B, N N V (watchdogs bark): 3/4, 1/6, 1/6, then the same last four "
+           "factors, product 1/1536, about 0.000651. A is 1.5 times more likely, so the tagger picks V N V. The other 6 of the "
+           "8 possible sequences score 0.")
+s.both(20, 24, "สองลำดับป้ายของ Watch dogs bark คูณจากซ้ายไปขวา: transition (ฟ้า) แล้ว emission (ส้ม)",
+       "Two tag sequences for Watch dogs bark, multiplied left to right: transition (blue), then emission (orange)", "pl-label")
+PATHS = [("A", "V N V", "watch = กริยา", "watch = verb", "VNV"),
+         ("B", "N N V", "watch = นาม", "watch = noun", "NNV")]
+
+
+def factors(tags):
+    out, prev = [], "start"
+    for t, w_ in zip(tags, WORDS):
+        out += [(f"{prev}→{t}", PT(prev, t), "t"), (f"{w_.lower()}|{t}", PE(t, w_), "e")]
+        prev = t
+    return out + [(f"{prev}→end", PT(prev, "end"), "t")]
+
+
+def frac(f, den):
+    """Write a probability over the tag's own count (2/4, 3/6), as students counted it."""
+    return f"{f * den}/{den}" if f else "0"
+
+
+DEN = {"start": 4, "N": 6, "V": 4}
 totals = []
-for r, (name, tags, sth, sen, steps) in enumerate(PATHS):
+for r, (name, tags_s, sth, sen, tags) in enumerate(PATHS):
     y = 52 + r * 132
     s.box(20, y, 1140, 118, "ml-cell", 12)
-    s.box(28, y + 8, 124, 102, "opt-a-box" if r == 0 else "opt-b-box", 10)
+    s.box(28, y + 8, 150, 102, "opt-a-box" if r == 0 else "opt-b-box", 10)
     s.text(40, y + 34, name, "opt-a-text" if r == 0 else "opt-b-text")
-    s.text(40, y + 62, tags, "pl-label")
+    s.text(40, y + 62, tags_s, "pl-label")
     s.both(40, y + 88, sth, sen, "pl-note")
     run = Fraction(1)
-    for k, (lab, f, kind) in enumerate(steps):
-        run *= Fraction(f)
-        x = 160 + k * 110
-        s.box(x, y + 12, 102, 30, "nt-band-a" if kind == "t" else "sw-chip-warn", 8)
-        s.text(x + 51, y + 33, "× " + f, "dg-code", "middle")
-        if r == 1 and steps[k] != PATHS[0][4][k]:  # where B differs from A
-            s.raw(f'<rect x="{x - 3:g}" y="{y + 9:g}" width="108" height="36" rx="10" fill="none" stroke="var(--accent)" '
+    fa = factors(tags)
+    for k, (lab, f, kind) in enumerate(fa):
+        run *= f
+        x = 196 + k * 136
+        den = DEN[lab.split("→")[0]] if kind == "t" else DEN[lab.split("|")[1]]
+        s.box(x, y + 12, 126, 30, "nt-band-a" if kind == "t" else "sw-chip-warn", 8)
+        s.text(x + 63, y + 33, "× " + frac(f, den), "dg-code", "middle")
+        if r == 1 and fa[k] != factors(PATHS[0][4])[k]:  # where B differs from A
+            s.raw(f'<rect x="{x - 3:g}" y="{y + 9:g}" width="132" height="36" rx="10" fill="none" stroke="var(--accent)" '
                   f'stroke-width="2" stroke-dasharray="5 3"/>')
-        s.text(x + 51, y + 70, dec(float(run)), "dg-key", "middle")
-        s.text(x + 51, y + 98, lab, "pl-note", "middle")
+        s.text(x + 63, y + 70, dec(float(run)), "dg-key", "middle")
+        s.text(x + 63, y + 98, lab, "pl-note", "middle")
     totals.append(run)
-assert totals == [Fraction(1, 3888), Fraction(1, 118098)]
-# compare the two scores
+assert totals == [SA, SB]
 Y = 330
 s.both(20, Y, "เทียบคะแนน (ขีดประ = ช่องที่ B ต่างจาก A)", "Compare the scores (dashed = where B differs from A)", "pl-label")
 s.text(40, Y + 44, "A", "opt-a-text")
 s.box(80, Y + 22, 700, 30, "opt-a-bar", 6)
-s.text(796, Y + 43, "1/3888 ≈ 0.000257", "pl-label")
+s.text(796, Y + 43, "1/1024 ≈ 0.000977", "pl-label")
 s.text(40, Y + 88, "B", "opt-b-text")
-s.box(80, Y + 66, max(700 * totals[1] / totals[0], 4), 30, "opt-b-bar", 6)
-s.text(110, Y + 87, "1/118098 ≈ 0.0000085", "pl-label")
-s.both(20, Y + 132, "A มีโอกาสมากกว่าราว 30 เท่า (118098 / 3888 ≈ 30) tagger จึงเลือก N M V N",
-       "A is about 30 times more likely (118098 / 3888 ≈ 30), so the tagger picks N M V N", "ml-ok")
-s.both(20, Y + 160, "อีก 79 จาก 81 ลำดับได้ 0 เช่น M M V N เพราะ M → M ไม่เคยเกิดในข้อมูลเทรน",
-       "The other 79 of the 81 sequences score 0, e.g. M M V N, because M → M never happens in training", "pl-note")
+s.box(80, Y + 66, 700 * totals[1] / totals[0], 30, "opt-b-bar", 6)
+s.text(80 + 700 * totals[1] / totals[0] + 16, Y + 87, "1/1536 ≈ 0.000651", "pl-label")
+s.both(20, Y + 132, "A มีโอกาสมากกว่า 1.5 เท่า (1536 / 1024 = 1.5) tagger จึงเลือก V N V",
+       "A is 1.5 times more likely (1536 / 1024 = 1.5), so the tagger picks V N V", "ml-ok")
+s.both(20, Y + 160, "อีก 6 จาก 8 ลำดับได้ 0 เช่น N V V เพราะ V → V ไม่เคยเกิดในข้อมูลเทรน",
+       "The other 6 of the 8 sequences score 0, e.g. N V V, because V → V never happens in training", "pl-note")
 s.save("l15-hmm.svg", Y + 176)
 
 # ---------------------------------------------------------------- 9. search for the best tags: one setting strip, then brute force / Viterbi / beam
 def setting(s):
+    """The shared set-up, repeated on each search figure so it reads on its own."""
+    s.box(20, 0, 1140, 70, "ml-cell", 12)
+    s.both(40, 28, "โจทย์: ติดป้าย Watch dogs bark ด้วย N (นาม) หรือ V (กริยา)",
+           "Setting: tag Watch dogs bark with N (noun) or V (verb)", "pl-label")
+    s.both(40, 56, "คะแนน = transition × emission ที่นับจากประโยคเทรน 4 ประโยค · เป้าหมาย: ลำดับป้ายที่คะแนนสูงสุด",
+           "score = transitions × emissions counted from 4 tagged sentences · goal: the highest-scoring tag sequence", "pl-note")
+
+
+LINE = 'stroke="var(--rule)" stroke-width="1.6"'
+# ---- 9a. brute force: the full tree of 8 paths, every leaf scored
+LEAVES = ["".join(p) for p in __import__("itertools").product("NV", repeat=3)]
+SCORES = {p: path_score(p) for p in LEAVES}
+assert [p for p in LEAVES if SCORES[p]] == ["NNV", "VNV"]
+s = Svg(W, "Brute force: every tag sequence for Watch dogs bark as a tree. Each word can be N or V, so the tree splits in 2 at "
+           "every word: 2 paths after Watch, 4 after dogs, 8 after bark. Each leaf is scored with 7 multiplications; only two are "
+           "not 0: A, V N V, 1/1024, and B, N N V, 1/1536, so A wins. 8 × 7 = 56 multiplications. With 45 tags and 20 words "
+           "there are 45^20, about 1.2 × 10^33 paths.")
+setting(s)
+LV = [104, 170, 236, 302]
+LX0, LSTEP = 210, 860 / 7
+def leafx(k): return LX0 + k * LSTEP
+def nodex(level, idx):  # mean x of the node's 2^(3-level) leaves
+    span = 2 ** (3 - level)
+    return leafx(idx * span + (span - 1) / 2)
+PA, PB = (1, 0, 1), (0, 0, 1)
+def on(path, level, idx):
+    code = 0
+    for t in path[:level]:
+        code = code * 2 + t
+    return level == 0 or code == idx
+for level, (lab_th, lab_en, cnt) in enumerate([("เริ่ม", "start", ""), ("Watch", "Watch", "2"), ("dogs", "dogs", "4"), ("bark", "bark", "8")]):
+    s.both(20, LV[level] + 6, lab_th, lab_en, "pl-label")
+    if cnt:
+        s.both(1160, LV[level] + 6, cnt + " เส้นทาง", cnt + " paths", "pl-note", "end")
+coloured = []
+for level in range(1, 4):
+    for idx in range(2 ** level):
+        x1, y1 = nodex(level - 1, idx // 2), LV[level - 1]
+        x2, y2 = nodex(level, idx), LV[level]
+        a, b = on(PA, level, idx), on(PB, level, idx)
+        if a or b:
+            coloured.append((x1, y1, x2, y2, "var(--tag-exercise-dot)" if a else "var(--tag-example-dot)"))
+        else:
+            s.raw(f'<path d="M{x1:g} {y1:g} L{x2:g} {y2:g}" {LINE}/>')
+for x1, y1, x2, y2, col in sorted(coloured, key=lambda c: c[4] == "var(--tag-exercise-dot)"):
+    s.raw(f'<path d="M{x1:g} {y1:g} L{x2:g} {y2:g}" stroke="{col}" stroke-width="4"/>')
+for level in range(0, 4):
+    for idx in range(2 ** level):
+        x = nodex(level, idx)
+        hit = on(PA, level, idx) or on(PB, level, idx)
+        s.raw(f'<circle cx="{x:g}" cy="{LV[level]}" r="17" class="{"sw-chip-warn" if hit else "ml-cell"}"/>')
+        if level:
+            s.text(x, LV[level] + 6, TG[idx % 2], "dg-code", "middle")
+# every leaf: its sequence and its score
+for k, p in enumerate(LEAVES):
+    x, sc = leafx(k), SCORES[p]
+    cls = "opt-a-box" if p == "VNV" else ("opt-b-box" if p == "NNV" else "pl-chip-del")
+    s.box(x - 54, 330, 108, 56, cls, 8)
+    s.text(x, 352, " ".join(p), "dg-code", "middle")
+    s.text(x, 376, f"1/{sc.denominator}" if sc else "0", "pl-label" if sc else "pl-note", "middle")
+s.both(20, 362, "คะแนน", "score", "pl-note")
+s.box(20, 404, 560, 104, "sw-warn-box", 12)
+s.both(36, 434, "✗ ประโยคของเรา: 2 ป้าย 3 คำ", "✗ Our sentence: 2 tags, 3 words", "pl-label")
+s.text(36, 462, "2 × 2 × 2 = 2³ = 8 paths", "pl-text")
+s.both(36, 490, "เส้นละ 7 การคูณ → 8 × 7 = 56 การคูณ", "7 multiplications each → 8 × 7 = 56", "pl-text")
+s.box(600, 404, 560, 104, "sw-warn-box", 12)
+s.both(616, 434, "✗ ประโยคจริง: 45 ป้าย 20 คำ", "✗ A real sentence: 45 tags, 20 words", "pl-label")
+s.text(616, 462, "45²⁰ ≈ 1.2 × 10³³ paths", "ml-neg")
+s.both(616, 490, "พันล้านเส้นต่อวินาที ≈ 2.7 ล้านเท่าอายุจักรวาล", "at a billion per second: 2.7 million × the universe's age", "pl-note")
+s.save("l15-brute.svg", 520)
+
+
+# ---------------------------------------------------------------- 9c. the bigger 3-tag example (Will can spot Mary): scores, then the search
+# Used by the worked-example card and by the Viterbi / beam card, where the shortcut saves real work (81 paths).
+TG = ["N", "M", "V"]
+WORDS = ["Will", "can", "spot", "Mary"]
+
+def setting3(s):
     """The shared set-up, repeated on each search figure so it reads on its own."""
     s.box(20, 0, 1140, 70, "ml-cell", 12)
     s.both(40, 28, "โจทย์: ติดป้าย Will can spot Mary ด้วย N (นาม) M (modal) V (กริยา)",
@@ -654,77 +802,12 @@ def setting(s):
 
 TG = ["N", "M", "V"]
 LINE = 'stroke="var(--rule)" stroke-width="1.2"'
-# ---- 9a. brute force: the full tree of 81 paths
-s = Svg(W, "Brute force: every tag sequence for Will can spot Mary as a tree. Each word can be N, M or V, so the tree splits in 3 at "
-           "every word: 3 paths after Will, 9 after can, 27 after spot, 81 after Mary. Only two leaves score above 0: A, N M V N, "
-           "1/3888, and B, N M N N, 1/118098. Each path needs 9 multiplications, so 81 × 9 = 729. With 45 tags and 20 words there "
-           "are 45^20, about 1.2 × 10^33 paths.")
-setting(s)
-LV = [100, 160, 226, 292, 352]
-LX0, LSTEP = 120, 900 / 80
-def leafx(k): return LX0 + k * LSTEP
-def nodex(level, idx):  # mean x of the node's 3^(4-level) leaves
-    span = 3 ** (4 - level)
-    return leafx(idx * span + (span - 1) / 2)
-PA, PB = (0, 1, 2, 0), (0, 1, 0, 0)
-def on(path, level, idx):
-    code = 0
-    for t in path[:level]:
-        code = code * 3 + t
-    return level == 0 or code == idx
-for level, (lab_th, lab_en, cnt) in enumerate([("เริ่ม", "start", ""), ("Will", "Will", "3"), ("can", "can", "9"),
-                                               ("spot", "spot", "27"), ("Mary", "Mary", "81")]):
-    s.both(20, LV[level] + 6, lab_th, lab_en, "pl-label")
-    if cnt:
-        s.both(1160, LV[level] + 6, cnt + " เส้นทาง", cnt + " paths", "pl-note", "end")
-# edges first, coloured paths last so they sit on top
-coloured = []
-for level in range(1, 5):
-    for idx in range(3 ** level):
-        x1, y1 = nodex(level - 1, idx // 3), LV[level - 1]
-        x2, y2 = nodex(level, idx), LV[level]
-        a, b = on(PA, level, idx), on(PB, level, idx)
-        if a or b:
-            coloured.append((x1, y1, x2, y2, "var(--tag-exercise-dot)" if a else "var(--tag-example-dot)"))
-        else:
-            s.raw(f'<path d="M{x1:g} {y1:g} L{x2:g} {y2:g}" {LINE}/>')
-for x1, y1, x2, y2, col in sorted(coloured, key=lambda c: c[4] == "var(--tag-exercise-dot)"):
-    s.raw(f'<path d="M{x1:g} {y1:g} L{x2:g} {y2:g}" stroke="{col}" stroke-width="4"/>')
-R = {0: 18, 1: 15, 2: 13, 3: 10}
-for level in range(0, 4):
-    for idx in range(3 ** level):
-        x = nodex(level, idx)
-        hit = on(PA, level, idx) or on(PB, level, idx)
-        s.raw(f'<circle cx="{x:g}" cy="{LV[level]}" r="{R[level]}" class="{"sw-chip-warn" if hit else "ml-cell"}"/>')
-        if level:
-            s.text(x, LV[level] + (6 if level < 3 else 5), TG[idx % 3], "dg-code" if level < 3 else "dg-index", "middle")
-for k in range(81):
-    hit = k in (15, 9)
-    s.raw(f'<circle cx="{leafx(k):g}" cy="{LV[4]}" r="{6 if hit else 3.5}" '
-          f'class="{"opt-a-bar" if k == 15 else ("opt-b-bar" if k == 9 else "pl-chip-del")}"/>')
-s.text(nodex(0, 0), LV[0] + 6, "", "pl-note")
-# the two non-zero leaves
-s.line(leafx(15), LV[4] + 8, 330, 392)
-s.box(330, 376, 190, 32, "opt-a-box", 8); s.text(425, 398, "A · N M V N = 1/3888", "dg-code", "middle")
-s.line(leafx(9), LV[4] + 8, 200, 392)
-s.box(64, 376, 200, 32, "opt-b-box", 8); s.text(164, 398, "B · N M N N = 1/118098", "dg-code", "middle")
-s.both(540, 398, "อีก 79 ใบได้ 0 (จุดเทา)", "the other 79 leaves score 0 (grey dots)", "pl-note")
-s.box(20, 424, 560, 104, "sw-warn-box", 12)
-s.both(36, 454, "✗ ประโยคของเรา: 3 ป้าย 4 คำ", "✗ Our sentence: 3 tags, 4 words", "pl-label")
-s.text(36, 482, "3 × 3 × 3 × 3 = 3⁴ = 81 paths", "pl-text")
-s.both(36, 510, "เส้นละ 9 การคูณ → 81 × 9 = 729 การคูณ", "9 multiplications each → 81 × 9 = 729", "pl-text")
-s.box(600, 424, 560, 104, "sw-warn-box", 12)
-s.both(616, 454, "✗ ประโยคจริง: 45 ป้าย 20 คำ", "✗ A real sentence: 45 tags, 20 words", "pl-label")
-s.text(616, 482, "45²⁰ ≈ 1.2 × 10³³ paths", "ml-neg")
-s.both(616, 510, "พันล้านเส้นต่อวินาที ≈ 2.7 ล้านเท่าอายุจักรวาล", "at a billion per second: 2.7 million × the universe's age", "pl-note")
-s.save("l15-brute.svg", 540)
-
 # ---- 9b. the three searches at a glance: same mini table, three ways to walk it; panels 2 and 3 animate step by step
 s = Svg(W, "Three ways to find the best tags for Will can spot Mary, on the same small table of 4 words by 3 tags. Brute force "
-           "walks every path: 81 paths, always the best, too slow for real sentences. Viterbi, like a map app keeping only the "
-           "fastest route to each stop, fills the table one word at a time and keeps one best arrow into each box: 36 steps, "
+           "walks every path, counted word by word: 3, × 3 = 9, × 3 = 27, × 3 = 81 paths (3 tags to the power of 4 words), always the best, too slow for real sentences. Viterbi, like a map app keeping only the "
+           "fastest route to each stop, fills the table one word at a time and keeps one best arrow into each box: 3, then 9 more per word (3 boxes × 3 ways in), about 30 steps, "
            "always the best, and finds N M V N. Beam search, like a talent show where only the top B go through, keeps the top B "
-           "boxes per word: with B = 1 it keeps M after Will and drops N, then every box for can is 0, a dead end; with B = 2 it "
+           "boxes per word, 3 steps per word with B = 1 (about 12 in all): with B = 1 it keeps M after Will and drops N, then every box for can is 0, a dead end; with B = 2 it "
            "finds N M V N. For 45 tags and 20 words: 1.2 × 10^33 paths, 40,500 steps, and 4,500 steps with B = 5.")
 # one shared 10-second loop: step k fades in at k × 15 %, everything holds, then resets
 CYCLE, STEPS = 10, 5
@@ -739,14 +822,14 @@ css.append(".l15srch-draw { stroke-dasharray: 100; animation: l15srch-draw %ds i
 css.append("@media (prefers-reduced-motion: reduce) { [class*='l15srch-'] { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; } }")
 css.append("@media print { [class*='l15srch-'] { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; } }")
 s.raw("<style>" + " ".join(css) + "</style>")
-setting(s)
+setting3(s)
 ZERO = {("V", 0), ("N", 1), ("V", 1), ("M", 2), ("M", 3), ("V", 3)}
 BESTP = [("N", 0), ("M", 1), ("V", 2), ("N", 3)]
 BACK = {("M", 1): "N", ("N", 2): "M", ("V", 2): "M", ("N", 3): "V"}   # Viterbi: best box each box came from
 PAN = [(20, "ml-cell", "1 · ลองทุกเส้นทาง", "1 · Try every path", "เหมือนลองทุกเส้นทางบนแผนที่", "like driving every possible route",
-        "81 เส้นทาง", "81 paths", "✓ ได้ดีที่สุดเสมอ", "✓ always the best", "ml-ok"),
+        "3⁴ = 81 เส้นทาง", "3⁴ = 81 paths", "✓ ได้ดีที่สุดเสมอ", "✓ always the best", "ml-ok"),
        (404, "nt-band-a", "2 · Viterbi", "2 · Viterbi", "แอปแผนที่: จำแค่ทางที่ดีที่สุดไปแต่ละจุด", "map app: best route to each stop",
-        "36 ขั้น", "36 steps", "✓ ได้ดีที่สุดเสมอ", "✓ always the best", "ml-ok"),
+        "≈ 30 ขั้น", "≈ 30 steps", "✓ ได้ดีที่สุดเสมอ", "✓ always the best", "ml-ok"),
        (788, "sw-warn-box", "3 · Beam search", "3 · Beam search", "ประกวดร้องเพลง: แต่ละรอบเหลือแค่ B คน", "talent show: only the top B go on",
         "≈ 12 ขั้น (B = 1)", "≈ 12 steps (B = 1)", "✗ อาจพลาดตัวที่ดีที่สุด", "✗ can miss the best", "ml-neg")]
 GX = [56, 136, 216, 296]; GY = {"N": 186, "M": 238, "V": 290}
@@ -762,23 +845,45 @@ def group(k):
 
 
 for p, (x0, cls, tth, ten, ith, ien, cth, cen, gth, gen, gcls) in enumerate(PAN):
-    s.box(x0, 86, 372, 360, cls, 14)
+    s.box(x0, 86, 372, 432, cls, 14)
     s.both(x0 + 18, 116, tth, ten, "pl-label")
     s.both(x0 + 18, 142, ith, ien, "pl-note")
     for k, w_ in enumerate(WORDS):
         s.text(x0 + GX[k], 168, w_, "dg-code", "middle")
     def P(t_, k): return x0 + GX[k], GY[t_]
-    if p == 0:      # static: every edge between neighbouring columns
-        for k in range(3):
-            for a in TG:
-                for b in TG:
-                    (x1, y1), (x2, y2) = P(a, k), P(b, k + 1)
-                    s.raw(f'<path d="M{x1 + 15:g} {y1:g} L{x2 - 15:g} {y2:g}" stroke="var(--muted)" stroke-width="1.2" opacity=".55"/>')
-        for t_ in TG:
-            for k in range(4):
+    if p == 0:      # every path, counted as it grows: column k (and the edges into it) appear at step k
+        for k in range(4):
+            group(k)
+            if k:
+                for a in TG:
+                    for b in TG:
+                        (x1, y1), (x2, y2) = P(a, k - 1), P(b, k)
+                        s.raw(f'<path d="M{x1 + 15:g} {y1:g} L{x2 - 15:g} {y2:g}" stroke="var(--muted)" stroke-width="1.2" opacity=".55"/>')
+            for t_ in TG:
                 dot(*P(t_, k), "ml-cell", t_)
-        s.both(x0 + 18, 340, "→ ให้คะแนนทุกเส้น แล้วเลือกที่สูงสุด", "→ score them all, pick the top", "pl-note")
+            cx = x0 + GX[k]
+            s.text(cx, 330, "3" if k == 0 else "× 3", "pl-label", "middle")      # 3 tags for this word
+            s.text(cx, 356, f"= {3 ** (k + 1)}", "ml-b" if k == 3 else "pl-note", "middle")   # paths so far
+            s.raw("</g>")
+        group(4)
+        s.both(x0 + 18, 388, "→ ให้คะแนนทุกเส้น แล้วเลือกที่สูงสุด", "→ score them all, pick the top", "pl-note")
+        s.raw("</g>")
     elif p == 1:    # Viterbi: column k (with its best arrows in) appears at step k; the winning path draws at step 4
+        # all 3 x 3 candidate arrows into a column flash in at its step, then fade: only the best one into each box stays
+        cand = []
+        for k in range(1, 4):
+            p0 = k * 15
+            cand.append(f"@keyframes l15srch-c{k} {{ 0% {{ opacity: 0 }} {p0}% {{ opacity: 0 }} {p0 + 3}% {{ opacity: 1 }} "
+                        f"{p0 + 11}% {{ opacity: 1 }} {p0 + 14}% {{ opacity: .18 }} 93% {{ opacity: .18 }} 100% {{ opacity: 0 }} }}")
+            cand.append(f".l15srch-c{k} {{ animation: l15srch-c{k} {CYCLE}s infinite; }}")
+        s.raw("<style>" + " ".join(cand) + "</style>")
+        for k in range(1, 4):
+            s.raw(f'<g class="l15srch-c{k}">')
+            for a_ in TG:
+                for b_ in TG:
+                    (x1, y1), (x2, y2) = P(a_, k - 1), P(b_, k)
+                    s.raw(f'<path d="M{x1 + 15:g} {y1:g} L{x2 - 15:g} {y2:g}" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/>')
+            s.raw("</g>")
         for k in range(4):
             group(k)
             for (t_, kk), frm in BACK.items():
@@ -795,7 +900,11 @@ for p, (x0, cls, tth, ten, ith, ien, cth, cen, gth, gen, gcls) in enumerate(PAN)
         group(4)
         for t_, k in BESTP:
             dot(*P(t_, k), "sw-chip-warn", t_)
-        s.text(x0 + 18, 340, "→ N M V N = 1/3888", "ml-ok")
+        s.text(x0 + 18, 388, "→ N M V N = 1/3888", "ml-ok")
+        s.raw("</g>")
+        group(1)
+        s.both(x0 + 18, 414, "แต่ละช่อง: ลูกศรเข้า 3 เส้น เก็บแค่ 1", "each box: 3 arrows in, keep the best 1", "pl-note")
+        s.both(x0 + 18, 440, "3 ช่อง × 3 ทางเข้า = 9 ต่อคำ", "3 boxes × 3 ways in = 9 per word", "pl-note")
         s.raw("</g>")
     else:           # beam 1: Will appears, N is dropped and M kept, then can is all 0: dead end
         group(0)
@@ -807,7 +916,7 @@ for p, (x0, cls, tth, ten, ith, ien, cth, cen, gth, gen, gcls) in enumerate(PAN)
         x, y = P("N", 0)
         s.raw(f'<path d="M{x - 11:g} {y - 11:g} L{x + 11:g} {y + 11:g} M{x + 11:g} {y - 11:g} L{x - 11:g} {y + 11:g}" stroke="var(--accent)" stroke-width="2.4"/>')
         dot(*P("M", 0), "sw-chip-warn", "M")
-        s.both(x0 + 70, 322, "เก็บแค่อันดับ 1", "keep only the top 1", "pl-note")
+        s.both(x0 + 18, 388, "เก็บแค่อันดับ 1", "keep only the top 1", "pl-note")
         s.raw("</g>")
         group(2)
         (x1, y1), (x2, y2) = P("M", 0), P("M", 1)
@@ -819,16 +928,143 @@ for p, (x0, cls, tth, ten, ith, ien, cth, cen, gth, gen, gcls) in enumerate(PAN)
         for t_ in TG:
             for k in (2, 3):
                 dot(*P(t_, k), "pl-chip-del", "–", "pl-note")
-        s.both(x0 + 18, 352, "B = 1: ทางตันที่ can", "B = 1: dead end at can", "ml-neg")
+        s.both(x0 + 18, 414, "B = 1: ทางตันที่ can", "B = 1: dead end at can", "ml-neg")
         s.raw("</g>")
         group(4)
-        s.both(x0 + 18, 378, "B = 2: เจอ N M V N ✓", "B = 2: finds N M V N ✓", "ml-ok")
+        s.both(x0 + 18, 440, "B = 2: เจอ N M V N ✓", "B = 2: finds N M V N ✓", "ml-ok")
         s.raw("</g>")
-    s.both(x0 + 18, 410, cth, cen, "nt-band-title")
-    s.both(x0 + 18, 436, gth, gen, gcls)
-s.both(20, 482, "ประโยคจริง 45 ป้าย 20 คำ:  1.2 × 10³³ เส้นทาง  ·  Viterbi 40,500 ขั้น  ·  beam (B = 5) 4,500 ขั้น",
+    if p in (1, 2):   # count the work word by word, like the path count in panel 1
+        per = [3, 9, 9, 9] if p == 1 else [3, 3, 3, 3]
+        run = 0
+        for k in range(4):
+            run += per[k]
+            group(k)
+            lab = str(per[k]) if k == 0 else ("+ 3×3" if p == 1 else "+ 1×3")
+            s.text(x0 + GX[k], 330, lab, "pl-label", "middle")
+            s.text(x0 + GX[k], 356, f"= {run}", "ml-b" if k == 3 else "pl-note", "middle")
+            s.raw("</g>")
+    s.both(x0 + 18, 474, cth, cen, "nt-band-title")
+    s.both(x0 + 18, 504, gth, gen, gcls)
+s.both(20, 550, "ประโยคจริง 45 ป้าย 20 คำ:  1.2 × 10³³ เส้นทาง  ·  Viterbi 40,500 ขั้น  ·  beam (B = 5) 4,500 ขั้น",
        "A real sentence, 45 tags and 20 words:  1.2 × 10³³ paths  ·  Viterbi 40,500 steps  ·  beam (B = 5) 4,500 steps", "pl-label")
-s.save("l15-search.svg", 498)
+s.save("l15-search.svg", 566)
+
+# ---------------------------------------------------------------- 9d. an unseen word: why it gives 0, and what smoothing does
+# Same 4 training sentences as the running example; add-0.1 (Lidstone) smoothing as in the lesson's NLTK code,
+# with B = 7 word types seen in training.
+from itertools import product as _prod
+_g, _B = 0.1, 7
+def _pe(t, w_, smooth):
+    c = {("N", "dogs"): 3, ("N", "birds"): 1, ("N", "watch"): 1, ("N", "batteries"): 1,
+         ("V", "bark"): 1, ("V", "feed"): 1, ("V", "watch"): 1, ("V", "die"): 1}.get((t, w_), 0)
+    n = {"N": 6, "V": 4}[t]
+    return (c + _g) / (n + _B * _g) if smooth else c / n
+_T = {("start", "N"): 3 / 4, ("start", "V"): 1 / 4, ("N", "N"): 1 / 6, ("N", "V"): 3 / 6, ("N", "end"): 2 / 6,
+      ("V", "N"): 2 / 4, ("V", "V"): 0, ("V", "end"): 2 / 4}
+def _score(tags, smooth):
+    pr, prev = 1.0, "start"
+    for t, w_ in zip(tags, ["watch", "cats", "bark"]):
+        pr *= _T[prev, t] * _pe(t, w_, smooth); prev = t
+    return pr * _T[prev, "end"]
+_raw = {p_: _score(p_, False) for p_ in _prod("NV", repeat=3)}
+_sm = {p_: _score(p_, True) for p_ in _prod("NV", repeat=3)}
+assert max(_raw.values()) == 0 and max(_sm, key=_sm.get) == ("V", "N", "V")
+s = Svg(W, "An unseen word. The new sentence Watch cats bark has cats, which never appeared in the 4 training sentences. "
+           "Without smoothing, P(cats | N) = 0/6 = 0 and P(cats | V) = 0/4 = 0, so every one of the 8 tag paths has a factor 0 "
+           "and scores 0: the tagger cannot choose. Add-0.1 smoothing (Lidstone, as in our NLTK code) adds 0.1 to every word "
+           "count of a tag: P(cats | N) = (0 + 0.1) / (6 + 7 × 0.1) ≈ 0.015 and P(cats | V) ≈ 0.021, while P(dogs | N) drops "
+           "from 0.50 to 0.46. Now the best path is V N V: cats is tagged N, decided by its neighbours (V → N, N → V), not by "
+           "the word, which gives almost no clue.")
+s.box(20, 0, 1140, 52, "ml-cell", 12)
+s.both(40, 33, "ประโยคใหม่: Watch cats bark · คำว่า cats ไม่เคยอยู่ในประโยคเทรน 4 ประโยค",
+       "New sentence: Watch cats bark · the word cats never appeared in the 4 training sentences", "pl-label")
+# left: no smoothing
+s.box(20, 68, 560, 292, "sw-warn-box", 14)
+s.both(40, 100, "✗ ไม่มี smoothing", "✗ No smoothing", "pl-label")
+s.both(40, 128, "N ปรากฏ 6 ครั้ง: dogs 3 · birds 1 · watch 1 · batteries 1", "N appears 6 times: dogs 3 · birds 1 · watch 1 · batteries 1", "pl-note")
+s.text(40, 166, "P(cats | N) = 0 / 6 = 0", "dg-code")
+s.text(40, 194, "P(cats | V) = 0 / 4 = 0", "dg-code")
+s.both(40, 236, "ทุกเส้นทางมีตัวคูณ × 0 ที่ cats", "every path has a × 0 at cats", "pl-text")
+s.both(40, 266, "→ ทั้ง 8 เส้นได้คะแนน 0", "→ all 8 paths score 0", "pl-text")
+s.both(40, 304, "✗ tagger เลือกไม่ได้เลย", "✗ the tagger cannot choose", "ml-neg")
+s.both(40, 336, "คำใหม่คำเดียวทำให้ทั้งประโยคเป็นศูนย์", "one new word zeroes the whole sentence", "pl-note")
+# right: add-0.1 smoothing
+s.box(600, 68, 560, 292, "nt-band-a", 14)
+s.both(620, 100, "✓ บวก 0.1 ให้ทุกคำ (Lidstone ในโค้ดของเรา)", "✓ Add 0.1 to every count (Lidstone, as in our code)", "pl-label")
+s.both(620, 128, "หาร 6 + 7 × 0.1 เพราะมีคำ 7 แบบในข้อมูลเทรน", "divide by 6 + 7 × 0.1: 7 word types in training", "pl-note")
+s.text(620, 166, "P(cats | N) = (0 + 0.1) / 6.7 ≈ 0.015", "dg-code")
+s.text(620, 194, "P(dogs | N) = (3 + 0.1) / 6.7 ≈ 0.46 (was 0.50)", "dg-code")
+s.both(620, 236, "คำที่เคยเห็นยอมเสียนิดหน่อย คำใหม่ได้นิดหน่อย", "seen words give up a little, unseen words get a little", "pl-text")
+s.both(620, 266, "cats: N 0.015 ต่อ V 0.021 คำเองแทบไม่ช่วย", "cats: N 0.015 vs V 0.021, the word barely helps", "pl-text")
+s.both(620, 304, "✓ ดีที่สุด: V N V → cats = N", "✓ best: V N V → cats = N", "ml-ok")
+s.both(620, 336, "คำข้าง ๆ เป็นตัวตัดสิน (V → N, N → V)", "the neighbours decide (V → N, N → V)", "pl-note")
+s.save("l15-smoothing.svg", 372)
+
+# ---------------------------------------------------------------- 10a. where X, Y and the weights come from (before the weights are used)
+# Real data (course/.venv, the lesson's 3,500 training sentences): "completed the purchase of May" is tagged VBD DT NN IN NNP;
+# training rows "the purchase by" NN, "the defense capital" NN, "the disease after" NN, "the Nipponese version" JJ.
+# Words ending in -se: NN 224, JJ 114, VBP 28 (871 in all). Words after "the": NN 1,955, JJ 757, VBP 0 (4,263).
+# Learned weights (the lesson's CRF): suffix2=se NN +1.71, JJ +1.17, VBP +1.29; prev=the NN +0.95, JJ +1.32, VBP 0.00.
+s = Svg(W, "Where X, Y and the weights come from. 1 The data: tagged sentences, for example that institutional customers "
+           "refuse, tagged IN JJ NNS VBP. 2 Every training word becomes one row, like a row in linear regression: X is what "
+           "features() says about the word (bias 1, its last two letters, the previous word, and more) and Y is its tag in the "
+           "data: refuse, after customers and ending in se, is VBP. There are 90,347 rows. 3 The CRF chooses one weight per clue "
+           "and tag so that, on as many rows as possible, the correct Y gets the highest score. The word refuse appears twice in "
+           "training, both times as VBP and never as NN: its weight is VBP +0.57 and NN 0.00. Words ending in se are NN 224 "
+           "times, JJ 114, VBP 28: weights NN +1.71, JJ +1.17, VBP +1.29. The weights are fitted together, so a weight is not "
+           "just a count.")
+s.box(20, 0, 1140, 112, "ml-cell", 12)
+s.both(40, 30, "① ข้อมูล: ประโยคที่คนติดป้ายแล้ว (Penn Treebank 3,500 ประโยค)", "① Data: sentences people tagged (3,500 Penn Treebank sentences)", "pl-label")
+xw = 40
+for w_, t in [("that", "IN"), ("institutional", "JJ"), ("customers", "NNS"), ("refuse", "VBP")]:
+    cw = max(width(w_, 17), width(t, 15)) + 30
+    s.box(xw, 46, cw, 34, "sw-chip-warn" if w_ == "refuse" else "nt-bubble", 8)
+    s.text(xw + cw / 2, 69, w_, "pl-text", "middle")
+    s.text(xw + cw / 2, 100, t, "ml-b" if w_ == "refuse" else "dg-code", "middle")
+    xw += cw + 6
+s.both(xw + 14, 69, "← refuse มีป้าย VBP ในข้อมูล: นี่คือ Y", "← refuse is tagged VBP in the data: that is Y", "pl-note")
+# ② the table: one row per training word, X columns and Y
+Y2 = 128
+s.box(20, Y2, 700, 370, "nt-band-a", 14)
+s.both(40, Y2 + 30, "② คำเทรนแต่ละคำ = 1 แถว (เหมือน linear regression)", "② Each training word = one row (like linear regression)", "pl-label")
+COLS = [(40, "word", "word"), (210, "x: bias", "x: bias"), (320, "x: last 2", "x: last 2"), (440, "x: prev", "x: prev"), (626, "Y", "Y")]
+for x, th, en in COLS:
+    s.both(x, Y2 + 64, th, en, "pl-note")
+ROWS = [("that", "1", "at", "and", "IN"), ("institutional", "1", "al", "that", "JJ"),
+        ("customers", "1", "rs", "institutional", "NNS"), ("refuse", "1", "se", "customers", "VBP")]
+for r, row in enumerate(ROWS):
+    y = Y2 + 76 + r * 40
+    s.box(36, y, 668, 32, "sw-warn-box" if row[0] == "refuse" else "ml-cell", 6)
+    for (x, _, _), v in zip(COLS, row):
+        if x == 626:
+            s.box(x - 8, y + 3, 64, 26, "sw-chip-warn", 6)
+        s.text(x, y + 22, v, "dg-code")
+s.both(40, Y2 + 254, "… 90,347 แถว · x มาจาก features() (และคำถัดไป ตัวพิมพ์ใหญ่ …)", "… 90,347 rows · x from features() (plus next word, capital …)", "pl-note")
+s.both(40, Y2 + 284, "Y มาจากป้ายในข้อมูล", "Y comes from the tag in the data", "pl-note")
+s.both(40, Y2 + 324, "linear regression: x → y ที่เป็นตัวเลข", "linear regression: x → a number y", "pl-note")
+s.both(40, Y2 + 350, "CRF: x → Y ที่เป็นป้าย (หนึ่งใน 46 ป้าย)", "CRF: x → a tag Y (one of 46 tags)", "pl-note")
+s.arrow(722, Y2 + 185, 742, Y2 + 185)
+# ③ how the weights come out of the rows
+s.box(746, Y2, 414, 370, "ml-cell", 14)
+s.both(764, Y2 + 30, "③ หาน้ำหนักให้ Y ที่ถูกได้คะแนนสูงสุด", "③ Find weights so the right Y scores highest", "pl-label")
+s.both(764, Y2 + 56, "บนแถวเทรนให้ได้มากที่สุด", "on as many training rows as possible", "pl-note")
+s.both(764, Y2 + 90, "เบาะแส", "clue", "pl-note")
+for j, t in enumerate(["NN", "JJ", "VBP"]):
+    s.text(930 + j * 74, Y2 + 90, t, "pl-label", "middle")
+TBL = [("word = refuse", "คำ = refuse", ["0", "0", "2"], ["0.00", "0.00", "+0.57"]),
+       ("ends in -se", "ท้าย -se", ["224", "114", "28"], ["+1.71", "+1.17", "+1.29"])]
+for r, (en, th, cnt, wts) in enumerate(TBL):
+    y = Y2 + 104 + r * 84
+    s.box(760, y, 388, 74, "nt-out", 8)
+    s.both(772, y + 26, th, en, "pl-text")
+    s.both(772, y + 56, "นับ / น้ำหนัก", "count / weight", "pl-note")
+    for j in range(3):
+        s.text(930 + j * 74, y + 26, cnt[j], "pl-note", "middle")
+        s.text(930 + j * 74, y + 56, wts[j], "ml-b" if wts[j] != "0.00" else "ml-neg", "middle")
+s.both(764, Y2 + 318, "ไม่เคยเห็นคู่กัน → 0 (refuse ไม่เคยเป็น NN)", "never seen together → 0 (refuse never NN)", "pl-note")
+s.both(764, Y2 + 346, "ปรับน้ำหนักพร้อมกันทุกตัว จึงไม่ใช่แค่การนับ", "fitted all together, so not just a count", "pl-note")
+s.both(1160, Y2 + 400, "→ จากนั้นน้ำหนักเหล่านี้ให้คะแนนคำใหม่", "→ then these weights score new words", "ml-ok", "end")
+s.save("l15-crf-train.svg", Y2 + 412)
 
 # ---------------------------------------------------------------- 10. CRF as a weighted sum, like linear regression (real weights)
 s = Svg(W, "A CRF scores each possible tag like linear regression: score = sum of weight times feature. The features x are ones we "
@@ -1218,28 +1454,87 @@ s.both(620, Y + 162, "เทียบ token accuracy = 17 / 19 = 0.89", "Token a
 s.both(620, Y + 188, "ดูดีกว่ามาก แต่พลาดไปครึ่งหนึ่งของชื่อ", "looks much better, yet half the names are wrong", "pl-note")
 s.save("l15-span-eval2.svg", Y + 214)
 
+# ---------------------------------------------------------------- 15c. span evaluation exercise: sentence 3, same picture style, no marks
+s = Svg(W, "Exercise on sentence 3 of the announcement. Gold names: United (ORG), UAL Corp. (ORG), Chicago, Dallas, Denver and "
+           "San Francisco (LOC). The model predicts: United (LOC), UAL Corp. (ORG), Chicago (LOC), Dallas (LOC), Denver (LOC), San (LOC) "
+           "and Francisco (LOC). Mark each prediction right or wrong, then compute precision, recall and F1.")
+WDS = "United , a unit of UAL Corp. , … such as Chicago to Dallas and Denver to San Francisco .".split()
+GOLD = [(0, 0, "ORG"), (5, 6, "ORG"), (11, 11, "LOC"), (13, 13, "LOC"), (15, 15, "LOC"), (17, 18, "LOC")]
+PRED = [(0, 0, "LOC"), (5, 6, "ORG"), (11, 11, "LOC"), (13, 13, "LOC"), (15, 15, "LOC"), (17, 17, "LOC"), (18, 18, "LOC")]
+ww = [width(w_, 19) * 0.86 + 14 for w_ in WDS]
+X0 = 112
+xs = []
+x = X0
+for w_ in ww:
+    xs.append(x); x += w_
+assert x < W - 20, x
+s.both(20, 22, "แบบฝึกหัด · ประโยคที่ 3 ของประกาศ", "Exercise · sentence 3 of the announcement", "pl-label")
+span_row(48, GOLD, "gold", "gold")
+span_row(122, PRED, "ทำนาย", "predicted")
+s.box(20, 190, 1140, 44, "ml-cell", 10)
+s.both(36, 218, "ชื่อจะนับว่าถูกเมื่อจุดเริ่ม จุดจบ และชนิด ตรงกับ gold ทั้งสามอย่าง · ORG = ฟ้า · LOC = ส้ม",
+       "A name is correct only if its start, end and type all match a gold name · ORG = blue · LOC = orange", "pl-note")
+s.save("l15-span-eval3.svg", 246)
+
 # ---------------------------------------------------------------- 16. how NER systems evolved
 ERAS = [("Rules & lists", "กฎและรายชื่อ", "hand-made", "Mr. + Capital → PER", "province list → LOC"),
         ("HMM, CRF", "โมเดลสถิติ", "statistical", "features: suffix,", "capital, neighbours"),
         ("BiLSTM-CRF", "neural ยุคแรก", "early neural", "word + char vectors", "→ valid BIO"),
         ("BERT", "Transformer", "Transformer", "fine-tune on", "labelled sentences"),
         ("LLMs", "ไม่ต้องเทรน", "no training", "prompt + JSON,", "any entity types")]
-s = Svg(W, "How NER systems evolved. Rules and lists: patterns like Mr. plus a capitalised word is a person, and gazetteers such as "
-           "a list of provinces. Statistical models, HMM and CRF, with hand-made features. BiLSTM-CRF with word and character vectors. "
+s = Svg(W, "How NER systems evolved, with a small sketch of each core architecture for the first three. Rules and lists: patterns like Mr. plus a capitalised word is a person (Mr. Smith becomes PER), and gazetteers such as "
+           "a list of provinces. HMM and CRF: a chain of tags, each tag depending on the one before and producing its word. Statistical models, HMM and CRF, with hand-made features. BiLSTM-CRF with word and character vectors: a forward and a backward LSTM read the words, and a CRF layer on top picks a valid tag sequence such as B-PER I-PER O. "
            "BERT fine-tuned on labelled sentences. LLMs that follow a prompt and return JSON for any entity types, with no training, "
            "but can hallucinate.")
 for k, (en, th, en2, l1, l2) in enumerate(ERAS):
     x0 = 20 + k * 230
-    s.box(x0, 40, 218, 200, "nt-band-a" if k == 4 else "ml-cell", 14)
+    s.box(x0, 40, 218, 300, "nt-band-a" if k == 4 else "ml-cell", 14)
     s.text(x0 + 16, 74, f"{k + 1} · {en}", "pl-label")
     s.both(x0 + 16, 100, th, en2, "pl-note")
-    s.text(x0 + 16, 150, l1, "dg-code"); s.text(x0 + 16, 176, l2, "dg-code")
+    s.text(x0 + 16, 140, l1, "dg-code"); s.text(x0 + 16, 164, l2, "dg-code")
     if k < 4:
-        s.arrow(x0 + 220, 140, x0 + 228, 140)
-s.raw('<path d="M30 270 H1150" class="pl-line"/>')
-s.both(30, 300, "← ต้องเขียนกฎ / ต้องมีข้อมูลติดป้ายมาก", "← hand-written rules / lots of labelled data", "pl-note")
-s.both(1150, 300, "ไม่ต้องเทรน แต่ช้า แพง และอาจแต่งชื่อขึ้นมา →", "no training, but slower, costlier, may invent names →", "pl-note", "end")
-s.save("l15-ner-evolution.svg", 316)
+        s.arrow(x0 + 220, 190, x0 + 228, 190)
+
+
+def mini_box(x, y, w, h, t, cls="ml-cell"):
+    s.box(x, y, w, h, cls, 6)
+    s.text(x + w / 2, y + h / 2 + 5, t, "dg-code", "middle")
+
+
+# small core-architecture sketches for 1-3 (BERT and LLMs get their own pictures later in the lesson)
+# 1 · rules: tokens → a hand-written rule → a label
+x0 = 20
+mini_box(x0 + 24, 192, 48, 28, "Mr.", "nt-bubble"); mini_box(x0 + 80, 192, 72, 28, "Smith", "nt-bubble")
+s.arrow(x0 + 108, 222, x0 + 108, 240)
+mini_box(x0 + 24, 244, 170, 30, "Mr. + Capital ?", "ml-cell-b")
+s.arrow(x0 + 108, 276, x0 + 108, 294)
+mini_box(x0 + 70, 298, 76, 28, "PER", "sw-chip-warn")
+# 2 · HMM / CRF: a chain of tags over the words (tag → next tag, tag → its word)
+x0 = 250
+for j, (t, w_) in enumerate([("t₁", "w₁"), ("t₂", "w₂"), ("t₃", "w₃")]):
+    cx = x0 + 44 + j * 66
+    s.raw(f'<circle cx="{cx}" cy="216" r="18" class="sw-chip-warn"/>')
+    s.text(cx, 221, t, "dg-code", "middle")
+    s.line(cx, 236, cx, 284)
+    mini_box(cx - 24, 286, 48, 28, w_, "nt-bubble")
+    if j < 2:
+        s.arrow(cx + 19, 216, cx + 46, 216)
+s.both(x0 + 109, 334, "ป้าย → ป้าย · ป้าย → คำ", "tag → tag · tag → word", "dg-code", "middle")
+# 3 · BiLSTM-CRF: words → forward and backward LSTM → CRF picks a valid tag sequence
+x0 = 480
+for j, w_ in enumerate(["w₁", "w₂", "w₃"]):
+    cx = x0 + 44 + j * 66
+    mini_box(cx - 26, 286, 52, 26, w_, "nt-bubble")
+    s.line(cx, 284, cx, 276)
+mini_box(x0 + 16, 248, 186, 26, "LSTM  →  →  →", "ml-cell-b")
+mini_box(x0 + 16, 218, 186, 26, "←  ←  ←  LSTM", "ml-cell-b")
+s.line(x0 + 109, 216, x0 + 109, 210)
+mini_box(x0 + 16, 182, 186, 26, "CRF: B-PER I-PER O", "sw-chip-warn")
+s.both(x0 + 109, 334, "อ่านทั้งซ้ายและขวา", "reads left and right", "dg-code", "middle")
+s.raw('<path d="M30 368 H1150" class="pl-line"/>')
+s.both(30, 398, "← ต้องเขียนกฎ / ต้องมีข้อมูลติดป้ายมาก", "← hand-written rules / lots of labelled data", "pl-note")
+s.both(1150, 398, "ไม่ต้องเทรน แต่ช้า แพง และอาจแต่งชื่อขึ้นมา →", "no training, but slower, costlier, may invent names →", "pl-note", "end")
+s.save("l15-ner-evolution.svg", 414)
 
 # ---------------------------------------------------------------- 17. LLM extraction: prompt → JSON → validate
 s = Svg(W, "Information extraction with an LLM. The prompt has four parts: the task, the schema (entity types and relation labels), "
@@ -1381,3 +1676,62 @@ for k, (nth, nen, th, en) in enumerate(PIPE):
     if k < 3:
         s.arrow(x0 + 272, 412, x0 + 288, 412)
 s.save("l15-relations.svg", 460)
+
+# ---------------------------------------------------------------- 19. evaluating relation extraction: exact triplets, micro vs macro
+s = Svg(W, "Evaluating relation extraction. A predicted triplet counts only if the head, the relation, the tail and the "
+           "direction all match a gold triplet. Gold: American Airlines part_of AMR Corp., Tim Wagner works_for American "
+           "Airlines, United part_of UAL Corp. Predicted: AMR Corp. part_of American Airlines (reversed, wrong), Tim Wagner "
+           "works_for American Airlines (right), United part_of UAL Corp. (right). Micro: pool all triplets, 2 right of 3 "
+           "predicted and of 3 gold, so precision, recall and F1 are 0.67. Macro: score each relation on its own, part_of 1 "
+           "of 2 so F1 0.50, works_for 1 of 1 so F1 1.00, and average them: 0.75.")
+s.box(20, 0, 1140, 64, "ml-cell", 12)
+s.both(40, 40, "triplet นับว่าถูกเมื่อตรงครบ 4 อย่าง:", "A triplet counts only if all four match:", "pl-label")
+for k, t in enumerate(["head", "relation", "tail", "direction →"]):
+    s.chip(470 + k * 170, 14, "✓ " + t, "opt-a-box", "pl-text", minw=150)
+def triplet(x, y, head, rel, tail, cls="nt-bubble"):
+    w1 = s.chip(x, y, head, cls, "pl-text")
+    ax = x + w1 + 4
+    s.arrow(ax, y + 18, ax + 118, y + 18)
+    s.text(ax + 59, y + 8, rel, "dg-code", "middle")
+    w2 = s.chip(ax + 122, y, tail, cls, "pl-text")
+    return x, ax + 122 + w2
+GOLD3 = [("American Airlines", "part_of", "AMR Corp."), ("Tim Wagner", "works_for", "American Airlines"), ("United", "part_of", "UAL Corp.")]
+PRED3 = [("AMR Corp.", "part_of", "American Airlines", False), ("Tim Wagner", "works_for", "American Airlines", True),
+         ("United", "part_of", "UAL Corp.", True)]
+for k, (x0, cls, th, en) in enumerate([(20, "ml-cell", "Gold: คำตอบที่ถูก", "Gold: the right answers"), (600, "ml-cell", "ระบบทำนาย", "The system predicts")]):
+    s.box(x0, 80, 560, 236, cls, 14)
+    s.both(x0 + 20, 110, th, en, "pl-label")
+for r, (h, rel, t) in enumerate(GOLD3):
+    triplet(40, 132 + r * 58, h, rel, t)
+for r, (h, rel, t, ok) in enumerate(PRED3):
+    y = 132 + r * 58
+    x1, x2 = triplet(620, y, h, rel, t, "nt-bubble" if ok else "sw-chip-warn")
+    if not ok:
+        s.raw(f'<rect x="{x1 - 5:g}" y="{y - 14:g}" width="{x2 - x1 + 10:g}" height="56" rx="10" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 3"/>')
+    s.text(1140, y + 25, "✓" if ok else "✗", "ml-ok" if ok else "ml-neg", "end")
+s.both(620, 304, "✗ กลับทิศ: AMR Corp. ไม่ได้เป็นส่วนของ American Airlines", "✗ reversed: AMR Corp. is not part of American Airlines", "ml-neg")
+# micro vs macro
+Y = 334
+s.box(20, Y, 560, 220, "nt-band-a", 14)
+s.both(40, Y + 30, "Micro: รวมทุก triplet แล้วนับ", "Micro: pool every triplet, then count", "pl-label")
+s.both(40, Y + 58, "ถูก 2 จากที่ทำนาย 3 และจาก gold 3", "2 right of 3 predicted, and of 3 gold", "pl-note")
+for j, (lab, v) in enumerate([("Precision 2/3", 0.67), ("Recall 2/3", 0.67), ("F1", 0.67)]):
+    y = Y + 78 + j * 40
+    s.text(40, y + 20, lab, "pl-text")
+    s.box(210, y + 4, 300 * v, 24, "ml-bar-top" if j == 2 else "ml-bar", 4)
+    s.text(218 + 300 * v, y + 22, f"{v:.2f}", "pl-label")
+s.box(600, Y, 560, 220, "ml-cell", 14)
+s.both(620, Y + 30, "Macro: คิดแยกทีละความสัมพันธ์ แล้วเฉลี่ย", "Macro: score each relation, then average", "pl-label")
+s.both(620, Y + 58, "ความสัมพันธ์ที่เจอน้อยมีน้ำหนักเท่าตัวที่เจอบ่อย", "a rare relation counts as much as a common one", "pl-note")
+for j, (lab, sub, v) in enumerate([("part_of", "1 of 2", 0.50), ("works_for", "1 of 1", 1.00)]):
+    y = Y + 78 + j * 40
+    s.text(620, y + 20, lab, "dg-code")
+    s.text(740, y + 20, sub, "pl-note")
+    s.box(820, y + 4, 240 * v, 24, "ml-bar", 4)
+    s.text(828 + 240 * v, y + 22, f"{v:.2f}", "pl-label")
+y = Y + 158
+s.text(620, y + 20, "average", "pl-text")
+s.box(820, y + 4, 240 * 0.75, 24, "ml-bar-top", 4)
+s.text(828 + 240 * 0.75, y + 22, "0.75", "pl-label")
+s.text(620, Y + 210, "(0.50 + 1.00) / 2 = 0.75", "pl-note")
+s.save("l15-re-eval.svg", Y + 230)

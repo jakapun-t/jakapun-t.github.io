@@ -64,6 +64,7 @@ obvious, and use one of these:
 ## Exercises
 
 - Always individual: `mode="solo"` (ทำคนเดียว / On your own).
+- Practice to finish after class: `mode="home"` (การบ้าน / Homework), with no `time`. Other modes: `pairs`, `group`, `class`.
 - Self-contained: the question, the data and any rule are in the same card. Never "ตามกติกาใน
   L10-S25"; write the rule out.
 - This holds everywhere, not only in exercises: never point students to another section or lesson

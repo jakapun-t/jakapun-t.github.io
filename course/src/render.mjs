@@ -64,6 +64,7 @@ export const UI = {
     solo: ['ทำคนเดียว', 'On your own'],
     group: ['ทำเป็นกลุ่ม', 'In groups'],
     class: ['ทั้งชั้น', 'Whole class'],
+    home: ['การบ้าน', 'Homework'],
   },
   installOnce: ['ติดตั้งใน Terminal ครั้งเดียว', 'Install once in the Terminal'],
   reading: ['อ่านเพิ่ม', 'Reading'],

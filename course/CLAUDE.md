@@ -183,7 +183,8 @@ and the menu shows part headings (`src/render.mjs` `partsOf`). See LESSON-STYLE.
   ```
 
 ### Content kinds (tags)
-`::: concept`, `::: example`, `::: warning`, `::: exercise {time="5 นาที" mode="pairs"}`. Each can
+`::: concept`, `::: example`, `::: warning`, `::: exercise {time="5 นาที" mode="pairs"}` (modes: solo, pairs, group,
+class, home = homework, added 2026-11). Each can
 contain `::: th` / `::: en`. An exercise may contain `::: answer`, which is hidden behind the
 ดูเฉลย / Show answer button and also hidden in focus mode until revealed.
 
