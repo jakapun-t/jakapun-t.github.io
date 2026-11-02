@@ -595,51 +595,89 @@ s.save("l15-hmm-equation.svg", CY + 194)
 # ---------------------------------------------------------------- 8b. HMM steps 1-2: count transitions and emissions
 assert (PT("N", "N"), PT("N", "V"), PT("N", "end")) == (Fraction(1, 6), Fraction(3, 6), Fraction(2, 6))
 assert (PE("N", "dogs"), PE("V", "watch")) == (Fraction(3, 6), Fraction(1, 4))
-s = Svg(W, "Steps 1 and 2 of an HMM: counting. Step 1, transitions: add start and end to each tagged training sentence "
-           "(start N V end, start V N end, start N V N end, start N N V end) and count which tag follows N: N 1, V 3, end 2, "
-           "6 in all, so P(N|N) = 1/6, P(V|N) = 3/6, P(end|N) = 2/6. Step 2, emissions: N appears 6 times as dogs 3, birds 1, "
-           "watch 1, batteries 1, so P(dogs|N) = 3/6; V appears 4 times as bark, feed, watch and die, 1 each, so P(watch|V) = 1/4. "
-           "Each probability is a count divided by how often the first tag appears.")
+assert [PT("start", t) for t in "NV"] == [Fraction(3, 4), Fraction(1, 4)]
+assert [PT("V", t) for t in ("N", "V", "end")] == [Fraction(2, 4), 0, Fraction(2, 4)]
+s = Svg(W, "Steps 1 and 2 of an HMM: counting every pair, both steps the same way. Each arrow is coloured by the tag it starts "
+           "from (start grey and dashed, N rust, V blue); count where each colour's arrows land and divide by how many arrows "
+           "that colour has. Step 1, transitions, on start N V end, start V N end, start N V N end, start N N V end: from start, "
+           "N 3 and V 1 (out of 4); from N, N 1, V 3, end 2 (out of 6); from V, N 2, V 0, end 2 (out of 4). So P(V|N) = 3/6. "
+           "Step 2, emissions, each tag to its own word: N is dogs 3, birds 1, watch 1, batteries 1 (out of 6); V is bark, feed, "
+           "watch, die, 1 each (out of 4). So P(dogs|N) = 3/6. Every column adds up to 1.")
+PH = 470
 for x0 in (20, 600):
-    s.box(x0, 0, 560, 424, "ml-cell", 14)
+    s.box(x0, 0, 560, PH, "ml-cell", 14)
+COL = {"start": "var(--muted)", "N": "var(--accent)", "V": "var(--tag-concept-dot)"}
+CHIP = {"N": 'fill="var(--tag-warning-bg)" stroke="var(--accent)"', "V": 'fill="var(--tag-concept-bg)" stroke="var(--tag-concept-dot)"'}
+GAP_PAIR, GAP = 22, 8
+
+
+def chip(x, y, cw, t, tag=None):
+    if tag in CHIP:
+        s.raw(f'<rect x="{x:g}" y="{y:g}" width="{cw:g}" height="26" rx="6" {CHIP[tag]} stroke-width="1.6"/>')
+    else:
+        s.box(x, y, cw, 26, "nt-bubble", 6)
+    s.text(x + cw / 2, y + 18, t, "dg-code", "middle")
+
+
+def carrow(x1, x2, y, src_tag):
+    c, dash = COL[src_tag], ' stroke-dasharray="4 3"' if src_tag == "start" else ""
+    st = f'fill="none" stroke="{c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"'
+    s.raw(f'<path d="M{x1:g} {y:g} L{x2:g} {y:g}" {st}{dash}/>')
+    s.raw(f'<path d="M{x2 - 8:g} {y - 5:g} L{x2:g} {y:g} L{x2 - 8:g} {y + 5:g}" {st}/>')
+
+
+def mark_row(x, y, chips):
+    """chips: (label, width, tag colour or None, arrow from this chip's colour or None)."""
+    for k, (t, cw, tag, src_tag) in enumerate(chips):
+        chip(x, y, cw, t, tag)
+        x += cw
+        if src_tag:
+            carrow(x + 3, x + GAP_PAIR - 3, y + 13, src_tag)
+            x += GAP_PAIR
+        elif k < len(chips) - 1:
+            x += GAP
+
+
+def count_col(x, y, tag, rows, total, scale, lab_w):
+    """One column: a header chip for the tag the arrows start from, then one bar per landing place."""
+    chip(x, y, 54 if tag == "start" else 38, tag, tag)
+    s.both(x + (62 if tag == "start" else 46), y + 18, f"จาก {total}", f"out of {total}", "pl-note")
+    for r, (t, c) in enumerate(rows):
+        yy = y + 36 + r * 28
+        s.text(x, yy + 15, t, "dg-code")
+        if c:
+            s.raw(f'<rect x="{x + lab_w:g}" y="{yy:g}" width="{scale * c:g}" height="20" rx="4" fill="{COL[tag]}" opacity=".7"/>')
+        s.text(x + lab_w + scale * 3 + 10, yy + 15, f"{c}/{total}", "pl-label")
+
+
+# Step 1: every tag -> the tag after it
 s.both(40, 32, "ขั้น 1 · Transition: ป้ายไหนตามมา", "Step 1 · Transition: which tag comes next?", "pl-label")
-s.both(40, 60, "เติม start / end แล้วไล่ดูทีละคู่", "add start / end, then read the pairs", "pl-note")
+s.both(40, 60, "เติม start / end แล้วลากลูกศรจากทุกป้ายไปป้ายถัดไป", "add start / end, then an arrow from every tag to the next", "pl-note")
 SEQS = [["start"] + [t for _, t in sent] + ["end"] for sent in TRAIN]
 for r, seq in enumerate(SEQS):
-    x, y = 40, 74 + r * 34
-    for k, t in enumerate(seq):
-        cw = 54 if t in ("start", "end") else 38
-        after_n = k > 0 and seq[k - 1] == "N"
-        s.box(x, y, cw, 26, "nt-band-a" if after_n else ("sw-chip-warn" if t == "N" else "nt-bubble"), 6)
-        if after_n and t == "N":  # this N both follows an N and starts the next pair
-            s.raw(f'<rect x="{x:g}" y="{y:g}" width="{cw:g}" height="26" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/>')
-        s.text(x + cw / 2, y + 18, t, "dg-code", "middle")
-        x += cw + 6
-s.both(40, 236, "หลัง N (ส้ม) มาอะไร (ฟ้า): ทั้งหมด 6 คู่", "what follows N (orange)? the blue boxes: 6 pairs", "pl-note")
-for r, (t, c) in enumerate([("N → N", 1), ("N → V", 3), ("N → end", 2)]):
-    y = 252 + r * 36
-    s.text(40, y + 18, t, "dg-code")
-    s.box(140, y, 80 * c, 24, "ml-bar", 4)
-    s.text(146 + 80 * c, y + 18, str(c), "pl-note")
-    s.text(480, y + 18, f"{c}/6", "pl-label")
-s.text(40, 404, "P(V | N) = count(N → V) / count(N) = 3/6", "pl-label")
-s.both(620, 32, "ขั้น 2 · Emission: ป้ายนี้เป็นคำไหน", "Step 2 · Emission: which word is it?", "pl-label")
-s.both(620, 60, "N ปรากฏ 6 ครั้ง เป็นคำเหล่านี้", "N appears 6 times, as these words", "pl-note")
-for r, (w_, c) in enumerate([("dogs", 3), ("birds", 1), ("watch", 1), ("batteries", 1)]):
-    y = 74 + r * 32
-    s.text(620, y + 18, w_, "pl-text")
-    s.box(730, y, 80 * c, 24, "ml-bar-top", 4)
-    s.text(736 + 80 * c, y + 18, str(c), "pl-note")
-    s.text(1060, y + 18, f"{c}/6", "pl-label")
-s.both(620, 230, "V ปรากฏ 4 ครั้ง เป็นคำเหล่านี้", "V appears 4 times, as these words", "pl-note")
-for r, w_ in enumerate(["bark", "feed", "watch", "die"]):
-    y = 244 + r * 32
-    s.text(620, y + 18, w_, "pl-text")
-    s.box(730, y, 80, 24, "ml-bar-top", 4)
-    s.text(816, y + 18, "1", "pl-note")
-    s.text(1060, y + 18, "1/4", "pl-label")
-s.text(620, 404, "P(dogs | N) = count(N, dogs) / count(N) = 3/6", "pl-label")
-s.save("l15-hmm-count.svg", 428)
+    mark_row(40, 74 + r * 34, [(t, 54 if t in ("start", "end") else 38, t if t in "NV" else None,
+                                None if t == "end" else t) for t in seq])
+s.both(40, 236, "สีลูกศร = ป้ายต้นทาง · นับว่าลูกศรแต่ละสีไปตกที่ไหน", "arrow colour = where it starts · count where each colour lands", "pl-note")
+count_col(40, 252, "start", [("→ N", 3), ("→ V", 1)], 4, 16, 56)
+count_col(226, 252, "N", [("→ N", 1), ("→ V", 3), ("→ end", 2)], 6, 16, 56)
+count_col(412, 252, "V", [("→ N", 2), ("→ V", 0), ("→ end", 2)], 4, 16, 56)
+s.both(40, 418, "แต่ละคอลัมน์รวมกันได้ 1 · ไม่เคยเห็น V → V จึงได้ 0", "each column adds up to 1 · V → V never seen, so 0", "pl-note")
+s.text(40, 452, "P(V | N) = count(N → V) / count(N) = 3/6", "pl-label")
+
+# Step 2: every tag -> its own word
+s.both(620, 32, "ขั้น 2 · Emission: แต่ละป้ายเป็นคำไหน", "Step 2 · Emission: which word is each tag?", "pl-label")
+s.both(620, 60, "ลากลูกศรจากป้ายไปคำของมันเอง (start / end ไม่มีคำ)", "an arrow from each tag to its own word (start / end: no word)", "pl-note")
+for r, sent in enumerate(TRAIN):
+    chips = [("start", 54, None, None)]
+    for w_, t in sent:
+        chips += [(t, 30, t, t), (w_.lower(), width(w_.lower(), 15) + 18, None, None)]
+    mark_row(620, 74 + r * 34, chips + [("end", 54, None, None)])
+s.both(620, 236, "สีลูกศร = ป้าย · นับว่าแต่ละป้ายเป็นคำไหนกี่ครั้ง", "arrow colour = the tag · count each tag's words", "pl-note")
+count_col(620, 252, "N", [("dogs", 3), ("birds", 1), ("watch", 1), ("batteries", 1)], 6, 22, 104)
+count_col(890, 252, "V", [("bark", 1), ("feed", 1), ("watch", 1), ("die", 1)], 4, 22, 70)
+s.both(620, 418, "แต่ละคอลัมน์รวมกันได้ 1", "each column adds up to 1", "pl-note")
+s.text(620, 452, "P(dogs | N) = count(N → dogs) / count(N) = 3/6", "pl-label")
+s.save("l15-hmm-count.svg", PH + 4)
 
 # ---------------------------------------------------------------- 8. HMM step 3: score two tag sequences (the only two that are not 0)
 
