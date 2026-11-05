@@ -572,6 +572,12 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
 .pc-result-table th, .pc-result-table td { padding-left: calc(7 * var(--k)); padding-right: calc(7 * var(--k)); }
 .pc-vis-img { background: #fff; border: 1px solid var(--card-border); padding: calc(6 * var(--k)); }
 .pc-vis-img img { display: block; width: 100%; height: auto; }
+/* a chart card with a few rows of the columns it uses beside it (```cards img: + cols: + rows:) */
+.pc-vis-pair { flex-wrap: nowrap; align-items: center; }
+.pc-vis-pair > .pc-col { flex: 0 1 auto; min-width: 0; max-width: 40%; }
+.pc-chart { flex: 1 1 0; min-width: 0; background: #fff; border: 1px solid var(--card-border); border-radius: calc(8 * var(--k)); padding: calc(6 * var(--k)); }
+.pc-chart img { display: block; width: 100%; height: auto; }
+@media (max-width: 760px) { .pc-vis-pair { flex-wrap: wrap; } .pc-vis-pair .pc-arrow { transform: rotate(90deg); } .pc-vis-pair > .pc-col { max-width: 100%; } .pc-vis-pair .pc-chart { flex-basis: 100%; } }
 .venn { width: calc(150 * var(--k)); height: auto; }
 .venn circle { fill: none; }
 .venn .venn-on circle { fill: var(--pc-dot); opacity: .45; }

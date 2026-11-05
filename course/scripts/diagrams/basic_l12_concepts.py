@@ -203,7 +203,7 @@ PAIR_TOP = [("กาแฟ อร่อย", 2), ("ขนม อร่อย", 2
 R10 = ["รอ", "นาน", "มาก", "แต่", "ขนม", "อร่อย", "จริง"]
 s = svg("What do customers call tasty, and what do they complain about? Single words: กาแฟ 6, อร่อย 5, มาก 3, รอ 3, นาน 3; อร่อย "
         "says something is tasty but not what, and รอ and นาน are counted apart. Bigrams pair each token with the next: R10's 7 "
-        "tokens รอ นาน มาก แต่ ขนม อร่อย จริง give 6 pairs with zip(toks, toks[1:]). The top pairs over all reviews: กาแฟ อร่อย, "
+        "tokens รอ นาน มาก แต่ ขนม อร่อย จริง give 6 pairs, joining token i with token i + 1. The top pairs over all reviews: กาแฟ อร่อย, "
         "ขนม อร่อย, รอ นาน, นาน มาก, บรรยากาศ ดี, 2 each: customers praise both the coffee and the desserts and complain about "
         "waiting a long time.")
 s.bubble(W / 2, 8, "ลูกค้าชมว่าอะไรอร่อย และบ่นเรื่องอะไร", "What do customers call tasty, and what do they complain about?", 600)
@@ -218,20 +218,20 @@ for k, (wd, n) in enumerate(WORD_TOP):
 s.both(40, 418, "อร่อย 5 ครั้ง: แต่อะไรอร่อย", "อร่อย 5 times: but what is tasty?", "ml-neg")
 s.both(40, 450, "รอ 3 กับ นาน 3 ถูกนับแยกกัน", "รอ 3 and นาน 3 are counted apart", "ml-neg")
 s.both(40, 500, "✗ เห็นคำ แต่ไม่เห็นบริบท", "✗ words, but no context", "ml-neg")
-# bigrams: how zip pairs neighbours, then the counts
+# bigrams: how token i pairs with token i + 1, then the counts
 s.box(440, 70, 720, 450, "nt-band-a", 14)
 s.both(460, 102, "✓ นับคู่คำติดกัน (bigram)", "✓ Count neighbouring pairs (bigrams)", "pl-label")
-s.text(460, 136, "zip(toks, toks[1:])", "hk-mono")
+s.text(460, 136, "toks[i] + toks[i + 1]", "hk-mono")
 s.both(760, 136, "R10 หลัง clean: 7 คำ", "R10 after clean: 7 tokens", "pl-note")
-for row, (toks, y) in enumerate(((R10, 172), (R10[1:], 222))):  # fixed-width cells, so zip's pairs stand in columns
+for row, (toks, y) in enumerate(((R10, 172), (R10[1:], 222))):  # fixed-width cells, so each pair stands in a column
     for i, tok in enumerate(toks):
         x = 460 + i * 84
         s.box(x, y - 17, 76, 34, "pl-chip", 8)
         s.thai(x + 38, y + 6, tok, "pl-chip-text", "middle")
 for i in range(6):
     s.box(456 + i * 84, 148, 84, 98, "dg-row", 10)
-s.both(1150, 178, "toks", "toks", "pl-note", "end")
-s.both(1150, 228, "toks[1:]", "toks[1:]", "pl-note", "end")
+s.both(1150, 178, "คำที่ i", "token i", "pl-note", "end")
+s.both(1150, 228, "คำที่ i + 1", "token i + 1", "pl-note", "end")
 s.both(460, 270, "แต่ละคำจับคู่กับคำถัดไป: 7 คำ ได้ 6 คู่", "each word pairs with the next: 7 tokens, 6 pairs", "pl-note")
 for k, (pair, n) in enumerate(PAIR_TOP):
     y = 288 + k * 36

@@ -241,7 +241,7 @@ const TH = (th, en) => T([inline(String(th)), inline(String(en ?? th))], { thHtm
 
 // A card cell's text, escaped, with line-break points where a long code name may wrap without
 // cutting a word: after _ . / and between camelCase parts (Sequential·Feature·Selector).
-const cell = (v) => esc(String(v)).replace(/([_./])(?=\w)/g, '$1<wbr>').replace(/([a-z])(?=[A-Z][a-z])/g, '$1<wbr>');
+const cell = (v) => esc(String(v)).replace(/([_./])(?=[A-Za-z_])/g, '$1<wbr>').replace(/([a-z])(?=[A-Z][a-z])/g, '$1<wbr>');
 
 // The same break points inside inline `code` of a card's text.
 const codeBreaks = (html) => html.replace(/<code>([^<]*)<\/code>/g, (m, c) => `<code>${c.replace(/([_./])(?=\w)/g, '$1<wbr>').replace(/([a-z])(?=[A-Z][a-z])/g, '$1<wbr>')}</code>`);
@@ -300,6 +300,9 @@ export function renderCards(n, ctx) {
       // a join card: which part of the two tables survives, then the rows it keeps
       const [l, r] = Array.isArray(c.tables) ? c.tables : ['left', 'right'];
       vis = `<div class="pc-vis pc-vis-venn">${venn(c.venn, l, r)}${Array.isArray(c.rows) && Array.isArray(c.cols) ? resultTable(c.cols, c.rows) : ''}</div>`;
+    } else if (c.img && Array.isArray(c.rows) && Array.isArray(c.cols)) {
+      // a chart with a few rows of the columns it uses beside it, so students see the data behind it
+      vis = `<div class="pc-vis pc-vis-pair">${resultTable(c.cols, c.rows)}<span class="pc-arrow" aria-hidden="true">→</span><div class="pc-chart">${imageTag(c.img, ctx, c.alt ?? c.when_en, n.line)}</div></div>`;
     } else if (Array.isArray(c.rows) && Array.isArray(c.cols)) {
       vis = `<div class="pc-vis">${resultTable(c.cols, c.rows)}</div>`;
     } else if (c.img) {

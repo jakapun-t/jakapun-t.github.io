@@ -311,6 +311,12 @@ ul.fx-points > li::before { content: ''; position: absolute; left: calc(14 * var
 .fx .pc-grid.pc-cols-3:has(> :nth-child(5)), .fx .pc-grid.pc-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .fx .pc-grid.pc-cols-3:has(> :nth-child(5)):not(:has(> :nth-child(6))) { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: calc(10 * var(--k)); }
 .fx .pc-vis-img img { width: auto; max-width: 100%; max-height: calc(210 * var(--u)); margin: 0 auto; }
+.fx .pc-chart img { width: auto; max-width: 100%; max-height: calc(200 * var(--u)); margin: 0 auto; }
+/* chart cards with a sample table: one wide column per card (2 or 3), compact table rows */
+.fx .pc-grid:has(.pc-vis-pair) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fx .pc-grid:has(.pc-vis-pair):has(> :nth-child(3)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fx .pc-grid:has(.pc-vis-pair):not(:has(> :nth-child(2))) { grid-template-columns: minmax(0, 640px); justify-content: center; }
+.fx .pc-vis-pair .pc-col th, .fx .pc-vis-pair .pc-col td { font-size: calc(12 * var(--k)); padding: calc(2 * var(--k)) calc(6 * var(--k)); height: auto; }
 
 /* ::: transform {right=...} (merge): inputs stacked on the left → result on the right */
 .fx .tf-merge { display: grid; grid-template-columns: auto auto auto; grid-template-areas: "code code code" "in down out" "cap cap cap"; align-items: center; justify-content: center; column-gap: calc(24 * var(--u)); row-gap: calc(14 * var(--u)); }

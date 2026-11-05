@@ -285,6 +285,9 @@ focus mode is a `::: focus {page=false}` with one `$\displaystyle ...$` line. Th
   its cells, and `{open}` keeps one cell unfolded. A plot cell folds only its code, so the chart stays on the page.
   The slide PDF and focus mode are unaffected.
 - **cards {cols=3}:** 3 cards per row (galleries); a card's `img:` shows a small chart.
+  A card with `img:` plus `cols:` and `rows:` (added 2026-11, nlp-basic L11-S06) shows a few real rows of the
+  columns the chart uses beside the chart (stacked on phones); on the projector such cards get one wide column each
+  (2 or 3 per frame, a lone card centred), so split a set of 3+ into frames of 2.
   Each ```cards block is one focus frame; a set too tall for 1280×720 is split into two blocks, and
   `{start=5}` makes the second block number its cards from 5.
 - **stepper / sorter (added 2026-10, stats-dh lesson 10; `src/interactives.mjs`, `templates/interactives.{js,css}`):**
