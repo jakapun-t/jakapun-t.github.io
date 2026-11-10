@@ -54,37 +54,80 @@ s.both(40, 494, "Garbage In, Garbage Out: โมเดลหรือกรา�
 s.save("l15-hook.svg", 534)
 
 # ================================================================ L14 reliability vs validity: four targets
-s = Svg(W, "Reliability and validity as four targets. The bullseye is the concept we mean to label, fake news. 1 Reliable "
-           "and valid: the marks agree and hit the centre. 2 Reliable but not valid: the marks agree but all land off "
-           "centre, labelling angry language instead of fake news. 3 Valid on average but not reliable: the marks scatter "
-           "around the centre. 4 Neither.")
-s.bubble("ผู้ติดป้าย 6 คนติดป้าย “ข่าวปลอม” ให้ข่าวเดียวกัน ป้ายดีหรือไม่", "Six annotators label the same article for “fake news”: are the labels good?")
-TARGETS = [
-    ("ตรงกัน และ ถูกเป้า", "Reliable and valid", [(0, 0), (6, -4), (-5, 3), (3, 6), (-4, -5), (5, 2)], 0, 0, "ml-ok", ("✓ เป้าหมาย", "✓ the goal")),
-    ("ตรงกัน แต่ ผิดเป้า", "Reliable, not valid", [(0, 0), (5, -3), (-4, 4), (3, 5), (-5, -4), (4, 3)], 48, -40, "ml-neg",
-     ("✗ วัด “ภาษาโกรธ” แทน", "✗ labels angry tone")),
-    ("ถูกเป้า แต่ไม่ตรงกัน", "Valid, not reliable", [(-50, 20), (40, 45), (30, -55), (-45, -35), (55, -5), (-25, 50)], 0, 0, "ml-neg",
-     ("✗ คนละคนคนละแบบ", "✗ each labels differently")),
-    ("ไม่ตรงกัน และ ผิดเป้า", "Neither", [(-30, 10), (30, 40), (50, -20), (-10, -55), (65, 30), (5, 25)], 35, -30, "ml-neg", ("✗ ใช้ไม่ได้", "✗ useless")),
+def wrap(text, maxw, fs):
+    out, line = [], ""
+    for w in text.split(" "):
+        t = (line + " " + w).strip()
+        if width(t, fs) > maxw and line:
+            out.append(line)
+            line = w
+        else:
+            line = t
+    return out + ([line] if line else [])
+
+
+# 6 annotators read one headline each and answer fake or real; reliable = the 6 answers agree, valid = they match the
+# truth. One made-up headline per case.
+CASES = [  # title th/en, headline th/en, truth (F/R), the 6 answers, reliable?, valid?, why th/en
+    ("reliable และ valid", "Reliable and valid", "ดื่มน้ำมะนาวทุกเช้า รักษามะเร็งได้ 100%",
+     "Lemon water every morning cures cancer 100%", "F", "FFFFFF", True, True,
+     "✓ เป้าหมาย: ตรงกัน และถูก", "✓ The goal: they agree, and they're right"),
+    ("reliable แต่ไม่ valid", "Reliable, not valid", "นายกฯ โกรธจัด! ตอกกลับสื่อกลางสภา",
+     "PM furious! Hits back at the press in parliament", "R", "FFFFFF", True, False,
+     "✗ ทุกคนตัดสินจาก น้ำเสียงโกรธ ไม่ใช่ความจริง", "✗ All judge the angry tone, not the facts"),
+    ("valid แต่ไม่ reliable", "Valid, not reliable", "ผลวิจัย: กาแฟวันละ 5 แก้ว อายุยืนขึ้น 10 ปี",
+     "Study: 5 coffees a day add 10 years to your life", "F", "FFRFRF", False, True,
+     "✗ เสียงข้างมากถูก แต่คนละคนคนละแบบ", "✗ The majority is right, but people split"),
+    ("ไม่ reliable ไม่ valid", "Neither", "ร้านดังปิดตัวกะทันหัน ลูกค้าโกรธจัด!",
+     "Famous shop closes suddenly, customers furious!", "R", "FRFFRF", False, False,
+     "✗ คนละคนคนละแบบ และเสียงข้างมากก็ผิด", "✗ People split, and the majority is wrong"),
 ]
-PW = 272
-for i, (th, en, marks, dx, dy, cls, (rth, ren)) in enumerate(TARGETS):
+LAB = {"F": ("ปลอม", "fake"), "R": ("จริง", "real")}
+s = Svg(W, "Six annotators read the same made-up headline and answer fake or real. Reliable means the 6 answers agree; valid "
+           "means they match the truth. 1 Reliable and valid: 'Lemon water cures cancer 100%' is fake, all 6 say fake. 2 "
+           "Reliable, not valid: 'PM furious! Hits back at the press' is real, all 6 say fake because of the angry tone. "
+           "3 Valid, not reliable: 'Study: 5 coffees a day add 10 years' is fake, 4 say fake and 2 real. 4 Neither: "
+           "'Famous shop closes suddenly, customers furious!' is real, 4 say fake and 2 real.")
+s.bubble("ผู้ติดป้าย 6 คนอ่านพาดหัวเดียวกัน แล้วตอบว่า “ข่าวปลอม” หรือ “ข่าวจริง”",
+         "Six annotators read the same headline and answer “fake” or “real”")
+PW, CHW, CHH = 272, 76, 36
+for i, (th, en, hth, hen, truth, answers, rel, val, wth, wen) in enumerate(CASES):
     x0 = 20 + i * (PW + 17)
-    s.box(x0, 70, PW, 400, "nt-band-a" if i == 0 else "sw-warn-box", 14)
+    good = rel and val
+    s.box(x0, 70, PW, 470, "nt-band-a" if good else "sw-warn-box", 14)
     s.badge(x0 + 30, 96, i + 1)
     s.both(x0 + 50, 102, th, en, "pl-label")
-    cx, cy = x0 + PW / 2, 260
-    for r, cls_r in ((110, "ml-cell"), (78, "ml-cell"), (46, "ml-cell"), (16, "ml-cell-b")):
-        s.raw(f'<circle cx="{cx}" cy="{cy}" r="{r}" class="{cls_r}"/>')
-    for (mx, my) in marks:
-        x, y = cx + mx + dx, cy + my + dy
-        s.raw(f'<path d="M{x - 7} {y - 7} L{x + 7} {y + 7} M{x + 7} {y - 7} L{x - 7} {y + 7}" class="pl-line" stroke-width="3"/>')
-    s.both(x0 + 20, 420, rth, ren, cls)
-    if i == 1:
-        s.both(x0 + 20, 448, "ป้ายตรงกัน (IRR สูง) แต่ใช้ไม่ได้", "high agreement, still useless", "pl-note")
-s.both(20, 504, "จุดกลางเป้า = สิ่งที่ตั้งใจวัด (ข่าวปลอม) · ✕ = ป้ายของผู้ติดป้ายแต่ละคน", "Centre = the concept we mean (fake news) · ✕ = each annotator's label", "pl-note")
-s.both(20, 536, "reliability (ความน่าเชื่อถือ) = ป้ายตรงกันไหม · validity (ความถูกต้อง) = วัดสิ่งที่ตั้งใจวัดจริงไหม", "reliability = do the labels agree? · validity = do they measure what we mean?", "pl-label")
-s.save("l15-validity.svg", 554)
+    # the headline
+    s.box(x0 + 14, 120, PW - 28, 80, "ml-cell", 8)
+    a_, b_ = wrap("“" + hth + "”", PW - 52, 15 * 1.15), wrap("“" + hen + "”", PW - 52, 15 * 1.15)
+    for k in range(max(len(a_), len(b_))):
+        s.both(x0 + 26, 144 + k * 22, a_[k] if k < len(a_) else "", b_[k] if k < len(b_) else "", "mp-p")
+    s.both(x0 + 20, 228, f"ความจริง: ข่าว{LAB[truth][0]}", f"Truth: {LAB[truth][1]}", "pl-label")
+    # the 6 answers, ✓ when it matches the truth
+    s.both(x0 + 20, 258, "คำตอบของ 6 คน:", "The 6 answers:", "pl-note")
+    for k, ans in enumerate(answers):
+        cx = x0 + 18 + (k % 3) * (CHW + 8)
+        cy = 270 + (k // 3) * (CHH + 8)
+        right = ans == truth
+        s.box(cx, cy, CHW, CHH, "ml-cell", 6)
+        s.both(cx + CHW / 2, cy + 25, ("✓ " if right else "✗ ") + LAB[ans][0], ("✓ " if right else "✗ ") + LAB[ans][1],
+               "ml-ok" if right else "ml-neg", "middle")
+    # the two checks
+    nf = answers.count("F")
+    split_th = f"ปลอม {nf} · จริง {6 - nf}"
+    split_en = f"fake {nf} · real {6 - nf}"
+    s.line(x0 + 16, 364, x0 + PW - 16, 364, "mp-guide")
+    s.both(x0 + 20, 392, ("✓" if rel else "✗") + " reliable: " + ("ตอบเหมือนกันทั้ง 6" if rel else split_th),
+           ("✓" if rel else "✗") + " reliable: " + ("all 6 the same" if rel else split_en), "ml-ok" if rel else "ml-neg")
+    s.both(x0 + 20, 422, ("✓" if val else "✗") + " valid: " + ("ตรงกับความจริง" if val else "ผิดจากความจริง"),
+           ("✓" if val else "✗") + " valid: " + ("matches the truth" if val else "misses the truth"), "ml-ok" if val else "ml-neg")
+    va, vb = wrap(wth, PW - 40, 16 * 1.2), wrap(wen, PW - 40, 16 * 1.2)
+    for k in range(max(len(va), len(vb))):
+        s.both(x0 + 20, 466 + k * 26, va[k] if k < len(va) else "", vb[k] if k < len(vb) else "", "pl-note")
+s.both(20, 574, "reliable = ทุกคนให้ป้ายเหมือนกันไหม · valid = ป้ายตรงกับสิ่งที่ตั้งใจวัด (ความจริง) ไหม · พาดหัวเป็นตัวอย่างสมมติ",
+       "reliable = do the annotators give the same label? · valid = does the label match what we mean to measure? · made-up headlines",
+       "pl-label")
+s.save("l15-validity.svg", 594)
 
 # ================================================================ L14 bad vs good guideline on four sentences
 SENT = [  # sentence, bad guideline: rater 1, rater 2; good guideline: rater 1, rater 2
@@ -144,50 +187,68 @@ s.save("l15-guideline.svg", 706)
 # ================================================================ L14 Cohen's kappa worked on "Anxiety or not"
 s = Svg(W, "Cohen's kappa for 'Anxiety or not', RA A vs RA B on the 100 pilot letters. The table: both yes 17, A yes and B "
            "no 10, A no and B yes 18, both no 55. Observed agreement p_o = (17 + 55) / 100 = 0.72. A says yes 27%, B "
-           "says yes 35%, so chance agreement p_e = 0.27 × 0.35 + 0.73 × 0.65 = 0.569. Kappa = (0.72 − 0.569) / (1 − "
-           "0.569) = 0.35: only fair agreement, though they agree 72% of the time.")
-s.bubble("A กับ B ตอบตรงกันว่า “กังวลหรือไม่” 72% ดีพอไหม", "A and B agree on “Anxiety or not” 72% of the time: is that good enough?")
-# 1 the table
-s.panel(20, 70, 380, 430, "nt-band-a", "ตารางของสองคน", "Two raters' table", 1)
-X, Y = 150, 170
-s.both(X + 115, Y - 20, "ผู้ช่วย B", "RA B", "pl-note", "middle")
-s.text(X + 55, Y + 10, "yes", "pl-note", "middle")
-s.text(X + 175, Y + 10, "no", "pl-note", "middle")
-s.both(40, Y + 90, "ผู้ช่วย A", "RA A", "pl-note")
-s.text(X - 20, Y + 62, "yes", "pl-note", "end")
-s.text(X - 20, Y + 172, "no", "pl-note", "end")
-for (r, c, v, agree) in [(0, 0, 17, True), (0, 1, 10, False), (1, 0, 18, False), (1, 1, 55, True)]:
-    x, y = X + c * 120, Y + 24 + r * 110
-    s.box(x, y, 110, 100, "rc-res" if agree else "ml-cell", 10)
-    s.text(x + 55, y + 60, str(v), "pl-label", "middle")
-s.both(40, 440, "สีเขียว = ตอบตรงกัน: 17 + 55 = 72", "green = agree: 17 + 55 = 72", "pl-text")
-s.both(40, 474, "A ตอบ yes 27 · B ตอบ yes 35", "A says yes 27 · B says yes 35", "pl-note")
-# 2 chance agreement
-s.panel(420, 70, 360, 430, "sw-warn-box", "ตรงกันเพราะบังเอิญ", "Agreement by chance", 2)
-s.both(440, 140, "ถ้าทั้งคู่เดาสุ่มตามสัดส่วนของตัวเอง", "If both guessed at their own rates", "pl-note")
-s.text(440, 190, "both yes: 0.27 × 0.35 = 0.095", "pl-text")
-s.text(440, 230, "both no:  0.73 × 0.65 = 0.475", "pl-text")
-s.text(440, 290, "pₑ = 0.095 + 0.475 = 0.569", "pl-label")
-s.both(440, 350, "ป้าย “ไม่กังวล” มีมาก", "“not anxious” is common,", "pl-note")
-s.both(440, 378, "จึงตรงกันง่ายแม้ไม่ได้อ่านเลย", "so they'd agree often without reading", "pl-note")
-s.both(440, 474, "✗ 57% ของความตรงกันได้มาฟรี", "✗ 57% agreement comes for free", "ml-neg")
-# 3 kappa
-s.panel(800, 70, 360, 430, "nt-band-a", "kappa: เกินกว่าบังเอิญเท่าไร", "Kappa: how far beyond chance", 3)
-s.text(820, 150, "κ = (pₒ − pₑ) / (1 − pₑ)", "pl-label")
-s.text(820, 196, "= (0.72 − 0.569) / (1 − 0.569)", "pl-text")
-s.text(820, 236, "= 0.151 / 0.431 = 0.35", "pl-label")
-# a gauge from 0 to 1 with the bands
-G0, G1, GY = 830, 1130, 320
-for (a, b, cls) in [(0, 0.2, "ml-cell"), (0.2, 0.4, "rc-ctx"), (0.4, 0.6, "ml-cell"), (0.6, 0.8, "rc-ctx"), (0.8, 1.0, "rc-res")]:
-    s.box(G0 + a * (G1 - G0), GY, (b - a) * (G1 - G0), 26, cls, 2)
-for v in (0, 0.2, 0.4, 0.6, 0.8, 1.0):
-    s.text(G0 + v * (G1 - G0), GY + 48, f"{v:g}", "pl-note", "middle")
-kx = G0 + 0.35 * (G1 - G0)
-s.raw(f'<path d="M{kx} {GY - 4} l-8 -14 h16 Z" class="pl-dot"/>')
-s.text(kx, GY - 24, "0.35", "pl-label", "middle")
-s.both(820, 410, "0 = ตรงกันแค่เท่าบังเอิญ · 1 = ตรงกันทุกฉบับ", "0 = chance level · 1 = perfect", "pl-note")
-s.both(820, 474, "✗ fair เท่านั้น ต้องแก้คู่มือ", "✗ only fair: fix the guidelines", "ml-neg")
-s.save("l15-kappa.svg", 520)
+           "says yes 35%, so chance agreement p_e = 0.27 × 0.35 + 0.73 × 0.65 = 0.569. Above chance they got 0.72 − 0.569 = "
+           "0.151 out of a possible 1 − 0.569 = 0.431, so kappa = 0.151 / 0.431 = 0.35: only fair agreement, though they "
+           "agree 72% of the time.")
+s.bubble("A กับ B ตอบตรงกันว่า “กังวลหรือไม่” 72% ดีพอไหม คิด kappa ทีละขั้น",
+         "A and B agree on “Anxiety or not” 72% of the time: is that good? Kappa step by step")
+GREEN, CHANCE = "var(--tag-exercise-dot)", "var(--accent)"
+# 1 the table, with totals
+s.panel(20, 70, 570, 296, "nt-band-a", "นับใส่ตาราง พร้อมผลรวม", "Count into a table, with totals", 1)
+TX, TY, CW_, CH_ = 210, 124, 108, 54
+for j, (th, en) in enumerate([("B: yes", "B: yes"), ("B: no", "B: no"), ("รวม", "total")]):
+    s.both(TX + j * (CW_ + 8) + CW_ / 2, TY + 18, th, en, "pl-note", "middle")
+CELLS = [[(17, "agree"), (10, ""), (27, "tot")], [(18, ""), (55, "agree"), (73, "tot")], [(35, "tot"), (65, "tot"), (100, "tot")]]
+NOTE = {(0, 2): "17 + 10", (1, 2): "18 + 55", (2, 0): "17 + 18", (2, 1): "10 + 55"}
+for i, (th, en) in enumerate([("A: yes", "A: yes"), ("A: no", "A: no"), ("รวม", "total")]):
+    y = TY + 28 + i * (CH_ + 6)
+    s.both(TX - 16, y + 30, th, en, "pl-note", "end")
+    for j, (v, kind) in enumerate(CELLS[i]):
+        x = TX + j * (CW_ + 8)
+        s.box(x, y, CW_, CH_, "rc-res" if kind == "agree" else ("rc-ctx" if kind == "tot" else "ml-cell"), 8)
+        s.text(x + CW_ / 2, y + (25 if (i, j) in NOTE else 34), str(v), "pl-label", "middle")
+        if (i, j) in NOTE:
+            s.text(x + CW_ / 2, y + 46, NOTE[(i, j)], "mp-s", "middle")
+s.both(40, 350, "สีเขียว = ตอบเหมือนกัน · สีเหลือง = ผลรวม",
+       "green = same answer · yellow = totals", "pl-note")
+# 2 observed agreement
+s.panel(610, 70, 550, 296, "nt-band-a", "ตรงกันจริง (pₒ)", "Observed agreement (pₒ)", 2)
+s.both(630, 140, "นับช่องเขียว: ตอบ yes ทั้งคู่ + ตอบ no ทั้งคู่", "Count the green cells: both yes + both no", "pl-note")
+s.text(630, 186, "17 + 55 = 72", "pl-text")
+s.text(630, 236, "pₒ = 72 / 100 = 0.72", "mp-big")
+s.both(630, 330, "ฟังดูดี แต่ส่วนหนึ่งอาจตรงกันเพราะบังเอิญ", "Sounds good, but some of it may be luck", "pl-note")
+# 3 chance agreement
+s.panel(20, 380, 570, 300, "sw-warn-box", "ตรงกันเพราะบังเอิญ (pₑ)", "Agreement by chance (pₑ)", 3)
+s.both(40, 446, "ถ้าทั้งคู่เดาสุ่มตามสัดส่วนของตัวเอง (ไม่อ่านจดหมายเลย)",
+       "If both guessed at their own rates (without reading)", "pl-note")
+CH = [("A ตอบ yes: 27 / 100 = 0.27 · B ตอบ yes: 35 / 100 = 0.35", "A says yes: 27 / 100 = 0.27 · B says yes: 35 / 100 = 0.35", "mp-p"),
+      ("yes ทั้งคู่โดยบังเอิญ: 0.27 × 0.35 = 0.095", "both yes by chance: 0.27 × 0.35 = 0.095", "pl-text"),
+      ("A ตอบ no: 0.73 · B ตอบ no: 0.65", "A says no: 0.73 · B says no: 0.65", "mp-p"),
+      ("no ทั้งคู่โดยบังเอิญ: 0.73 × 0.65 = 0.475", "both no by chance: 0.73 × 0.65 = 0.475", "pl-text")]
+for k, (th, en, cls) in enumerate(CH):
+    s.both(40, 486 + k * 34, th, en, cls)
+s.text(40, 642, "pₑ = 0.095 + 0.475 = 0.569", "mp-big")
+s.both(570, 642, "57% ได้มาฟรี", "57% comes free", "ml-neg", "end")
+# 4 kappa: how much of the room above chance they actually got
+s.panel(610, 380, 550, 300, "nt-band-a", "kappa: ได้เกินบังเอิญกี่ส่วน", "Kappa: how much beyond chance", 4)
+B0, B1, BY = 640, 1130, 462
+xs = lambda v: B0 + v * (B1 - B0)
+s.fill(xs(0), BY, xs(0.569) - xs(0), 30, CHANCE, 4)
+s.raw(f'<rect x="{xs(0.569):g}" y="{BY}" width="{xs(1) - xs(0.569):g}" height="30" rx="4" class="ml-cell"/>')
+s.fill(xs(0.569), BY, xs(0.72) - xs(0.569), 30, GREEN, 0)
+for v in (0, 0.569, 0.72, 1):
+    s.text(xs(v), BY + 50, f"{v:g}", "mp-s", "middle")
+s.raw(f'<text x="{(xs(0) + xs(0.569)) / 2:g}" y="{BY + 21}" class="mp-chip" text-anchor="middle" style="fill:#fff" data-only="th">บังเอิญ</text>')
+s.raw(f'<text x="{(xs(0) + xs(0.569)) / 2:g}" y="{BY + 21}" class="mp-chip" text-anchor="middle" style="fill:#fff" data-only="en" lang="en">chance</text>')
+s.raw(f'<path d="M{xs(0.569):g} {BY - 8} v-8 H{xs(1):g} v8" class="mp-axis"/>')
+s.both(xs(1), BY - 24, "เกินบังเอิญได้สูงสุด: 1 − 0.569 = 0.431", "most above chance: 1 − 0.569 = 0.431",
+       "mp-s", "end")
+s.both(630, BY + 92, "ได้เกินบังเอิญจริง (สีเขียว): 0.72 − 0.569 = 0.151", "actually above chance (green): 0.72 − 0.569 = 0.151",
+       "pl-text")
+s.text(630, BY + 140, "κ = 0.151 / 0.431 = 0.35", "mp-big")
+s.both(630, BY + 180, "✗ ได้แค่ 35% ของที่เป็นไปได้: fair ต้องแก้คู่มือ", "✗ only 35% of what was possible: fair, fix the guidelines",
+       "ml-neg")
+s.save("l15-kappa.svg", 698)
 
 # ================================================================ L14 three ways to scale up
 s = Svg(W, "Three ways to label 20,000 letters when people can label only a few hundred. 1 Weak supervision: experts write "

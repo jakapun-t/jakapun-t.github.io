@@ -552,8 +552,9 @@ info_map(
     "labels disagree (letter 3 gets formality 1, 9 and 8; emotion alpha 0.375, formality ICC 0.418). Four parts: 2 know "
     "what quality means (consistent is not the same as correct), 3 write clear guidelines with examples (“It wasn't bad.” "
     "is Neutral), 4 measure agreement beyond chance (72% agree, 57% expected by chance, kappa 0.35), 5 scale up from 200 "
-    "hand-labelled letters to 20,000, then 6 a case study: two friends label TikTok comments under a viral shop's "
-    "videos; after 3 new rules, kappa goes from 0.45 to 0.80.",
+    "hand-labelled letters to 20,000, then 6 two case studies: two friends label TikTok comments under a viral shop's "
+    "videos (after 3 new rules, kappa goes from 0.45 to 0.80), and three friends score how toxic comments under an "
+    "idol's posts are, 1–5 (with anchors, ICC goes from 0.52 to 0.86).",
     ("จดหมาย 100 ฉบับ · ผู้ช่วยวิจัย 3 คน", "100 letters · 3 research assistants"),
     ("ป้ายจากผู้ช่วยวิจัยเชื่อได้ไหม", "Can we trust the assistants' labels?"),
     ("✗ ไม่ตรงกัน: อารมณ์ α 0.375 · ความเป็นทางการ ICC 0.418", "✗ They disagree: emotion α 0.375 · formality ICC 0.418"),
@@ -564,6 +565,6 @@ info_map(
         (4, "วัดความตรงกัน", "Measure agreement", l15_agree, "ตรงกันแค่พอใช้ ✗", "only fair agreement ✗"),
         (5, "ขยายเป็นหลายหมื่น", "Scale up", l15_scale, "ติดป้ายเองแค่น้อย\nแล้วใช้ให้คุ้ม", "label a little by hand,\nuse it well"),
     ],
-    (6, "กรณีศึกษา: คอมเมนต์ร้านดังใน TikTok แก้คู่มือแล้ว κ 0.45 → 0.80",
-     "Case study: TikTok comments on a viral shop: fix the guideline, κ 0.45 → 0.80"),
+    (6, "กรณีศึกษา 2 เรื่อง: คอมเมนต์ร้านดัง κ 0.45 → 0.80 · คอมเมนต์ไอดอล ICC 0.52 → 0.86",
+     "2 case studies: a viral shop's comments κ 0.45 → 0.80 · idol comments ICC 0.52 → 0.86"),
 )
