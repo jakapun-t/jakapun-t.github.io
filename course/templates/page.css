@@ -791,6 +791,8 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
 .in-text { font: 600 18px var(--font-text); fill: var(--ink); }
 .in-chip { font: 600 15px var(--font-text); fill: var(--tag-concept-fg); }
 .in-id { font: 600 13px var(--font-mono, var(--font-head)); fill: var(--ink-2, var(--ink)); }
+.in-code { font: 600 15px var(--font-code); fill: var(--ink); }
+.in-code-acc { font: 700 15px var(--font-code); fill: var(--accent); }
 .in-vec { fill: var(--tag-concept-dot); }
 .in-layer { fill: var(--card); stroke: var(--tag-concept-dot); stroke-width: 1.4; }
 .in-att { fill: none; stroke: var(--accent); stroke-width: 1.6; opacity: .8; }

@@ -231,73 +231,159 @@ for i, (icon, big_th, big_en, lab_th, lab_en, cmp_th, cmp_en) in enumerate(tiles
     s.both(cx, 294, cmp_th[1], cmp_en[1], "gs-cmp", "middle")
 s.save("l13-gpt3-size.svg", 350)
 
-# ---------------------------------------------------------------- 9. inside an LLM (L13-S24)
-# Vector values and probabilities are an illustration. GPT-3 has 96 transformer layers.
-s = Svg(900, "Inside an LLM: text becomes token IDs, then vectors, then many layers of maths, then a probability for every next token; the chosen token is appended and the loop repeats.")
-cols = [
-    ("ข้อความ", "Text", "ที่พิมพ์เข้าไป", "what you type"),
+# ---------------------------------------------------------------- 9. inside an LLM, one step at a time (L13-S24)
+# Eleven frames for a ```stepper (Back / Next / Play): 0 the whole trip, 1-5 one stage at a time for "The cat sat",
+# 6 the chosen token is appended, 7-9 one more token per round, 10 the finished sentence.
+# Token IDs, vector shades and probabilities are an illustration. GPT-3 has 96 transformer layers.
+IN_COLS = [
+    ("ข้อความ", "Text", "ที่ป้อนเข้าไป", "what goes in"),
     ("Token → ID", "Token → ID", "เลขประจำตัวในคลังคำ", "its number in the vocab"),
     ("Embedding", "Embedding", "ID → เวกเตอร์ตัวเลข", "ID → a vector of numbers"),
     ("Transformer ×96", "Transformer ×96", "คำนวณหลายสิบชั้น", "dozens of layers of maths"),
     ("คำถัดไป", "Next token", "ความน่าจะเป็น", "probabilities"),
 ]
-W, G = 162, 22
-for i, (hth, hen, sth, sen) in enumerate(cols):
-    x0 = 10 + i * (W + G)
-    cx = x0 + W / 2
-    s.box(x0, 10, W, 220, "nt-band-a" if i % 2 == 0 else "nt-band-b", 14)
-    s.out.append(f'<circle cx="{x0 + 18}" cy="34" r="11" class="pl-dot"/>')
-    s.text(x0 + 18, 39, str(i + 1), "pl-num", "middle")
-    s.both(x0 + 36, 40, hth, hen, "in-h")
-    s.both(cx, 64, sth, sen, "in-sub", "middle")
-    if i < 4:
-        s.arrow(x0 + W + 2, 140, x0 + W + G - 2, 140)
-toks = [("The", 791), ("cat", 1234), ("sat", 345)]
-# 1. the text
-s.box(22, 110, 138, 52, "nt-bubble", 26)
-s.text(91, 143, "The cat sat", "in-text", "middle")
-# 2. tokens and their IDs
-x = 10 + W + G + 8
-for t, n in toks:
-    s.box(x, 96, 46, 30, "pl-chip", 8)
-    s.text(x + 23, 117, t, "in-chip", "middle")
-    s.out.append(f'<path d="M{x + 23} 130 V146" class="pl-line"/>')
-    s.text(x + 23, 168, str(n), "in-id", "middle")
-    x += 50
-# 3. one vector per token (the shades stand for numbers)
-x0 = 10 + 2 * (W + G)
-shades = [[.9, .3, .6, .2, .8, .4, .7], [.2, .8, .4, .9, .3, .6, .5], [.6, .5, .9, .3, .2, .8, .4]]
-for r, (row, (t, n)) in enumerate(zip(shades, toks)):
-    y = 94 + r * 30
-    s.text(x0 + 38, y + 16, str(n), "in-id", "end")
-    for k, v in enumerate(row):
-        s.out.append(f'<rect x="{x0 + 43 + k * 16}" y="{y}" width="14" height="20" rx="3" class="in-vec" opacity="{v:.2f}"/>')
-s.text(x0 + W / 2, 200, "[0.83, −0.27, …]", "in-id", "middle")
-# 4. stacked layers, with attention lines between the token dots on the top one
-x0 = 10 + 3 * (W + G)
-for k in range(4, -1, -1):
-    s.box(x0 + 20 + k * 6, 92 + k * 14, 110, 44, "in-layer", 8)
-dots = [x0 + 44, x0 + 75, x0 + 106]
-for a in range(3):
-    for b in range(a + 1, 3):
-        s.out.append(f'<path d="M{dots[a]} 114 Q{(dots[a] + dots[b]) / 2} {98 - (b - a) * 6} {dots[b]} 114" class="in-att"/>')
-for d in dots:
-    s.out.append(f'<circle cx="{d}" cy="114" r="6" class="in-dot"/>')
-s.text(x0 + W / 2, 208, "attention", "in-h", "middle")
-s.both(x0 + W / 2, 225, "แต่ละคำดูคำอื่น", "tokens look around", "in-sub", "middle")
-# 5. next-token probabilities
-x0 = 10 + 4 * (W + G)
-for r, (t, p) in enumerate([("on", .41), ("down", .22), ("by", .09), ("up", .06)]):
-    y = 92 + r * 28
-    s.text(x0 + 48, y + 15, t, "in-chip", "end")
-    s.box(x0 + 54, y + 2, 160 * p, 18, "ml-bar-top" if r == 0 else "ml-bar", 4)
-    s.text(x0 + 60 + 160 * p, y + 16, f"{p:.2f}", "in-id")
-# the loop back: append the chosen token and run again
-s.out.append(f'<path d="M{10 + 4 * (W + G) + W / 2} 232 V262 H{10 + W / 2} V240" class="pl-line"/>')
-s.out.append(f'<path d="M{10 + W / 2 - 6} 248 L{10 + W / 2} 240 L{10 + W / 2 + 6} 248" class="pl-line"/>')
-s.both(450, 290, "เลือก “on” ต่อท้าย → “The cat sat on” แล้ววนใหม่ ทีละ token (autoregressive)",
-       "Append “on” → “The cat sat on”, then go round again, one token at a time (autoregressive)", "ml-ok", "middle")
-s.save("l13-inside-llm.svg", 304)
+IN_TOK = [("The", 791), ("cat", 1234), ("sat", 345), ("on", 319), ("the", 262), ("mat", 2603), (".", 13)]
+IN_PROBS = [[("on", .41), ("down", .22), ("by", .09), ("up", .06)], [("the", .62), ("a", .21), ("my", .05), ("top", .03)],
+            [("mat", .34), ("floor", .18), ("sofa", .12), ("bed", .09)], [(".", .71), ("and", .12), (",", .06), ("with", .03)]]
+IN_SHADES = [[.9, .3, .6, .2, .8, .4, .7], [.2, .8, .4, .9, .3, .6, .5], [.6, .5, .9, .3, .2, .8, .4],
+             [.4, .9, .2, .7, .6, .3, .8], [.8, .2, .7, .4, .9, .5, .3], [.3, .6, .8, .5, .2, .9, .6]]
+CW, CG = 162, 22
+NEW_BOX = ' style="fill:var(--tag-warning-bg);stroke:var(--accent)"'   # a token the model wrote itself
+NEW_TXT = ' style="fill:var(--accent)"'
+
+
+def inside_frame(k, title, n, upto, current, strip, new, loop, tag, done=False):
+    """n tokens are fed in; columns before `upto` are filled; `current` is outlined; the strip shows `strip` tokens and
+    its chip number `new` fades in; loop is 'dim', 'norm' or 'on'."""
+    s = Svg(918, title)                                        # the fifth column ends at x = 908
+    g = s.out.append
+    grow_tok = n - 1 if 3 < n < 7 and not done else None      # the token that joined the input this round
+
+    def open_g(i, tok=None):
+        g('<g class="grow-new">' if i == current or (tok is not None and tok == grow_tok) else "<g>")
+
+    for i, (hth, hen, sth, sen) in enumerate(IN_COLS):
+        x0 = 10 + i * (CW + CG)
+        g("<g>" if i < upto else '<g opacity=".3">')
+        s.box(x0, 10, CW, 220, "nt-band-a" if i % 2 == 0 else "nt-band-b", 14)
+        g(f'<circle cx="{x0 + 18}" cy="34" r="11" class="pl-dot"/>')
+        s.text(x0 + 18, 39, str(i + 1), "pl-num", "middle")
+        s.both(x0 + 36, 40, hth, hen, "in-h")
+        s.both(x0 + CW / 2, 64, sth, sen, "in-sub", "middle")
+        g("</g>")
+        if i < 4:
+            g("<g>" if i + 1 < upto else '<g opacity=".3">')
+            s.arrow(x0 + CW + 2, 140, x0 + CW + CG - 2, 140)
+            g("</g>")
+        if i == current:
+            g(f'<rect x="{x0}" y="10" width="{CW}" height="220" rx="14" style="fill:none;stroke:var(--accent);stroke-width:3"/>')
+    toks = IN_TOK[:n]
+    # 1. the text that goes in: the prompt, then what the model has written so far
+    more = " ".join(t for t, _ in toks[3:]).replace(" .", ".")
+    open_g(0)
+    if more:
+        s.box(22, 96, 138, 82, "nt-bubble", 22)
+        s.text(91, 130, "The cat sat", "in-text", "middle")
+        g(f'<text x="91" y="160" class="in-text" text-anchor="middle"{NEW_TXT}>{escape(more)}</text>')
+    else:
+        s.box(22, 110, 138, 52, "nt-bubble", 26)
+        s.text(91, 143, "The cat sat", "in-text", "middle")
+    g("</g>")
+    feed = toks[:6]                                             # the final "." is never fed back in
+    two = len(feed) > 3
+    # 2. tokens and their IDs
+    if upto > 1:
+        x0 = 10 + CW + CG
+        for j, (t, num) in enumerate(feed):
+            x, y = x0 + 8 + (j % 3) * 50, (78 + (j // 3) * 72) if two else 96
+            open_g(1, j)
+            g(f'<rect x="{x}" y="{y}" width="46" height="30" rx="8" class="pl-chip"{NEW_BOX if j >= 3 else ""}/>')
+            g(f'<text x="{x + 23}" y="{y + 21}" class="in-chip" text-anchor="middle"{NEW_TXT if j >= 3 else ""}>{escape(t)}</text>')
+            g(f'<path d="M{x + 23} {y + 34} V{y + (44 if two else 50)}" class="pl-line"/>')
+            s.text(x + 23, y + (60 if two else 72), str(num), "in-id", "middle")
+            g("</g>")
+    # 3. one vector per token (the shades stand for numbers)
+    if upto > 2:
+        x0 = 10 + 2 * (CW + CG)
+        step, h, y0 = (22, 16, 86) if two else (30, 20, 94)
+        for j, (t, num) in enumerate(feed):
+            y = y0 + j * step
+            open_g(2, j)
+            s.text(x0 + 38, y + h / 2 + 5, str(num), "in-id", "end")
+            for c, v in enumerate(IN_SHADES[j]):
+                g(f'<rect x="{x0 + 43 + c * 16}" y="{y}" width="14" height="{h}" rx="3" class="in-vec" opacity="{v:.2f}"/>')
+            g("</g>")
+        if len(feed) <= 5:
+            open_g(2)
+            s.text(x0 + CW / 2, 200 if len(feed) <= 4 else 214, "[0.83, −0.27, …]", "in-id", "middle")
+            g("</g>")
+    # 4. stacked layers; on the top one every token looks at the others (attention)
+    if upto > 3:
+        x0 = 10 + 3 * (CW + CG)
+        open_g(3)
+        for c in range(4, -1, -1):
+            s.box(x0 + 20 + c * 6, 86 + c * 14, 110, 44, "in-layer", 8)
+        m = len(feed)
+        dots = [x0 + 40 + 70 * j / (m - 1) for j in range(m)]
+        pairs = sorted({(j, m - 1) for j in range(m - 1)} | {(j, j + 1) for j in range(m - 1)})
+        for a_, b_ in pairs:
+            g(f'<path d="M{dots[a_]:.1f} 108 Q{(dots[a_] + dots[b_]) / 2:.1f} {92 - min(b_ - a_, 4) * 5} {dots[b_]:.1f} 108" class="in-att"/>')
+        for j, d in enumerate(dots):
+            g(f'<circle cx="{d:.1f}" cy="108" r="{6 if m <= 4 else 5}" class="in-dot"/>')
+        s.text(x0 + CW / 2, 205, "attention", "in-h", "middle")
+        s.both(x0 + CW / 2, 225, "แต่ละคำดูคำอื่น", "tokens look around", "in-sub", "middle")
+        g("</g>")
+    # 5. next-token probabilities for this round
+    if upto > 4:
+        x0 = 10 + 4 * (CW + CG)
+        g('<g class="grow-new">' if current == 4 or grow_tok is not None else "<g>")
+        for r, (t, pr) in enumerate(IN_PROBS[n - 3]):
+            y = 92 + r * 28
+            s.text(x0 + 48, y + 15, t, "in-chip", "end")
+            s.box(x0 + 54, y + 2, 92 * pr, 18, "ml-bar-top" if r == 0 else "ml-bar", 4)
+            s.text(x0 + 60 + 92 * pr, y + 16, f"{pr:.2f}", "in-id")
+        g("</g>")
+    # the loop back: the chosen token is appended and everything runs again
+    g({"dim": '<g opacity=".3">', "norm": "<g>", "on": '<g style="stroke-width:3.4">'}[loop])
+    g(f'<path d="M{10 + 4 * (CW + CG) + CW / 2} 232 V262 H{10 + CW / 2} V240" class="pl-line"{" style=\"stroke-width:3.4\"" if loop == "on" else ""}/>')
+    g(f'<path d="M{10 + CW / 2 - 6} 248 L{10 + CW / 2} 240 L{10 + CW / 2 + 6} 248" class="pl-line"{" style=\"stroke-width:3.4\"" if loop == "on" else ""}/>')
+    g("</g>")
+    tw = max(width(tag[0], 16), width(tag[1], 16)) + 32
+    s.box(459 - tw / 2, 248, tw, 28, "nt-bubble", 14)
+    s.both(459, 267, tag[0], tag[1], "in-h", "middle")
+    # the text so far: the prompt's tokens, then the tokens the model wrote (warm chips)
+    s.box(10, 286, 898, 40, "nt-bubble", 12)
+    s.both(26, 312, "ข้อความตอนนี้", "Text so far", "in-h")
+    x = 150
+    for j, (t, _) in enumerate(IN_TOK[:strip]):
+        w = max(34, width(t, 15) + 22)
+        g('<g class="grow-new">' if j == new else "<g>")
+        g(f'<rect x="{x:g}" y="292" width="{w:g}" height="28" rx="8" class="pl-chip"{NEW_BOX if j >= 3 else ""}/>')
+        g(f'<text x="{x + w / 2:g}" y="311" class="in-chip" text-anchor="middle"{NEW_TXT if j >= 3 else ""}>{escape(t)}</text>')
+        g("</g>")
+        x += w + 6
+    if done:
+        s.both(x + 12, 312, "✓ 4 รอบ ได้ 4 token ใหม่", "✓ 4 rounds, 4 new tokens", "ml-ok")
+    elif strip > 3:
+        s.both(x + 12, 311, "สีส้ม = token ที่โมเดลเขียนเอง", "orange = tokens the model wrote", "in-sub")
+    s.save(f"l13-inside-{k}.svg", 334)
+
+
+R1 = ("รอบที่ 1", "round 1")
+for k, (title, n, upto, current, strip, new, loop, tag, done) in enumerate([
+        ("Inside an LLM, the whole trip: text becomes token IDs, then vectors, then many layers of maths, then a probability for every next token; the chosen token is appended and the loop repeats.",
+         3, 5, None, 4, None, "norm", ("วนซ้ำ ทีละ token (autoregressive)", "repeat, one token at a time (autoregressive)"), False),
+        ("Step 1: the text 'The cat sat' goes in.", 3, 1, 0, 3, None, "dim", R1, False),
+        ("Step 2: the text is cut into tokens, each with an ID: The 791, cat 1234, sat 345.", 3, 2, 1, 3, None, "dim", R1, False),
+        ("Step 3: each ID becomes a vector of numbers.", 3, 3, 2, 3, None, "dim", R1, False),
+        ("Step 4: the vectors pass through dozens of transformer layers, where each token looks at the others.", 3, 4, 3, 3, None, "dim", R1, False),
+        ("Step 5: out comes a probability for each possible next token: on 0.41, down 0.22, by 0.09, up 0.06.", 3, 5, 4, 3, None, "dim", R1, False),
+        ("The top token 'on' is appended: the text is now 'The cat sat on'.", 3, 5, None, 4, 3, "on", ("จบรอบที่ 1: ต่อท้าย “on”", "end of round 1: append “on”"), False),
+        ("Round 2: 'The cat sat on' goes through every step again; the top next token is 'the' (0.62).", 4, 5, None, 5, 4, "on", ("รอบที่ 2: ได้ “the”", "round 2: “the”"), False),
+        ("Round 3: 'The cat sat on the' goes in; the top next token is 'mat' (0.34).", 5, 5, None, 6, 5, "on", ("รอบที่ 3: ได้ “mat”", "round 3: “mat”"), False),
+        ("Round 4: 'The cat sat on the mat' goes in; the top next token is a full stop (0.71).", 6, 5, None, 7, 6, "on", ("รอบที่ 4: ได้ “.”", "round 4: “.”"), False),
+        ("Done: four rounds wrote four new tokens: 'The cat sat on the mat.'", 7, 1, None, 7, None, "dim", ("จบ", "done"), True)]):
+    inside_frame(k, title, n, upto, current, strip, new, loop, tag, done)
 
 # ---------------------------------------------------------------- 10. language models you already use (L13-S08)
 s = Svg(900, "You already use language models: a search box completes your query, and a phone keyboard suggests the next word.")
@@ -545,3 +631,70 @@ for k, (code, th, en) in enumerate(notes):
     s.both(606, y + 14, th[0], en[0], "pl-note")
     s.both(606, y + 36, th[1], en[1], "pl-note")
 s.save("l13-dotenv.svg", 270)
+
+
+# ---------------------------------------------------------------- 12. inside the response: nested boxes (L13-S27)
+# Real run, gemini-3.5-flash-lite, prompt "อธิบายว่า token คืออะไร ใน 2 ประโยค": finish STOP, tokens 13 in, 87 out, 100 total.
+s = Svg(900, "What generate_content returns: boxes inside boxes. response holds candidates (a list); its first item [0] holds "
+             "content, which holds parts (a list); its first item [0] holds the text. Beside it, finish_reason STOP, and "
+             "usage_metadata with 13 prompt tokens, 87 answer tokens, 100 in total. response.text is a shortcut for "
+             "response.candidates[0].content.parts[0].text.")
+
+
+def nbox(x, y, w, h, label, cls="nt-band-a", note=None):
+    s.box(x, y, w, h, cls, 10)
+    s.text(x + 14, y + 24, label, "in-code")
+    if note:
+        s.both(x + w - 12, y + 24, note[0], note[1], "in-sub", "end")
+
+
+nbox(10, 10, 880, 262, "response", "nt-bubble")
+nbox(28, 46, 560, 214, "candidates", "nt-band-b", ("list: คำตอบได้หลายอัน", "list: possible answers"))
+nbox(46, 82, 524, 166, "[0]", "nt-bubble", ("ตัวแรกของ list", "the first item"))
+nbox(64, 116, 488, 92, "content", "nt-band-a")
+nbox(82, 146, 452, 52, "parts[0]", "nt-bubble")
+s.text(176, 177, "text = “**Token** คือ หน่วยข้อมูลที่เล็กที่สุด…”", "in-code-acc")
+s.text(64, 234, "finish_reason = STOP", "in-code")
+s.both(260, 234, "← ตอบจบเอง ไม่ถูกตัด", "← finished on its own, not cut off", "in-sub")
+nbox(604, 46, 270, 214, "usage_metadata", "nt-band-b", None)
+for k, (name, v) in enumerate([("prompt_token_count", 13), ("candidates_token_count", 87), ("total_token_count", 100)]):
+    s.text(620, 102 + k * 50, name, "in-code")
+    s.text(620, 124 + k * 50, f"= {v}", "in-code-acc")
+s.both(862, 250, "token ที่ใช้: เข้า 13 ออก 87", "tokens used: 13 in, 87 out", "in-sub", "end")
+s.text(20, 304, "response.candidates[0].content.parts[0].text", "in-code-acc")
+s.both(430, 304, "= response.text  (ทางลัด)", "= response.text  (the shortcut)", "in-h")
+s.save("l13-response-nested.svg", 320)
+
+# ---------------------------------------------------------------- 13. temperature reshapes the next-token chances (L13-S28)
+# The four chances are the illustration from the "inside an LLM" frames (on .41, down .22, by .09, up .06), re-scaled to
+# add up to 1, then p ** (1 / T) and re-scaled again. T = 0 always takes the top token.
+BASE = {"on": .41, "down": .22, "by": .09, "up": .06}
+
+
+def at_temp(t):
+    if t == 0:
+        return {k: (1.0 if k == "on" else 0.0) for k in BASE}
+    w = {k: v ** (1 / t) for k, v in BASE.items()}
+    tot = sum(w.values())
+    return {k: v / tot for k, v in w.items()}
+
+
+s = Svg(900, "Temperature reshapes the chances of the next token after 'The cat sat'. At 0 the model always takes 'on'. "
+             "At 1 the chances stay as learned: on 0.53, down 0.28, by 0.12, up 0.08. At 2 they flatten: on 0.39, down 0.28, "
+             "by 0.18, up 0.15, so less likely words get picked more often.")
+s.both(450, 26, "คำถัดไปของ “The cat sat …” เมื่อ temperature ต่างกัน", "The next token after “The cat sat …” at different temperatures", "in-h", "middle")
+for i, (t, nth, nen) in enumerate([(0, "เลือก “on” ทุกครั้ง", "always “on”"), (1, "ตามที่โมเดลเรียนมา", "the chances as learned"),
+                                   (2, "คำอื่นได้โอกาสมากขึ้น", "other words get more chances")]):
+    x0 = 10 + i * 296
+    s.box(x0, 44, 284, 220, "nt-band-a" if i != 1 else "nt-band-b", 14)
+    s.text(x0 + 142, 76, f"temperature = {t}", "in-code-acc" if i != 1 else "in-code", "middle")
+    for r, (tok_, p) in enumerate(at_temp(t).items()):
+        y = 96 + r * 30
+        s.text(x0 + 66, y + 15, tok_, "in-chip", "end")
+        if p > 0:
+            s.box(x0 + 74, y + 2, 150 * p, 18, "ml-bar-top" if r == 0 else "ml-bar", 4)
+        s.text(x0 + 80 + 150 * p, y + 16, f"{p:.2f}", "in-id")
+    s.both(x0 + 142, 246, nth, nen, "in-h", "middle")
+s.both(160, 292, "ต่ำ = คำตอบแทบเหมือนเดิม เหมาะกับงานจัดกลุ่ม", "low = nearly the same answer: good for classifying", "in-sub", "middle")
+s.both(740, 292, "สูง = หลากหลายขึ้น เหมาะกับงานคิดไอเดีย", "high = more varied: good for brainstorming", "in-sub", "middle")
+s.save("l13-temperature.svg", 306)

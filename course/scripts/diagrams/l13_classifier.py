@@ -154,6 +154,37 @@ s.box(698, 372, 130, 40, "fc-pos", 20)
 s.text(763, 399, "positive", "fc-label-lg", "middle")
 s.save("l13-flashcards.svg", 450)
 
+# ---------------------------------------------------------------- S04 why numbers (before the bag of words)
+VOCAB_ALL = len(CountVectorizer(tokenizer=tok, token_pattern=None).fit(df["text"]).vocabulary_)
+print("vocabulary of all reviews:", VOCAB_ALL)
+s = Svg(900, f"Why turn text into numbers. Left: a computer can't do maths with letters ('อร่อย' + 'มาก' = ?). Right: the same "
+             f"review as a row of numbers, one column per word of the vocabulary; numbers can be added, multiplied and "
+             f"compared, so a model can learn from them. Every review becomes a row of the same length ({VOCAB_ALL} numbers).")
+for k, (x0, cls, hth, hen) in enumerate([(10, "sw-warn-box", "✗ ให้ตัวอักษร", "✗ Give it letters"),
+                                          (460, "nt-band-a", "✓ ให้ตัวเลข", "✓ Give it numbers")]):
+    s.box(x0, 10, 430, 176, cls, 14)
+    s.both(x0 + 20, 42, hth, hen, "pl-label")
+# left: letters
+s.chip(30, 92, "อร่อยมาก")
+s.arrow(150, 92, 196, 92)
+put_icon(s, "🤖", 232, 102, "fc-robot", "middle", 30)
+s.text(272, 99, "“อร่อย” + “มาก” = ?", "pl-text")
+s.both(30, 150, "คอมพิวเตอร์บวก ลบ คูณ ตัวอักษรไม่ได้", "a computer can't add or multiply letters", "wv-note")
+# right: a row of numbers
+cols = [("อร่อย", 1), ("มาก", 1), ("ไม่", 0), ("ดี", 0)]
+x = 480
+for w_, v in cols:
+    s.text(x + 30, 72, w_, "pl-note", "middle")
+    s.box(x, 80, 60, 34, "pl-chip", 8)
+    s.text(x + 30, 103, str(v), "pl-chip-text", "middle")
+    x += 66
+s.text(x + 6, 103, "…", "pl-text")
+s.arrow(x + 30, 97, x + 56, 97)
+put_icon(s, "🤖", x + 86, 107, "fc-robot", "middle", 30)
+s.both(480, 150, "บวก คูณ เทียบกันได้ → โมเดลเรียนได้", "can add, multiply, compare → a model can learn", "ml-ok")
+s.both(480, 174, f"ทุกรีวิว = แถวยาวเท่ากัน {VOCAB_ALL} ช่อง", f"every review = a row of the same {VOCAB_ALL} numbers", "pl-note")
+s.save("l13-why-numbers.svg", 196)
+
 # ---------------------------------------------------------------- S04 bag of words
 s = Svg(900, "Bag of words: cut the text into words, pour them into a bag (the order is lost), then count each word of the vocabulary.")
 cols = [(20, "✂️ 1. ตัดคำ", "✂️ 1. Tokenize"), (320, "🛍️ 2. เทลงถุง", "🛍️ 2. Into the bag"), (620, "🔢 3. นับ", "🔢 3. Count")]
@@ -264,22 +295,46 @@ s.both(20, 184, f"accuracy = ถูก {sum(right)} ÷ ทั้งหมด {le
 s.save("l13-test-result.svg", 200)
 
 # ---------------------------------------------------------------- S06 the mistake
-s = Svg(900, "Why the model got it wrong: ไม่ carries the heaviest negative vote, so the mixed review tips to negative.")
+# The same left/right bars as the S05 picture, for the five words of the one test review the model got wrong, then the
+# two totals as bars. Every number is a count over the training reviews, like everything else in this file.
 miss = [t for t, ok in zip(X_test, right) if not ok][0]
 words, P, N, verdict = votes(miss)
+n_pos, n_neg = sum(y == "positive" for y in y_train), sum(y == "negative" for y in y_train)
+neg_with = sorted((t for t, y in zip(X_train, y_train) if y == "negative" and "ไม่" in tok(t)), key=lambda t: (len(t), t))
+print(f"S06: train {len(y_train)} = {n_pos} positive + {n_neg} negative; votes +{P} / -{N}; a negative review with ไม่: {neg_with[0]}")
+s = Svg(900, f"Why the model got it wrong. The model sees the review as {len(words)} separate words. Each bar is how many of the "
+             f"{len(y_train)} training reviews with that label contain the word; ไม่ is in {count['negative']['ไม่']} negative "
+             f"reviews and {count['positive']['ไม่']} positive one. In total negative gets {N} and positive {P}, so the model says {verdict}.")
 s.box(10, 10, 880, 70, "nt-band-a", 14)
 s.both(30, 42, "รีวิว:", "Review:", "pl-note")
 s.text(110, 42, miss, "pl-label")
 s.both(30, 68, f"คนเขียนให้ {lab_of[miss]}  (ไม่ชอบต้มยำ แต่ชอบร้าน)", f"the writer said {lab_of[miss]}  (the soup was bad, the place was good)", "pl-note")
-x, yv = 30, 120
+s.both(20, 112, f"โมเดลเห็นแค่คำ {len(words)} คำ แต่ละคำโหวตตามรีวิวเทรน {len(y_train)} รายการ",
+       f"The model sees only {len(words)} words; each votes by the {len(y_train)} training reviews", "pl-label")
+MID, SCALE, y = 450, 7, 142
+s.both(MID - 70, y, "← อยู่ในรีวิว negative กี่รายการ", "← in how many negative reviews", "wv-neg-h", "end")
+s.both(MID + 70, y, "อยู่ในรีวิว positive กี่รายการ →", "in how many positive reviews →", "wv-pos-h")
+y += 32
 for w_ in words:
-    x, p, n = vote_chip(s, x, yv, w_)
+    p_, n_ = count["positive"][w_], count["negative"][w_]
+    s.text(MID, y + 6, w_, "pl-label", "middle")
+    s.box(MID - 60 - n_ * SCALE, y - 11, n_ * SCALE, 22, "wv-neg", 4) if n_ else None
+    s.text(MID - 66 - n_ * SCALE, y + 6, str(n_), "pl-note", "end")
+    s.box(MID + 60, y - 11, p_ * SCALE, 22, "wv-pos", 4) if p_ else None
+    s.text(MID + 66 + p_ * SCALE, y + 6, str(p_), "pl-note")
     if w_ == "ไม่":
-        s.add(f'<path d="M{x - 60:g} {yv + 20} V{yv + 40}" class="pl-line"/>')
-        s.both(x - 60, yv + 62, "โหวตหนักที่สุด", "heaviest vote", "wv-note", "middle")
-    x += 10
-s.both(30, 222, f"รวม +{P} / −{N} → โมเดลตอบ {verdict} ✗", f"total +{P} / −{N} → the model says {verdict} ✗", "tr-big-neg")
-s.save("l13-mistake.svg", 240)
+        s.both(890, y + 6, "← โหวต negative หนักที่สุด", "← the heaviest negative vote", "wv-note", "end")
+    y += 32
+s.add(f'<path d="M20 {y - 8} H880" style="stroke:var(--card-border);stroke-width:1.5"/>')
+y += 22
+s.both(MID, y + 7, "รวม", "Total", "pl-label", "middle")
+s.box(MID - 60 - N * SCALE, y - 14, N * SCALE, 28, "wv-neg", 5)
+s.text(MID - 68 - N * SCALE, y + 8, str(N), "tr-big-neg", "end")
+s.box(MID + 60, y - 14, P * SCALE, 28, "wv-pos", 5)
+s.add(f'<text x="{MID + 68 + P * SCALE}" y="{y + 8}" class="tr-big-neg" style="fill:var(--tag-concept-fg)">{P}</text>')
+y += 54
+s.both(20, y, f"negative {N} มากกว่า positive {P} → โมเดลตอบ {verdict} ✗", f"negative {N} beats positive {P} → the model says {verdict} ✗", "tr-big-neg")
+s.save("l13-mistake.svg", y + 18)
 
 # ---------------------------------------------------------------- S22 kinds of classification
 s = Svg(900, "Three kinds of classification: binary (one of two), multi-class (one of many), multi-label (any number of labels).")

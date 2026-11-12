@@ -85,11 +85,12 @@ function renderStepper(n, ctx) {
         .join('');
       const note = s.note_th || s.note_en ? `<p class="stp-note">${TH(s.note_th, s.note_en)}</p>` : '';
       const list = s.bars ? `<ul class="stp-bars">${bars}</ul>` : '';
-      return `<div class="stp-panel" data-step="${k}"${k === start ? '' : ' hidden'}><p class="stp-label">${inline(String(s.label ?? ''))}</p>${media(s, k)}${list}${note}</div>`;
+      const label = s.label_th || s.label_en ? TH(s.label_th ?? s.label_en, s.label_en ?? s.label_th) : inline(String(s.label ?? ''));
+      return `<div class="stp-panel" data-step="${k}"${k === start ? '' : ' hidden'}><p class="stp-label">${label}</p>${media(s, k)}${list}${note}</div>`;
     })
     .join('');
 
-  const labels = d.steps.map((s) => String(s.label ?? ''));
+  const labels = d.steps.map((s) => String(s.label ?? s.label_en ?? s.label_th ?? ''));
   const control = slider
     ? `<label class="stp-slider"><span class="stp-slider-label">${TH(d.slider_th ?? 'เลื่อน', d.slider_en ?? 'Slide')}</span><input type="range" min="0" max="${d.steps.length - 1}" step="1" value="${start}" aria-valuetext="${esc(labels[start])}"></label><ol class="stp-ticks">${labels.map((l, k) => `<li style="--f:${labels.length > 1 ? k / (labels.length - 1) : 0}">${esc(l.replace(/^[^=]*=\s*/, ''))}</li>`).join('')}</ol>`
     : `<div class="stp-buttons"><button type="button" data-stp="prev">← ${T(['ก่อนหน้า', 'Back'])}</button><span class="stp-pos" aria-live="polite">${start + 1} / ${d.steps.length}</span><button type="button" data-stp="next">${T(['ถัดไป', 'Next'])} →</button></div>`;

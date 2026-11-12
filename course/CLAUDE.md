@@ -294,6 +294,10 @@ focus mode is a `::: focus {page=false}` with one `$\displaystyle ...$` line. Th
   ```` ```stepper {control="slider"|"buttons"} ```` is one bar chart per step (YAML `steps:` with `label`, `bars:
   {name: value}`, `highlight`, `note_th/en`), moved by a slider or ← → buttons; every step is rendered at build time.
   Negative bars grow left of a centre line, and a bar of exactly 0 shows a crossed-out name (Lasso dropping a feature).
+  A step may instead show a picture (`src: images/x.svg`, one SVG per step; parts with `class="grow-new"` fade in),
+  `{play=true}` adds a ▶ Play button that walks through the steps, `{fx-height=310}` caps the picture's height on the
+  projector, and `label_th` / `label_en` give a step title in both languages (added 2026-11, nlp-basic L13-S24: inside an
+  LLM one step, then one token, at a time; frames from `scripts/diagrams/l13_figures.py`).
   ```` ```sorter ```` lists columns with Keep / Drop buttons and a Check button (YAML `target`, `items:` with `name`,
   `def_th/en`, `answer: keep|drop|either`, `why_th/en`). Both get their own focus frame. Numbers in them must be real
   (computed in `course/.venv`, then pasted in).
@@ -406,3 +410,13 @@ Git history is permanent, so one plain-text commit leaks forever.
 - Viewing the source of the published file shows no readable lecture text.
 - `npm run check` passes, and an intentional plain commit is blocked.
 - The Lighthouse accessibility score is at least 95 on the preview build.
+
+## 12. Checking a change in the preview (teacher's request, 2026-11-12)
+
+The teacher reads and selects cards in their own browser tab of the localhost preview while changes are being made.
+- **Do every check in a new tab of your own**, never in the tab the teacher is reading: open a background tab, load the
+  page there, and run all reloads, the 1280×720 resize, the ไทย / EN switch, focus mode, overlap audits and
+  screenshots in that tab. Reset its viewport when done.
+- Touch the teacher's tab only when they ask to be shown something there, and say that you are doing it.
+- The overlap audit must really switch language (click the header ไทย / EN buttons and confirm
+  `document.documentElement.lang`), and compare each text with its box and with nearby icons, in both languages.
