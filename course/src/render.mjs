@@ -5,7 +5,7 @@ import MarkdownIt from 'markdown-it';
 import { LectureError, splitTrailingAttrs } from './parse.mjs';
 import { highlightLines } from './highlight.mjs';
 import { renderTransform, parseCsv } from './transform.mjs';
-import { renderDataframe, renderPrompt, renderFigure, renderIndexExplorer, renderCards, imageTag, renderBpeExplorer } from './blocks.mjs';
+import { renderDataframe, renderPrompt, renderFigure, renderIndexExplorer, renderCards, imageTag, renderBpeExplorer, renderProject } from './blocks.mjs';
 import { mathPlugin } from './math.mjs';
 import { renderInteractive, INTERACTIVE_LANGS } from './interactives.mjs';
 
@@ -35,7 +35,9 @@ const block = (s) => {
     out += `<h${h} class="sub-h" lang="en">${md.renderInline(m[2])}</h${h}><p class="sub-h-th" data-only="th">${esc(m[3])}</p>`;
     last = m.index + m[0].length;
   }
-  return out + md.render(text.slice(last));
+  out += md.render(text.slice(last));
+  // a list that starts at 4 (one step per block) keeps its number in the styled circles (.cols ol counter)
+  return out.replace(/<ol start="(\d+)">/g, (m, n) => `<ol start="${n}" style="counter-reset: key ${Number(n) - 1}">`);
 };
 
 // ---------------------------------------------------------------- UI text (Thai, English)
@@ -97,6 +99,8 @@ const ICON_PATHS = {
   bad: '<path d="M6 6l12 12M18 6L6 18"/>',
   copy: '<rect height="12" rx="2" width="12" x="9" y="9"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
   download: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
   book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5Z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>',
   focus: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
@@ -255,6 +259,10 @@ export function renderBlocks(nodes, ctx) {
         out.push(srcWrap(ctx, n, renderCards(n, { ...ctx, file: ctxFile() })));
         continue;
       }
+      if (n.lang === 'project') {
+        out.push(srcWrap(ctx, n, renderProject(n, { ...ctx, file: ctxFile() })));
+        continue;
+      }
       if (n.lang === 'bpe-explorer') {
         out.push(srcWrap(ctx, n, renderBpeExplorer(n, { ...ctx, file: ctxFile() })));
         continue;
@@ -302,6 +310,9 @@ export function splitColumns(children) {
     if (children[k]?.type === 'container' && children[k].name === 'step-outputs') k++;
     if (children[k]?.type === 'fence' && children[k].lang === 'prompt' && children[k].attrs.attach) k++;
   }
+  // the same text in both languages (::: th then ::: en) is one block: both go on the left
+  const lang = (n) => n?.type === 'container' && (n.name === 'th' || n.name === 'en') ? n.name : null;
+  if (lang(first) && lang(children[1]) && lang(children[1]) !== lang(first)) k = 2;
   return [children.slice(0, k), children.slice(k)];
 }
 
@@ -313,7 +324,7 @@ function renderContainer(n, ctx) {
     case 'columns': {
       // side by side on desktop: the first block on the left, everything else on the right
       const [main, side] = splitColumns(n.children);
-      return `<div class="cols${n.attrs.split === 'even' ? ' cols-even' : ''}"><div class="col-main">${renderBlocks(main, ctx)}</div><div class="col-side">${renderBlocks(side, ctx)}</div></div>`;
+      return `<div class="cols${n.attrs.split === 'even' ? ' cols-even' : n.attrs.split === 'picture' ? ' cols-picture' : ''}"><div class="col-main">${renderBlocks(main, ctx)}</div><div class="col-side">${renderBlocks(side, ctx)}</div></div>`;
     }
     case 'concept':
       return `<div class="kind kind-concept">${tag('concept')}${renderBlocks(n.children, ctx)}</div>`;

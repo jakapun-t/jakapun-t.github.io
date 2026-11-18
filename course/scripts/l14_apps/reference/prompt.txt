@@ -1,0 +1,7 @@
+I attached a sketch of the layout I want for my Streamlit app.
+Rebuild app.py so the page follows the sketch:
+the header with its subtitle, the reviews box that opens on click,
+3 metric cards, Chart and Table tabs, and the footer.
+Keep nlp_logic.py unchanged: import SAMPLE and analyze_text from it.
+Use built-in Streamlit components only.
+Return the full new app.py.

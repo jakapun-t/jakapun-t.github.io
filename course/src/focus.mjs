@@ -101,7 +101,7 @@ function sectionFrames(s, ctx) {
   walk(s.blocks, (n) => {
     if (visual) return;
     if (n.type === 'container' && (n.name === 'example' || n.name === 'tokens')) visual = n;
-    else if (n.type === 'fence' && n.lang !== 'output' && !(n.lang === 'prompt' && n.attrs.attach) && n.attrs.focus !== 'false') visual = n;
+    else if (n.type === 'fence' && n.lang !== 'output' && n.lang !== 'project' && !(n.lang === 'prompt' && n.attrs.attach) && n.attrs.focus !== 'false') visual = n;
     else if (n.type === 'table' || n.type === 'deflist') visual = n;
   });
   const compact = visual && (visual.type === 'table' || visual.type === 'fence');

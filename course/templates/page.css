@@ -451,6 +451,19 @@ a.sched-title:hover .sched-name > [lang='en'] { text-decoration: underline; }
 .df-head .code-actions .btn-light { background: var(--card); color: var(--ink); border-color: var(--card-border); }
 .df-head .code-actions .btn-dark { background: var(--ink); color: var(--card); }
 .df-scroll { max-height: 520px; overflow: auto; }
+/* ```project: a starter project's files and a Download .zip (src/blocks.mjs renderProject) */
+.proj-files { list-style: none; margin: 0; padding: 10px 18px; display: grid; gap: 2px; }
+.proj-files li { display: grid; grid-template-columns: 18px minmax(9em, max-content) 1fr; align-items: baseline; gap: 4px 10px; padding: 4px 0; border-bottom: 1px solid var(--rule); }
+.proj-files li:last-child { border-bottom: 0; }
+.proj-files li > svg { align-self: center; color: var(--muted); }
+.proj-files code { font-size: 15px; background: none !important; padding: 0; }
+.proj-note { color: var(--muted); font-size: var(--text-small); }
+.proj-run { border-top: 1px solid var(--card-border); padding: 8px 18px 12px; background: var(--card); }
+.proj-run-head { margin: 0 0 6px; color: var(--muted); font-size: var(--text-small); }
+.proj-run pre { margin: 0; padding: 10px 14px; border-radius: 10px; background: var(--code-bg); color: var(--code-fg); font: 14px/1.7 var(--font-code); overflow-x: auto; }
+.proj-cmd { display: block; }
+.proj-prompt { color: var(--code-comment); user-select: none; }
+@media (max-width: 600px) { .proj-files li { grid-template-columns: 18px 1fr; } .proj-note { grid-column: 2; } }
 .table-scroll .df-table { width: auto; min-width: 100%; font: 14px/1.5 var(--font-code); font-variant-numeric: tabular-nums; }
 .table-scroll .df-table th, .table-scroll .df-table td { padding: 6px 14px; white-space: nowrap; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
 .table-scroll .df-table thead th { position: sticky; top: 0; background: var(--card); color: var(--ink); font-weight: 600; border-bottom: 1px solid var(--card-border); }
@@ -891,6 +904,8 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
 
 .cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; align-items: center; }
 .cols-even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+/* {split=picture}: a step's text beside a big screen picture (nlp-basic L14 GitHub and deploy steps) */
+.cols-picture { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.25fr); }
 /* two prompts side by side (a bad and a good one): line up their tops */
 .cols:has(> .col-main .prompt-card):has(> .col-side .prompt-card) { align-items: start; }
 .col-main, .col-side { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
@@ -1001,3 +1016,30 @@ thead .ixp-c-idx { padding: calc(6 * var(--ix)) calc(12 * var(--ix)); font-famil
 /* focus mode: a formula frame (::: focus with one $...$ line) at projector size, kept on one line */
 .fx-display .katex { font-size: 0.5em; white-space: nowrap; }
 .fx-blocks .math-display .katex { font-size: 1.6em; }
+
+/* screen pictures of each GitHub / deploy step and the reference check (scripts/diagrams/l14_steps.py, nlp-basic L14) */
+.sc-url { fill: var(--cream); }
+.sc-url-t { font: 12px var(--font-code); fill: var(--muted); }
+.sc-vs-bar { fill: #3a3832; }
+.sc-ring { fill: none; stroke: var(--accent); stroke-width: 3; }
+.sc-small { font: 500 14px var(--font-latin); fill: var(--ink); }
+.sc-tiny { font: 600 12px var(--font-latin); fill: var(--muted); letter-spacing: .02em; }
+.sc-logo { font: 800 30px var(--font-head); fill: #e9573f; }
+.sc-h { font: 700 20px var(--font-head); fill: var(--ink); }
+.sc-h2 { font: 700 16px var(--font-head); fill: var(--ink); }
+.sc-label { font: 600 12.5px var(--font-latin); fill: var(--ink); }
+.sc-menu { fill: var(--card); stroke: var(--card-border); stroke-width: 1.5; filter: drop-shadow(0 3px 6px rgba(42, 39, 34, .12)); }
+.sc-file-new { fill: var(--tag-exercise-bg); stroke: var(--tag-exercise-dot); stroke-width: 1.2; }
+.sc-u { font: 700 13px var(--font-code); fill: var(--tag-exercise-fg); }
+.sc-ok { fill: var(--tag-exercise-bg); stroke: var(--tag-exercise-dot); stroke-width: 1.5; }
+.sc-ok-t { font: 700 15px var(--font-text); fill: var(--tag-exercise-fg); }
+.sc-callout { fill: var(--accent); }
+.sc-callout-t { font: 700 15px var(--font-text); fill: #fff; }
+.sc-link { font: 600 14px var(--font-latin); fill: var(--tag-concept-dot); text-decoration: underline; }
+.sc-bar { fill: var(--tag-concept-dot); opacity: .6; }
+.sc-callout-s { font: 600 13px var(--font-text); fill: #fff; }
+.sc-badge-t { font: 700 13px var(--font-head); fill: var(--accent); }
+.sc-callout-line { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+.sc-prompt-t { font: 17px var(--font-code); fill: var(--card); }
+.sc-clip { fill: var(--card); }
+.sc-clip-t { font: 600 14px var(--font-latin); fill: var(--ink); }

@@ -199,7 +199,7 @@ s.save("l14-structure.svg", 350)
 s = Svg(900, "Keep the NLP logic in its own file; the Streamlit interface only calls it. AI may change the interface, never the logic.")
 s.box(10, 10, 270, 230, "nt-band-a", 14)
 s.both(28, 42, "nlp_logic.py", "nlp_logic.py", "pl-label")
-s.both(28, 68, "ส่วนประมวลผล (คุณเขียนเอง)", "the processing (you write it)", "pl-note")
+s.both(28, 68, "ส่วนประมวลผล (processing)", "the processing", "pl-note")
 s.box(28, 86, 234, 96, "ks-term", 10)
 for k, ln in enumerate(["def analyze_text(text):", "    words = tokenize(text)", "    return counts"]):
     s.text(40, 112 + k * 24, ln, "ks-term-t")

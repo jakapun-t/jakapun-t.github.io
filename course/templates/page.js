@@ -91,7 +91,13 @@
 
   // Downloads are built from data inside this (decrypted) page, never fetched from the server.
   function download(file) {
-    var blob = new Blob([file.text], { type: file.type || 'application/octet-stream' });
+    var data = file.text;
+    if (file.b64) {
+      var bin = atob(file.b64);
+      data = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+    }
+    var blob = new Blob([data], { type: file.type || 'application/octet-stream' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;

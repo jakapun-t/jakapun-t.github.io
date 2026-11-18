@@ -6,6 +6,7 @@ import { load as loadYaml } from 'js-yaml';
 import { esc, icon, inline, T } from './render.mjs';
 import { parseCsv } from './transform.mjs';
 import { LectureError } from './parse.mjs';
+import { makeZip } from './zip.mjs';
 
 // ---------------------------------------------------------------- ```dataframe
 
@@ -410,5 +411,58 @@ export function renderBpeExplorer(n, ctx) {
   return `<figure class="ixp bpe" data-bpe="${esc(JSON.stringify(data))}">
 <figcaption class="ixp-head">${icon('pointer', 16)}${T(['ลองเล่น: BPE รวมคู่ทีละรอบ กด ถัดไป', 'Try it: BPE, one merge per click'])}</figcaption>
 <div class="ixp-body"><p class="ixp-nojs">${T(['ส่วนนี้ต้องเปิด JavaScript', 'This part needs JavaScript'])}</p></div>
+</figure>`;
+}
+
+// ---------------------------------------------------------------- ```project
+// A downloadable starter project: every file in a folder next to the lesson, zipped at build time and
+// inlined into the page (so it works on encrypted pages too), with a one-click Download .zip.
+//
+// ```project {src="projects/l14-thai-review-app" name="thai-review-app"}
+// notes:                      # optional: one line per file, in the order to list them
+//   app.py: { th: "...", en: "..." }
+// run:                        # optional: the commands to start it, shown under the list
+//   - pip install -r requirements.txt
+//   - streamlit run app.py
+// ```
+export function renderProject(n, ctx) {
+  const { src, name } = n.attrs;
+  if (!src) throw new LectureError(ctx.file, n.line, '```project needs src="projects/<folder>"');
+  const root = path.join(ctx.sourceDir, src);
+  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) throw new LectureError(ctx.file, n.line, `project folder "${src}" not found`);
+  const spec = n.text.trim() ? loadYaml(n.text) ?? {} : {};
+  const notes = spec.notes ?? {};
+  const list = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.name.startsWith('.') || e.name === '__pycache__' || e.name === 'node_modules') continue;
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walk(f);
+      else list.push(path.relative(root, f).split(path.sep).join('/'));
+    }
+  };
+  walk(root);
+  if (!list.length) throw new LectureError(ctx.file, n.line, `project folder "${src}" is empty`);
+  const order = Object.keys(notes);
+  list.sort((a, b) => {
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    if (ia >= 0 || ib >= 0) return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib);
+    return a.localeCompare(b);
+  });
+  const folder = (name ?? path.basename(src)).replace(/[^\w.-]+/g, '-');
+  const zip = makeZip(list.map((rel) => ({ name: `${folder}/${rel}`, data: fs.readFileSync(path.join(root, rel)) })));
+  const id = ctx.addFile({ name: `${folder}.zip`, type: 'application/zip', b64: zip.toString('base64') });
+  const items = list
+    .map((rel) => {
+      const note = notes[rel];
+      const text = note ? T([inline(String(note.th ?? note.en)), inline(String(note.en ?? note.th))], { thHtml: true, enHtml: true }) : '';
+      return `<li>${icon('file', 15)}<code>${esc(rel)}</code>${text ? `<span class="proj-note">${text}</span>` : ''}</li>`;
+    })
+    .join('');
+  const run = (spec.run ?? []).map((c) => `<span class="proj-cmd"><span class="proj-prompt" aria-hidden="true">$</span> ${esc(String(c))}</span>`).join('');
+  return `<figure class="df proj">
+<figcaption class="df-head"><span class="df-tag">${icon('folder', 15)}${T(['โปรเจกต์', 'Project'])} <code>${esc(folder)}/</code></span><span class="code-actions"><button type="button" class="btn btn-dark" data-download="${id}">${icon('download')}<span lang="en">Download .zip</span></button></span></figcaption>
+<ul class="proj-files">${items}</ul>
+${run ? `<div class="proj-run"><p class="proj-run-head">${T(['แตกไฟล์ แล้วรันในโฟลเดอร์นั้น', 'Unzip, then run in that folder'])}</p><pre>${run}</pre></div>` : ''}
 </figure>`;
 }
