@@ -233,72 +233,47 @@ ring(s, 320, 140, 166, 30, 3, "right")
 note(s, 403, 206, "แล้วกลับมาที่ VS Code", "then back to VS Code", "middle")
 s.save("l14-gh-3.svg", 250)
 
-# 4. create a repository
-s = Pic(W, "Step 4, create a repository on github.com/new: name it my-streamlit-app, choose Public, switch on Add README, then "
-           "click Create repository.")
-browser(s, 10, 10, 500, 240, "github.com/new")
-s.text(34, 70, "Create a new repository", "sc-h")
-field(s, 34, 104, 230, "Repository name*", "my-streamlit-app")
-ring(s, 34, 104, 230, 28, 1, "right")
-s.add('<circle cx="44" cy="160" r="7" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/><circle cx="44" cy="160" r="3.5" fill="var(--ink)"/>')
-s.text(58, 165, "Public", "sc-small")
-s.add('<circle cx="124" cy="160" r="7" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>')
-s.text(138, 165, "Private", "sc-small")
-ring(s, 34, 150, 66, 20, 2, "right")
-s.box(34, 186, 30, 16, "ks-btn-main", 8)
-s.add('<circle cx="56" cy="194" r="6" fill="#fff"/>')
-s.text(74, 199, "Add README", "sc-small")
-ring(s, 34, 184, 140, 20, 3, "right")
-btn(s, 330, 206, 160, "Create repository", "green", 28)
-ring(s, 330, 206, 160, 28, 4, "right")
+# 4. open the project folder in VS Code
+FILES = ["app.py", "nlp_logic.py", "requirements.txt"]
+s = Pic(W, "Step 4, open your project in VS Code: File, Open Folder, pick the folder that holds app.py, nlp_logic.py, "
+           "requirements.txt and README.md (for example the unzipped thai-review-app), then Open.")
+vscode(s, 10, 10, 500, 240, side_w=0)
+for k, kind in enumerate(["files", "search", "git"]):
+    act_icon(s, 26, 40 + k * 38, kind)
+s.box(60, 22, 150, 26, "sc-menu", 6)
+s.text(72, 40, "File  ▸  Open Folder…", "sc-small")
+ring(s, 60, 22, 150, 26, 1, "right")
+s.box(236, 22, 260, 210, "ks-bar", 10)
+s.text(250, 46, "thai-review-app/", "ks-mono")
+ring(s, 246, 30, 150, 22, 2, "right")
+for k, f in enumerate(["README.md"] + FILES):
+    s.box(252, 64 + k * 32, 226, 26, "sc-file-new" if f != "README.md" else "ks-bar", 6)
+    s.text(264, 82 + k * 32, f, "ks-mono")
+btn(s, 396, 196, 90, "Open", "main", 28)
+ring(s, 396, 196, 90, 28, 3, "right")
+note(s, 60, 90, "เปิดทั้งโฟลเดอร์", "open the whole folder")
+note(s, 60, 110, "ไม่ใช่ไฟล์เดียว", "not a single file")
 s.save("l14-gh-4.svg", 260)
 
-# 5. clone
-s = Pic(W, "Step 5, clone in VS Code: open Source Control on the left bar, click Clone Repository, choose Clone from GitHub, pick "
-           "you/my-streamlit-app, then choose a folder on your computer and Open.")
-vscode(s, 10, 10, 500, 230, side_w=150)
+# 5. initialize a repository
+s = Pic(W, "Step 5, in VS Code open Source Control on the left bar. The folder is not a Git repository yet, so click "
+           "Initialize Repository: Git starts remembering this folder.")
+vscode(s, 10, 10, 500, 230, side_w=0)
 for k, kind in enumerate(["files", "search", "git"]):
     act_icon(s, 26, 40 + k * 38, kind)
 ring(s, 14, 102, 24, 26, 1)
 s.text(62, 40, "SOURCE CONTROL", "sc-tiny")
-btn(s, 60, 60, 124, "Clone Repository", "main", 28)
-ring(s, 60, 60, 124, 28, 2, "right")
-s.box(220, 30, 276, 120, "sc-menu", 8)
-s.box(232, 38, 252, 22, "ks-bar", 4)
-s.text(242, 54, "repository URL or pick a source", "sc-tiny")
-s.text(240, 98, "Clone from GitHub", "sc-small")
-ring(s, 232, 82, 160, 24, 3, "right")
-s.text(240, 134, "you/my-streamlit-app", "ks-mono")
-ring(s, 232, 118, 190, 24, 4, "right")
-note(s, 222, 186, "แล้วเลือกโฟลเดอร์ในเครื่อง → Open", "then pick a folder on your computer → Open")
+s.text(62, 70, "The folder currently open doesn't have", "sc-small")
+s.text(62, 90, "a git repository.", "sc-small")
+btn(s, 62, 110, 200, "Initialize Repository", "main", 30)
+ring(s, 62, 110, 200, 30, 2, "right")
+btn(s, 62, 152, 200, "Publish to GitHub", "plain", 30)
+note(s, 62, 210, "กด Initialize Repository ครั้งเดียวตอนเริ่ม", "click Initialize Repository once, at the start")
 s.save("l14-gh-5.svg", 250)
 
-# 6. add your files
-s = Pic(W, "Step 6, add your files: copy app.py, nlp_logic.py and requirements.txt (for example from the zip you downloaded) "
-           "into the my-streamlit-app folder you cloned, next to its README.md.")
-FILES = ["app.py", "nlp_logic.py", "requirements.txt"]
-s.box(10, 30, 200, 180, "ks-bar", 12)
-s.text(26, 60, "thai-review-app/", "ks-mono")
-note(s, 26, 22, "ไฟล์ของเรา (จาก zip)", "your files (from the zip)")
-for k, f in enumerate(FILES):
-    s.box(26, 78 + k * 40, 168, 30, "sc-file-new", 6)
-    s.text(38, 98 + k * 40, f, "ks-mono")
-s.arrow(218, 120, 290, 120)
-s.both(254, 108, "คัดลอก", "copy", "gt-verb", "middle")
-s.box(298, 30, 212, 200, "ks-bar", 12)
-s.text(314, 60, "my-streamlit-app/", "ks-mono")
-note(s, 298, 22, "โฟลเดอร์ที่ clone มา", "the folder you cloned")
-s.box(314, 76, 180, 28, "ks-bar", 6)
-s.text(326, 95, "README.md", "ks-mono")
-for k, f in enumerate(FILES):
-    s.box(314, 114 + k * 36, 180, 28, "sc-file-new", 6)
-    s.text(326, 133 + k * 36, f, "ks-mono")
-ring(s, 314, 114, 180, 100, 1, "right")
-s.save("l14-gh-6.svg", 240)
-
-# 7. commit, then sync
-s = Pic(W, "Step 7, in Source Control: type a message such as add first app, click Commit (answer Yes if VS Code asks to "
-           "stage all changes), then click Sync Changes.")
+# 6. the first commit
+s = Pic(W, "Step 6, the first commit: in Source Control type a message such as add first app, click Commit, and answer Yes "
+           "if VS Code asks to stage all changes. The 4 files are now in the first save point.")
 vscode(s, 10, 10, 500, 240, side_w=250)
 for k, kind in enumerate(["files", "search", "git"]):
     act_icon(s, 26, 40 + k * 38, kind)
@@ -308,21 +283,41 @@ s.text(70, 71, "add first app", "ks-mono")
 ring(s, 60, 52, 220, 28, 1, "right")
 btn(s, 60, 90, 220, "✓ Commit", "main", 28)
 ring(s, 60, 90, 220, 28, 2, "right")
-s.text(62, 142, "Changes  3", "sc-tiny")
-for k, f in enumerate(FILES):
-    s.text(70, 164 + k * 22, f, "sc-small")
-    s.text(268, 164 + k * 22, "U", "sc-u", "end")
+s.text(62, 142, "Changes  4", "sc-tiny")
+for k, f in enumerate(["README.md"] + FILES):
+    s.text(70, 164 + k * 20, f, "sc-small")
+    s.text(268, 164 + k * 20, "U", "sc-u", "end")
 s.box(300, 40, 200, 96, "sc-menu", 8)
 s.text(312, 64, "Stage all changes and", "sc-tiny")
 s.text(312, 80, "commit them directly?", "sc-tiny")
 btn(s, 312, 96, 60, "Yes", "main", 26)
 ring(s, 312, 96, 60, 26, 3, "right")
-btn(s, 300, 196, 200, "↻ Sync Changes 1↑", "main", 28)
-ring(s, 300, 196, 200, 28, 4, "right")
+s.save("l14-gh-6.svg", 260)
+
+# 7. publish the branch: VS Code creates the GitHub repository and uploads
+s = Pic(W, "Step 7, click Publish Branch. At the top of VS Code type the repository name, such as my-streamlit-app, and choose "
+           "Publish to GitHub public repository. VS Code creates the repository on GitHub and uploads your commit.")
+vscode(s, 10, 10, 500, 240, side_w=0)
+for k, kind in enumerate(["files", "search", "git"]):
+    act_icon(s, 26, 40 + k * 38, kind)
+s.text(62, 40, "SOURCE CONTROL", "sc-tiny")
+btn(s, 62, 60, 150, "☁ Publish Branch", "main", 30)
+ring(s, 62, 60, 150, 30, 1, "left")
+s.box(228, 24, 272, 132, "sc-menu", 8)
+s.box(240, 34, 248, 26, "ks-bar", 4)
+s.text(250, 52, "my-streamlit-app", "ks-mono")
+ring(s, 240, 34, 248, 26, 2, "right")
+s.text(250, 88, "Publish to GitHub private repository", "sc-tiny")
+s.box(240, 102, 248, 26, "ks-bar", 4)
+s.text(250, 120, "Publish to GitHub public repository", "sc-tiny")
+ring(s, 240, 102, 248, 26, 3, "right")
+note(s, 62, 196, "ชื่อเริ่มต้น = ชื่อโฟลเดอร์ แก้ได้", "the default name is the folder's; you can change it")
+note(s, 62, 218, "เลือก public ให้ Streamlit Cloud อ่านได้", "pick public so Streamlit Cloud can read it")
 s.save("l14-gh-7.svg", 260)
 
 # 8. check on github.com
-s = Pic(W, "Step 8, check: refresh your repository page on github.com. You should see your commit message add first app and "
+FILES = ["app.py", "nlp_logic.py", "requirements.txt"]
+s = Pic(W, "Step 8, check: open your repository page on github.com. You should see your commit message add first app and "
            "the files README.md, app.py, nlp_logic.py and requirements.txt.")
 browser(s, 10, 10, 500, 230, "github.com/you/my-streamlit-app")
 s.text(34, 66, "you / my-streamlit-app", "sc-h2")

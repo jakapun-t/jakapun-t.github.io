@@ -6,7 +6,8 @@ from nlp_logic import SAMPLE, analyze_text
 
 st.title("Thai word counter")
 text = st.text_area("Reviews", SAMPLE, height=150)
-result = analyze_text(text)
+top_n = st.number_input("Top words", min_value=1, max_value=20, value=5)
+result = analyze_text(text, top_n=top_n)
 
 st.write("Words:", result["word_count"])
 st.write("Unique words:", result["unique_words"])

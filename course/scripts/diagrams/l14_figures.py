@@ -294,15 +294,15 @@ s.both(808, 194, "อ่านโค้ดจาก repo", "reads the repo", "ml
 s.save("l14-git.svg", 290)
 
 # ---------------------------------------------------------------- 10. putting a project on GitHub, step by step (S15)
-s = Svg(900, "Eight steps to put a project on GitHub from VS Code: install Git, sign up, sign in, create a repository, clone it, add files, commit and sync, then check on github.com.")
+s = Svg(900, "Eight steps to put a project on GitHub, all from VS Code: install Git, sign up, sign in, open the project folder, initialize a repository, make the first commit, publish the branch (VS Code creates the GitHub repository), then check on github.com.")
 steps = [
     ("ติดตั้ง Git", "Install Git", "git"),
     ("สมัคร GitHub", "Sign up on GitHub", "signup"),
     ("ลงชื่อเข้าใช้ใน VS Code", "Sign in from VS Code", "vscode"),
-    ("สร้าง repository", "Create a repository", "newrepo"),
-    ("Clone มาที่เครื่อง", "Clone the repo", "clone"),
-    ("ใส่ไฟล์ในโฟลเดอร์", "Add your files", "files"),
-    ("Commit แล้ว Sync", "Commit, then Sync", "commit"),
+    ("เปิดโฟลเดอร์โปรเจกต์", "Open the project folder", "files"),
+    ("Initialize Repository", "Initialize Repository", "init"),
+    ("Commit ครั้งแรก", "The first commit", "commit"),
+    ("Publish Branch", "Publish Branch", "publish"),
     ("เช็กบน github.com", "Check on github.com", "check"),
 ]
 PW, PH = 214, 176
@@ -331,34 +331,34 @@ for i, (th, en, kind) in enumerate(steps):
         s.box(x0 + 76, yv + 60, PW - 90, 32, "ks-btn", 16)
         s.text(x0 + 76 + (PW - 90) / 2, yv + 81, "Sign in with GitHub", "gt-tiny", "middle")
         s.both(x0 + 64, yv + 30, "Accounts (ล่างซ้าย)", "Accounts (bottom left)", "in-sub")
-    elif kind == "newrepo":
-        s.box(x0 + 30, yv, PW - 60, 30, "ks-btn-main", 15)
-        s.text(cx, yv + 20, "+ New repository", "ks-btn-main-t", "middle")
-        s.text(x0 + 18, yv + 56, "name: my-streamlit-app", "gt-small")
-        s.add(f'<circle cx="{x0 + 24:g}" cy="{yv + 76}" r="5" class="gt-dot"/>')
-        s.text(x0 + 36, yv + 81, "Public", "gt-small")
-        s.both(x0 + 18, yv + 104, "✓ Add a README", "✓ Add a README", "gt-small")
-    elif kind == "clone":
+    elif kind == "files":
+        s.both(x0 + 18, yv + 12, "File ▸ Open Folder…", "File ▸ Open Folder…", "gt-small")
+        for k, f in enumerate(["app.py", "nlp_logic.py", "requirements.txt"]):
+            s.box(x0 + 18, yv + 24 + k * 32, PW - 36, 26, "dv-file", 6)
+            s.text(x0 + 30, yv + 42 + k * 32, "📄 " + f, "gt-small")
+    elif kind == "init":
         s.box(x0 + 14, yv, 40, 96, "ks-term", 8)
         s.text(x0 + 34, yv + 28, "⑂", "gt-icon-w", "middle")
-        s.box(x0 + 64, yv + 8, PW - 78, 32, "ks-btn", 16)
-        s.text(x0 + 64 + (PW - 78) / 2, yv + 29, "Clone Repository", "gt-small", "middle")
-        s.both(x0 + 64, yv + 64, "เลือก repo", "pick the repo", "in-sub")
-        s.both(x0 + 64, yv + 84, "เลือกโฟลเดอร์ → Open", "pick a folder → Open", "in-sub")
-    elif kind == "files":
-        for k, f in enumerate(["app.py", "nlp_logic.py", "requirements.txt"]):
-            s.box(x0 + 18, yv + k * 36, PW - 36, 28, "dv-file", 6)
-            s.text(x0 + 30, yv + 19 + k * 36, "📄 " + f, "gt-small")
+        s.both(x0 + 64, yv + 20, "Source Control", "Source Control", "in-sub")
+        s.box(x0 + 64, yv + 34, PW - 78, 32, "ks-btn-main", 16)
+        s.text(x0 + 64 + (PW - 78) / 2, yv + 55, "Initialize", "ks-btn-main-t", "middle")
+        s.both(x0 + 64, yv + 90, "ครั้งเดียวตอนเริ่ม", "once, at the start", "in-sub")
     elif kind == "commit":
         s.box(x0 + 14, yv, PW - 28, 30, "ks-bar", 8)
-        s.both(x0 + 24, yv + 20, "ข้อความ: เพิ่มแอปแรก", "message: first app", "gt-small")
+        s.both(x0 + 24, yv + 20, "ข้อความ: add first app", "message: add first app", "gt-small")
         s.box(x0 + 14, yv + 40, PW - 28, 30, "ks-btn-main", 8)
         s.text(cx, yv + 60, "✓ Commit", "ks-btn-main-t", "middle")
-        s.box(x0 + 14, yv + 80, PW - 28, 30, "ks-btn-main", 8)
-        s.text(cx, yv + 100, "⟳ Sync Changes", "ks-btn-main-t", "middle")
+        s.both(cx, yv + 96, "ถ้าถาม ตอบ Yes", "if asked, answer Yes", "in-sub", "middle")
+    elif kind == "publish":
+        s.box(x0 + 14, yv, PW - 28, 30, "ks-btn-main", 8)
+        s.text(cx, yv + 20, "☁ Publish Branch", "ks-btn-main-t", "middle")
+        s.text(x0 + 18, yv + 56, "name: my-streamlit-app", "gt-small")
+        s.add(f'<circle cx="{x0 + 24:g}" cy="{yv + 76}" r="5" class="gt-dot"/>')
+        s.both(x0 + 36, yv + 81, "public repository", "public repository", "gt-small")
+        s.both(x0 + 18, yv + 104, "VS Code สร้าง repo ให้", "VS Code makes the repo", "in-sub")
     else:
-        s.box(x0 + 14, yv, PW - 28, 30, "ks-bar", 15)
-        s.text(cx, yv + 20, "github.com/you/my-app", "gt-small", "middle")
+        s.box(x0 + 8, yv, PW - 16, 30, "ks-bar", 15)
+        s.text(cx, yv + 20, "github.com/you/my-streamlit-app", "gt-tiny", "middle")
         for k, f in enumerate(["app.py", "nlp_logic.py", "requirements.txt"]):
             s.text(x0 + 24, yv + 56 + k * 22, "✓ " + f, "gt-ok")
 s.save("l14-github-steps.svg", 2 * PH + 32)
